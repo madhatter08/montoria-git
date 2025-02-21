@@ -1,0 +1,72 @@
+======================================
+  MONTORIA MANUAL & FEATURES UPDATES
+======================================
+-- run project
+\server> npm run server
+\client> npm run dev
+
+
+--Backend:
+install dependencies: 
+npm i express cors dotenv nodemon jsonwebtoken mongoose bcryptjs nodemailer cookie-parser
+----rules
+    [x] no duplicate schoolId and email
+
+----user
+    [x] add admin with welcome email
+    [x] add guide with welcome email
+    [x] add student with welcome email
+    [x] login
+    [x] get user data (logged in)
+    [x] reset password with email otp
+    [x] logout
+
+----school
+    [x] add level
+    [x] add program
+    [x] add class with schedule
+    [x] add area
+    [ ] add lesson, work, material
+    [x] add curriculum with program, level, area, lesson, work, material
+
+--User Roles specifics
+----admin: CRUD
+    [ ] users (admin, guide, student)
+    [ ] curriculum (program, level, class, area, lesson, work, material)
+
+
+--Frontend:
+-SETUP
+install dependencies: 
+    npm create vite@latest -> . -> React -> JavaScript
+    npm install -> npm install axios react-router-dom react-toastify
+install tailwind css:
+    link: https://tailwindcss.com/docs/installation/using-vite
+
+    [x] login (schoolId & password)
+    [x] logout
+    [x] reset password (email -> otp -> new password)
+    [x] login to dashboard based on user role
+    [x] display data of logged in user
+    [ ] user profile
+    [ ] dashboard design
+
+----admin dashboard
+    [ ] display total count of students
+    [ ] enroll students -- add user function
+    [ ] add guides -- add user function
+
+----guide dashboard
+    [ ] display student list of assigned class
+
+--Issue
+  - users can access different endpoints -- should not allowed to do this
+
+How to add asset?
+- add asset inside \client\assets folder
+- import inside assets.js folder
+- use in code ex: src={assets.file_name}
+
+
+Less prio 
+- add verify email
