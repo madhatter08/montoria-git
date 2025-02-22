@@ -1,66 +1,86 @@
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
-import backgroundImage from "../assets/background.png"; // ✅ Import background image
-import AdminNavbar from '../components/AdminNavbar'
+import AdminNavbar from "../components/AdminNavbar";
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef(null);
 
-  const handleSendMessage = () => {
-    if (input.trim() !== "") {
-      setMessages([...messages, { text: input, sender: "user" }]);
-      setInput("");
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (input.trim() === "") return;
+
+    const userMessage = { text: input, sender: "user" };
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+
+    try {
+      const response = await fetch("http://localhost:4000/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+
+      const data = await response.json();
+      if (data?.response) {
+        const botMessage = { text: data.response, sender: "bot" };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+      }
+    } catch (error) {
+      console.error("Error fetching API response:", error);
     }
+
+    setInput("");
   };
 
   return (
-    <div
-      className="w-full h-screen flex flex-col bg-cover bg-center relative"
-      style={{ backgroundImage: `url(${backgroundImage})` }} // ✅ Set background image
-      
-    >
-      <AdminNavbar />
-      {/* Help Button (Upper Right) */}
-      <button className="absolute top-4 right-4 p-2">
-        <img src={assets.help} alt="Help" className="w-12 h-12" />
-      </button>
+    <div className="w-full h-screen flex flex-col bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${assets.background})` }}>
+      <div className="sticky top-0 left-0 w-full z-50 bg-white shadow-md overflow-hidden">
+        <AdminNavbar />
+      </div>
 
-      {/* Chatbot Messages Container */}
-      <div className="flex-1 px-4 py-6 flex flex-col items-center justify-start">
+      <div className="flex-1 px-4 py-6 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
         <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-2xl">
-          {/* Image beside greeting */}
           <img className="w-20 h-20 md:w-32 md:h-32" src={assets.chatbot_logo} alt="Chatbot" />
-
-          {/* Greeting Text */}
           <div className="text-center md:text-left flex flex-col">
-            <h2 className="text-[#1e1e1e] text-2xl md:text-4xl font-bold font-['League Spartan']">
-              Hello, User!
-            </h2>
-            <p className="text-[#1e1e1e] text-lg md:text-2xl font-semibold mt-2">
-              How may I help you today?
-            </p>
+            <h2 className="text-[#1e1e1e] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, User!</h2>
+            <p className="text-[#1e1e1e] text-lg md:text-2xl font-semibold mt-2">How may I help you today?</p>
           </div>
         </div>
 
-        {/* Chat Messages */}
-        <div className="mt-6 w-full max-w-2xl flex flex-col gap-4">
+        <div className="mt-6 w-full max-w-2xl flex flex-col gap-4 pb-20">
           {messages.map((msg, index) => (
-            <div key={index} className={`p-3 rounded-3xl ${msg.sender === "user" ? "bg-green-600 self-end" : "bg-gray-200 self-start"}`}>
-              {msg.text}
+            <div key={index} className={`flex items-start gap-2 ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
+              {msg.sender === "user" && (
+                <img src={assets.user_profile} alt="User" className="w-10 h-10 rounded-full" />
+              )}
+              {msg.sender === "bot" && (
+                <img src={assets.chatbot_logo} alt="Chatbot" className="w-16 h-16 rounded-full self-start" />
+              )}
+              <div
+                className={`p-3 rounded-3xl max-w-[75%] break-words ${msg.sender === "user" ? "bg-green-600 text-white self-end text-left ml-auto" : "bg-gray-200 text-gray-900 self-start text-left mr-auto"}`}
+                style={{ wordWrap: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}
+              >
+                {msg.text}
+              </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Chat Input Section */}
-      <div className="w-full p-4 bg-gray-100 flex items-center relative">
-        {/* New Chat Icon (Outside Text Field) */}
+      <div className="fixed bottom-0 left-0 w-full p-4 bg-gray-100 flex items-center shadow-lg">
+        <button className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition mr-3">
+          <img src={assets.help} alt="Help" className="w-10 h-10" />
+        </button>
+
         <button className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition mr-3">
           <img src={assets.new_chat} alt="New Chat" className="w-10 h-10" />
         </button>
 
-        {/* Input Field */}
         <input
           type="text"
           className="flex-1 p-3 rounded-lg border border-gray-300 outline-none"
@@ -70,11 +90,7 @@ const Chatbot = () => {
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
         />
 
-        {/* Send Button */}
-        <button
-          className="ml-3 px-4 py-2 bg-green-600 text-white rounded-lg"
-          onClick={handleSendMessage}
-        >
+        <button className="ml-3 px-4 py-2 bg-green-600 text-white rounded-lg" onClick={handleSendMessage}>
           Send
         </button>
       </div>
