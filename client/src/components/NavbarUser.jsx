@@ -100,7 +100,7 @@ const NavbarUser = () => {
         </div>
 
         {/* User Profile and Logout */}
-        <div className="w-8 h-8 hidden lg:flex justify-center items-center rounded-full bg-black text-white relative group hover:scale-110 transition-all">
+        <div className="w-8 h-8 hidden lg:flex justify-center items-center rounded-full bg-black text-white relative group hover:scale-110 hover:bg-[#9d16be] transition-all">
           {displayName}
           <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black pt-10">
             <ul className="list-none m-0 p-2 bg-gray-100 text-sm rounded-md">

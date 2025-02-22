@@ -15,6 +15,12 @@ import help from './help.png'
 import user_profile from './user_profile.png'
 import close from './close.png'
 import mobile_menu from './mobile_menu.png'
+import lesson_plan from './lesson_plan.png'
+import curriculum from './curriculum.png'
+import progress from './progress.png'
+import classes from './classes.png'
+import sidebar_close from './sidebar_close.png'
+import sidebar_open from './sidebar_open.png'
 
 export const assets = {
     arrow_icon,
@@ -33,5 +39,11 @@ export const assets = {
     help,
     user_profile,
     close,
-    mobile_menu
+    mobile_menu,
+    lesson_plan,
+    curriculum,
+    progress,
+    classes,
+    sidebar_close,
+    sidebar_open
 }
