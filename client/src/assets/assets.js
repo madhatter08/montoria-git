@@ -7,6 +7,11 @@ import hand_wave from './hand_wave.png'
 import header_img from './header_img.png'
 import montoria from './montoria.svg'
 import montoria_home from './montoria_home.png'
+import search from './search.png'
+import chatbot_logo from './chatbot_logo.png'
+import background from './background.png'
+import new_chat from './new_chat.png'
+import help from './help.png'
 
 export const assets = {
     arrow_icon,
@@ -18,4 +23,10 @@ export const assets = {
     header_img,
     montoria,
     montoria_home,
+    search,
+    chatbot_logo,
+    background,
+    new_chat,
+    help
+
 }
