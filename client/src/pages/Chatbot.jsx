@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
-import AdminNavbar from "../components/AdminNavbar";
+import NavbarUser from "../components/NavbarUser";
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -38,11 +38,12 @@ const Chatbot = () => {
 
   return (
     <div className="w-full h-screen flex flex-col bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${assets.background})` }}>
-      <div className="sticky top-0 left-0 w-full z-50 bg-white shadow-md overflow-hidden">
-        <AdminNavbar />
+  
+      <div className="sticky top-0 left-0 w-full z-50 bg-white shadow-md">
+      <NavbarUser />
       </div>
 
-      <div className="flex-1 px-4 py-6 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
+      <div className="flex-1 px-4 py-6 mt-20 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
         <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-2xl">
           <img className="w-20 h-20 md:w-32 md:h-32" src={assets.chatbot_logo} alt="Chatbot" />
           <div className="text-center md:text-left flex flex-col">
@@ -61,7 +62,7 @@ const Chatbot = () => {
                 <img src={assets.chatbot_logo} alt="Chatbot" className="w-16 h-16 rounded-full self-start" />
               )}
               <div
-                className={`p-3 rounded-3xl max-w-[75%] break-words ${msg.sender === "user" ? "bg-green-600 text-white self-end text-left ml-auto" : "bg-gray-200 text-gray-900 self-start text-left mr-auto"}`}
+                className={`p-3 rounded-3xl max-w-[75%] break-words ${msg.sender === "user" ? "bg-[#9d16be] text-white self-end text-left ml-auto" : "bg-white text-gray-900 self-start text-left mr-auto"}`}
                 style={{ wordWrap: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}
               >
                 {msg.text}
@@ -90,7 +91,7 @@ const Chatbot = () => {
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
         />
 
-        <button className="ml-3 px-4 py-2 bg-green-600 text-white rounded-lg" onClick={handleSendMessage}>
+        <button className="ml-3 px-4 py-2 bg-[#9d16be] text-white rounded-lg" onClick={handleSendMessage}>
           Send
         </button>
       </div>
