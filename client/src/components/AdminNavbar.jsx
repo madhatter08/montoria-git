@@ -1,4 +1,4 @@
-import React from 'react';
+//import React from 'react';
 import { assets } from "../assets/assets"
 const AdminNavbar = () => {
   return (
@@ -17,22 +17,11 @@ const AdminNavbar = () => {
         </div>
 
     
-     {/* Responsive Search Bar */}
-<div className="relative w-80 mt-5 max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-10 flex items-center bg-gray-200 rounded-full border px-4 mx-auto">
-  <input 
-    type="text" 
-    placeholder="Search..." 
-    className="w-full bg-transparent outline-none text-gray-700 text-sm md:text-base placeholder-gray-500"
-  />
-  <img 
-    className="w-5 md:w-5 h-5 md:h-5 absolute right-4 cursor-pointer" 
-    src={assets.search} 
-    alt="Search" 
-  />
-</div>
-
-
-
+      {/* Responsive Search Bar */}
+        <div className="relative w-80 mt-5 max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-10 flex items-center bg-gray-200 rounded-full border px-4 mx-auto">
+          <input type="text" placeholder="Search..." className="w-full bg-transparent outline-none text-gray-700 text-sm md:text-base placeholder-gray-500" />
+          <img className="w-5 md:w-5 h-5 md:h-5 absolute right-4 cursor-pointer" src={assets.search} alt="Search" />
+        </div>
       </div>
     </div>
   );

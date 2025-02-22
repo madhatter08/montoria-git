@@ -12,6 +12,8 @@ import chatbot_logo from './chatbot_logo.png'
 import background from './background.png'
 import new_chat from './new_chat.png'
 import help from './help.png'
+import close from './close.png'
+import mobile_menu from './mobile_menu.png'
 
 export const assets = {
     arrow_icon,
@@ -27,6 +29,7 @@ export const assets = {
     chatbot_logo,
     background,
     new_chat,
-    help
-
+    help,
+    close,
+    mobile_menu
 }
