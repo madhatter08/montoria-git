@@ -12,6 +12,7 @@ import chatbot_logo from './chatbot_logo.png'
 import background from './background.png'
 import new_chat from './new_chat.png'
 import help from './help.png'
+import user_profile from './user_profile.png'
 import close from './close.png'
 import mobile_menu from './mobile_menu.png'
 
@@ -30,6 +31,7 @@ export const assets = {
     background,
     new_chat,
     help,
+    user_profile,
     close,
     mobile_menu
 }

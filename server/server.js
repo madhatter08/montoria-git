@@ -6,6 +6,7 @@ import connectdb from "./config/mongodb.js"
 import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import schoolRouter from "./routes/schoolRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 const app = express()
 const port = process.env.PORT || 4000
@@ -23,3 +24,4 @@ app.use("/api/user", userRouter);
 app.use("/api/school", schoolRouter);
 
 app.listen(port, () => console.log(`Server listening on PORT: ${port}`))
+app.use("/api", chatRoutes);
