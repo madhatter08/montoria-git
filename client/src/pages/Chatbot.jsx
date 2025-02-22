@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { assets } from "../assets/assets";
 import backgroundImage from "../assets/background.png"; // ✅ Import background image
 import AdminNavbar from '../components/AdminNavbar'
