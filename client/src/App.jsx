@@ -9,6 +9,7 @@ import ResetPassword from './pages/ResetPassword'
 import DashboardAdmin from './pages/DashboardAdmin'
 import DashboardGuide from './pages/DashboardGuide'
 import DashboardStudent from './pages/DashboardStudent'
+import Chatbot from './pages/Chatbot'
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="/dashboard-guide" element={<DashboardGuide />} />
         <Route path="/dashboard-student" element={<DashboardStudent />} />
+        <Route path="/montoria-ai" element={<Chatbot />} />
         {/* Public Routes
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />

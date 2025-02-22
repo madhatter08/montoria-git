@@ -25,8 +25,17 @@ const NavbarDb = () => {
   }
   
   return (
+    
     <div className="w-full flex justify-between items-center p-4 sm:p-6 sm:px-24 absolute top-0">
+      
       <img src={assets.montoria_home} alt="montoria logo" className="w-36 sm:w-40" />
+
+      <div className="md:flex space-x-8">
+          <a href="#home" className="text-gray-900 text-lg font-bold hover:text-green-600">HOME</a>
+          <a href="#admission" className="text-gray-900 text-lg font-bold hover:text-green-600">ADMISSION</a>
+          <a href="#workspace" className="text-gray-900 text-lg font-bold hover:text-green-600">WORKSPACE</a>
+          <a href="#montoria" className="text-gray-900 text-lg font-bold hover:text-green-600">MONTORIA AI</a>
+        </div>
         <div className="w-8 h-8 flex justify-center items-center rounded-full bg-black text-white relative group">
           {displayName}
           <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black rounded pt-10">
