@@ -11,8 +11,7 @@ import DashboardGuide from './pages/DashboardGuide'
 import DashboardStudent from './pages/DashboardStudent'
 import Chatbot from './pages/Chatbot'
 import Workspace from './pages/Workspace'
-
-
+import Admission from './pages/Admission'
 const App = () => {
   return (
     <div>
@@ -26,6 +25,7 @@ const App = () => {
         <Route path="/dashboard-student" element={<DashboardStudent />} />
         <Route path="/montoria-ai" element={<Chatbot />} />
         <Route path="/workspace/*" element={<Workspace />} />
+        <Route path="/admission" element={<Admission/>} />
         {/* Public Routes
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
