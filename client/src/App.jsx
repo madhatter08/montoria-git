@@ -24,9 +24,8 @@ const App = () => {
         <Route path="/dashboard-guide" element={<DashboardGuide />} />
         <Route path="/dashboard-student" element={<DashboardStudent />} />
         <Route path="/montoria-ai" element={<Chatbot />} />
-        <Route path="/workspace" element={<Workspace/>} />
+        <Route path="/workspace/*" element={<Workspace />} />
         <Route path="/admission" element={<Admission/>} />
-
         {/* Public Routes
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
