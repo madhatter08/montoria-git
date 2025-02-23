@@ -22,6 +22,8 @@ import classes from './classes.png'
 import sidebar_close from './sidebar_close.png'
 import sidebar_open from './sidebar_open.png'
 import edit from './edit.png'
+import edit_profile from './edit_profile.png'
+import delete_icon from './delete_icon.png'
 
 export const assets = {
     arrow_icon,
@@ -47,5 +49,8 @@ export const assets = {
     classes,
     sidebar_close,
     sidebar_open,
-    edit
+    edit,
+    edit_profile,
+    delete_icon
+
 }
