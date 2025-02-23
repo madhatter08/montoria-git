@@ -43,12 +43,12 @@ const Chatbot = () => {
       <NavbarUser />
       </div>
 
-      <div className="flex-1 px-4 py-6 mt-20 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
+      <div className="flex-1 px-4 py-6 mt-25 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
         <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-2xl">
-          <img className="w-20 h-20 md:w-32 md:h-32" src={assets.chatbot_logo} alt="Chatbot" />
+          <img className="w-25h-25 md:w-35 md:h-35" src={assets.chatbot_logo} alt="Chatbot" />
           <div className="text-center md:text-left flex flex-col">
-            <h2 className="text-[#1e1e1e] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, User!</h2>
-            <p className="text-[#1e1e1e] text-lg md:text-2xl font-semibold mt-2">How may I help you today?</p>
+            <h2 className="text-[#000000] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, User!</h2>
+            <p className="text-[#000000] text-lg md:text-2xl font-semibold mt-2">How may I help you today?</p>
           </div>
         </div>
 
