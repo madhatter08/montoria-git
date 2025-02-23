@@ -1,7 +1,10 @@
 import { useState } from "react";
 import NavbarUser from "../components/NavbarUser";
+import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
+import AdminForm from "../Forms/AdminForm"; // Create this component
+import GuideForm from "../Forms/GuideForm"; // Create this component
 import background from "../assets/background.png";
-import { assets } from "../assets/assets"; 
+import { assets } from "../assets/assets";
 
 const tabContent = {
   students: Array(10).fill({
@@ -12,12 +15,12 @@ const tabContent = {
     parent: "",
     phone: "",
     email: "",
-    remarks: ""
+    remarks: "",
   }),
   admin: Array(5).fill({
     schoolId: "",
     name: "",
-    position: ""
+    position: "",
   }),
   guide: Array(8).fill({
     photo: "",
@@ -25,23 +28,38 @@ const tabContent = {
     name: "",
     email: "",
     phone: "",
-    class: ""
-  })
+    class: "",
+  }),
 };
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("students");
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const tabs = [
     { name: "GUIDE", key: "guide", count: tabContent.guide.length },
     { name: "ADMIN", key: "admin", count: tabContent.admin.length },
-    { name: "STUDENTS", key: "students", count: tabContent.students.length }
+    { name: "STUDENTS", key: "students", count: tabContent.students.length },
   ];
+
+  // Function to render the appropriate form based on the active tab
+  const renderForm = () => {
+    switch (activeTab) {
+      case "students":
+        return <StudentAdmissionForm onClose={() => setIsFormOpen(false)} />;
+      case "admin":
+        return <AdminForm onClose={() => setIsFormOpen(false)} />;
+      case "guide":
+        return <GuideForm onClose={() => setIsFormOpen(false)} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="h-screen w-full bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${background})` }}>
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
-        <NavbarUser /> //
+        <NavbarUser />
       </div>
 
       <div className="max-w-7xl mx-auto p-6 rounded-lg mt-10 bg-transparent">
@@ -69,7 +87,10 @@ export default function TabPanel() {
             </div>
             <div className="flex space-x-2">
               <button className="border p-2 bg-gray-100 rounded-xl">Export</button>
-              <button className="bg-black text-white px-4 py-2 rounded-xl">+ Create New</button>
+              {/* "Create New" Button for Students, Admin, and Guide Tabs */}
+              <button className="bg-black text-white px-4 py-2 rounded-xl" onClick={() => setIsFormOpen(true)}>
+                + Create New
+              </button>
             </div>
           </div>
 
@@ -109,6 +130,21 @@ export default function TabPanel() {
           </div>
         </div>
       </div>
+
+      {/* Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
+            <button
+              className="absolute top-4 right-4 text-[#9d16be] hover:underline"
+              onClick={() => setIsFormOpen(false)}
+            >
+              Cancel
+            </button>
+            {renderForm()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
