@@ -21,6 +21,7 @@ import progress from './progress.png'
 import classes from './classes.png'
 import sidebar_close from './sidebar_close.png'
 import sidebar_open from './sidebar_open.png'
+import edit from './edit.png'
 
 export const assets = {
     arrow_icon,
@@ -45,5 +46,6 @@ export const assets = {
     progress,
     classes,
     sidebar_close,
-    sidebar_open
+    sidebar_open,
+    edit
 }
