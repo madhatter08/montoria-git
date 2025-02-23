@@ -1,31 +1,22 @@
+import { useState } from "react";
 import { assets } from "../assets/assets";
-import PropTypes from "prop-types";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const menuItems = [
-  { label: "CLASS", icon: assets.classes, path: "/workspace/class" },
-  { label: "PROGRESS", icon: assets.progress, path: "/workspace/progress" },
-  {
-    label: "LESSON PLAN",
-    icon: assets.lesson_plan,
-    path: "/workspace/lesson-plan",
-  },
-  {
-    label: "CURRICULUM",
-    icon: assets.curriculum,
-    path: "/workspace/curriculum",
-  },
+  { label: "CLASS", icon: assets.classes },
+  { label: "PROGRESS", icon: assets.progress },
+  { label: "LESSON PLAN", icon: assets.lesson_plan },
+  { label: "CURRICULUM", icon: assets.curriculum },
 ];
 
-const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
-  const navigate = useNavigate(); // Hook for navigation
+const SidebarWs = () => {
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="relative">
       {/* Sidebar positioned below the navigation bar */}
       <div
         className={`fixed top-28 left-0 z-30 h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col items-center ${
-          isOpen ? "w-60 bg-[#9d16be] p-5" : "w-16 bg-purple-200 p-3"
+          isOpen ? "w-55 bg-[#9d16be] p-5" : "w-16 bg-purple-200 p-3"
         }`}
       >
         {/* Sidebar Toggle Button */}
@@ -52,16 +43,11 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-6 w-47 flex flex-col gap-3">
+            <div className="mt-6 w-46 flex flex-col gap-3">
               {menuItems.map((item, index) => (
                 <button
                   key={index}
-                  onClick={() => navigate(item.path)} // Navigate to the corresponding route
-                  className={`w-full flex items-center ${
-                    currentRoute === item.path
-                      ? "bg-purple-200 text-purple-900" // Active button style
-                      : "bg-white hover:bg-gray-300 text-gray-900" // Default button style
-                  } rounded-lg px-3 py-2 text-left text-base font-semibold shadow-md transition-all`}
+                  className="w-full flex items-center bg-white hover:bg-gray-300 rounded-lg px-3 py-2 text-left text-base font-semibold text-gray-900 shadow-md transition-all"
                 >
                   <img
                     className="w-5 h-5 mr-3"
@@ -96,7 +82,6 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
                 className="w-6 h-6 cursor-pointer"
                 src={item.icon}
                 alt={item.label}
-                onClick={() => navigate(item.path)} // Navigate to the corresponding route
               />
             ))}
           </div>
@@ -104,12 +89,6 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
       </div>
     </div>
   );
-};
-
-SidebarWs.propTypes = {
-  isOpen: PropTypes.bool.isRequired, // Ensure isOpen is a boolean and is required
-  setIsOpen: PropTypes.func.isRequired, // Ensure setIsOpen is a function and is required
-  currentRoute: PropTypes.string.isRequired, // Ensure currentRoute is a string and is required
 };
 
 export default SidebarWs;
