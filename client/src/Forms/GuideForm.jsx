@@ -5,38 +5,71 @@ const GuideForm = ({ onClose }) => {
     <div>
       <h2 className="text-2xl font-bold text-center mb-4">Guide Form</h2>
       <form className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">School ID</label>
+      <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"
-            placeholder="School ID"
+            placeholder=""
             className="border p-2 rounded w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"
-            placeholder="Name"
+            placeholder="2022-1234"
             className="border p-2 rounded w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
+          <input
+            type="text"
+            placeholder="First Name"
+            className="border p-2 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
+          <input
+            type="text"
+            placeholder="Middle Name"
+            className="border p-2 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
+          <input
+            type="text"
+            placeholder="Last Name"
+            className="border p-2 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="sample@gmail.com"
             className="border p-2 rounded w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Phone</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="tel"
-            placeholder="Phone"
+            placeholder="09123456789"
             className="border p-2 rounded w-full"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
+          <input
+            type="text"
+            placeholder="Class Assigned"
+            className="border p-2 rounded w-full"
+          />
+        </div>
+        
         <div className="col-span-2 flex justify-end space-x-4 mt-4">
           <button
             type="button"
