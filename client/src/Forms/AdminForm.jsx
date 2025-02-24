@@ -6,15 +6,15 @@ const AdminForm = ({ onClose }) => {
       <h2 className="text-2xl font-bold text-center mb-4">Admin Form</h2>
       <form className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">School ID</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"
-            placeholder="School ID"
+            placeholder="2022-1234"
             className="border p-2 rounded w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"
             placeholder="Name"
@@ -22,10 +22,18 @@ const AdminForm = ({ onClose }) => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Position</label>
+          <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"
-            placeholder="Position"
+            placeholder="sample@gmail.com"
+            className="border p-2 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700"></label>
+          <input
+            type="text"
+            placeholder="09123456789"
             className="border p-2 rounded w-full"
           />
         </div>

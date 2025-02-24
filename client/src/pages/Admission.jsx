@@ -20,10 +20,10 @@ const tabContent = {
   admin: Array(5).fill({
     schoolId: "",
     name: "",
-    position: "",
+    phone: "",
+    email:"",
   }),
   guide: Array(8).fill({
-    photo: "",
     schoolId: "",
     name: "",
     email: "",
@@ -88,9 +88,11 @@ export default function TabPanel() {
             <div className="flex space-x-2">
               <button className="border p-2 bg-gray-100 rounded-xl">Export</button>
               {/* "Create New" Button for Students, Admin, and Guide Tabs */}
-              <button className="bg-black text-white px-4 py-2 rounded-xl" onClick={() => setIsFormOpen(true)}>
-                + Create New
-              </button>
+              {(activeTab === "students" || activeTab === "admin" || activeTab === "guide") && (
+                <button className="bg-black text-white px-4 py-2 rounded-xl" onClick={() => setIsFormOpen(true)}>
+                  + Create New
+                </button>
+              )}
             </div>
           </div>
 
@@ -133,14 +135,9 @@ export default function TabPanel() {
 
       {/* Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
-            <button
-              className="absolute top-4 right-4 text-[#9d16be] hover:underline"
-              onClick={() => setIsFormOpen(false)}
-            >
-              Cancel
-            </button>
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
+          <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
+            
             {renderForm()}
           </div>
         </div>
