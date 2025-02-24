@@ -57,7 +57,7 @@ export default function TabPanel() {
   };
 
   return (
-    <div className="h-screen w-full bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${background})` }}>
+    <div className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto" style={{ backgroundImage: `url(${background})` }}>
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
         <NavbarUser />
       </div>
