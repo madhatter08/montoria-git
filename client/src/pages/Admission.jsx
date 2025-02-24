@@ -1,9 +1,8 @@
 import { useState } from "react";
 import NavbarUser from "../components/NavbarUser";
 import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
-import AdminForm from "../Forms/AdminForm"; // Create this component
-import GuideForm from "../Forms/GuideForm"; // Create this component
-import background from "../assets/background.png";
+import AdminForm from "../Forms/AdminForm"; 
+import GuideForm from "../Forms/GuideForm"; 
 import { assets } from "../assets/assets";
 
 const tabContent = {
@@ -57,7 +56,7 @@ export default function TabPanel() {
   };
 
   return (
-    <div className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto" style={{ backgroundImage: `url(${background})` }}>
+    <div className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto" style={{ background: "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)" }}>
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
         <NavbarUser />
       </div>
