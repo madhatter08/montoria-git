@@ -69,7 +69,7 @@ const Class = () => {
   ];
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
+    <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Class Page</h1>
 
       {/* Dropdowns, Search Bar, and Generate Report Button */}

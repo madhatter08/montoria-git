@@ -1,12 +1,51 @@
 import { useState } from "react";
 import { assets } from "../../assets/assets";
 
+// Mock RemarksForm component (replace with your actual form component)
+const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
+  const [remarks, setRemarks] = useState(initialRemarks || "");
+
+  const handleSave = () => {
+    onSave(remarks);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-transparent  bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded-lg shadow-5xl border w-96">
+        <h2 className="text-xl font-bold mb-4">Edit Remarks</h2>
+        <textarea
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          className="w-full h-24 p-2 border rounded-lg"
+          placeholder="Enter remarks..."
+        />
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={onClose}
+            className="bg-gray-300 text-black px-4 py-2 rounded-lg mr-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Progress = () => {
   const [progress, setProgress] = useState(
-    Array(15).fill({ presented: false, practiced: false, mastered: false })
+    Array(15).fill({ presented: false, practiced: false, mastered: false, remarks: "" })
   );
   const [selectedStudent, setSelectedStudent] = useState("STUDENT NAME");
   const [searchTerm, setSearchTerm] = useState("");
+  const [editIndex, setEditIndex] = useState(null); // Track which row's remarks form is open
 
   const handleCheckboxChange = (index, field) => {
     setProgress((prev) => {
@@ -31,6 +70,19 @@ const Progress = () => {
       newProgress[index] = row;
       return newProgress;
     });
+  };
+
+  const handleEditRemarks = (index) => {
+    setEditIndex(index); // Open the remarks form for the specific row
+  };
+
+  const handleSaveRemarks = (index, remarks) => {
+    setProgress((prev) => {
+      const newProgress = [...prev];
+      newProgress[index].remarks = remarks;
+      return newProgress;
+    });
+    setEditIndex(null); // Close the remarks form
   };
 
   return (
@@ -75,23 +127,23 @@ const Progress = () => {
 
       {/* Table Section */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300">
+        <table className="w-full table-fixed bg-white rounded-lg shadow overflow-hidden">
           <thead className="bg-[#9d16be] text-white">
             <tr>
-              <th className="border px-2 py-2 w-40 md:w-80">WORK</th>
-              <th className="border px-1 py-2 text-center w-20">PRESENTED</th>
-              <th className="border px-1 py-2 text-center w-20">PRACTICED</th>
-              <th className="border px-1 py-2 text-center w-20">MASTERED</th>
-              <th className="border px-2 py-2 w-40 md:w-80">REMARKS</th>
-              <th className="border px-2 py-2 w-32">DATE PRESENTED</th>
-              <th className="border px-2 py-2 w-32">DATE MASTERED</th>
+              <th className="p-3 text-center w-1/6">WORK</th>
+              <th className="p-3 text-center w-1/12">PRESENTED</th>
+              <th className="p-3 text-center w-1/12">PRACTICED</th>
+              <th className="p-3 text-center w-1/12">MASTERED</th>
+              <th className="p-3 text-center w-1/6">REMARKS</th>
+              <th className="p-3 text-center w-1/8">DATE PRESENTED</th>
+              <th className="p-3 text-center w-1/8">DATE MASTERED</th>
             </tr>
           </thead>
           <tbody>
             {progress.map((row, index) => (
-              <tr key={index}>
-                <td className="border px-2 py-2">Work {index + 1}</td>
-                <td className="border px-1 py-2 text-center w-20">
+              <tr key={index} className="border-b">
+                <td className="p-3">Work {index + 1}</td>
+                <td className="p-3 text-center">
                   <input
                     type="checkbox"
                     className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
@@ -99,7 +151,7 @@ const Progress = () => {
                     onChange={() => handleCheckboxChange(index, "presented")}
                   />
                 </td>
-                <td className="border px-1 py-2 text-center w-20">
+                <td className="p-3 text-center">
                   <input
                     type="checkbox"
                     className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
@@ -108,7 +160,7 @@ const Progress = () => {
                     disabled={!row.presented}
                   />
                 </td>
-                <td className="border px-1 py-2 text-center w-20">
+                <td className="p-3 text-center">
                   <input
                     type="checkbox"
                     className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
@@ -117,19 +169,31 @@ const Progress = () => {
                     disabled={!row.presented || !row.practiced}
                   />
                 </td>
-                <td className="border px-2 py-2 text-center w-40 md:w-80 relative">
-                  -
-                  <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <td className="p-3 relative">
+                  {row.remarks || "-"}
+                  <button
+                    onClick={() => handleEditRemarks(index)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  >
                     <img src={assets.edit} alt="Edit" className="w-5 h-5" />
                   </button>
                 </td>
-                <td className="border px-2 py-2 text-center w-32">-</td>
-                <td className="border px-2 py-2 text-center w-32">-</td>
+                <td className="p-3">-</td>
+                <td className="p-3">-</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Remarks Form Modal */}
+      {editIndex !== null && (
+        <RemarksForm
+          onClose={() => setEditIndex(null)}
+          onSave={(remarks) => handleSaveRemarks(editIndex, remarks)}
+          initialRemarks={progress[editIndex].remarks}
+        />
+      )}
     </div>
   );
 };

@@ -24,6 +24,7 @@ import sidebar_open from './sidebar_open.png'
 import edit from './edit.png'
 import edit_profile from './edit_profile.png'
 import delete_icon from './delete_icon.png'
+import check from './check.png'
 import login_bg from './login_bg.jpg'
 import montoria_logo_white from './montoria_logo_white.png'
 
@@ -54,6 +55,7 @@ export const assets = {
     edit,
     edit_profile,
     delete_icon,
+    check,
     login_bg,
     montoria_logo_white
 }

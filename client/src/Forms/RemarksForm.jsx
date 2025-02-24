@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const RemarksForm = ({ onSave, onCancel }) => {
+const Remarksform = ({ onSave, onCancel }) => {
   const [remarks, setRemarks] = useState("");
 
   const handleSubmit = (event) => {
@@ -41,4 +41,4 @@ const RemarksForm = ({ onSave, onCancel }) => {
   );
 };
 
-export default RemarksForm;
+export default Remarksform;
