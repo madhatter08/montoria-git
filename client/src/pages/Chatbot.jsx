@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
 import NavbarUser from "../components/NavbarUser";
 
@@ -37,7 +37,7 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${assets.background})` }}>
+    <div className="w-full h-screen flex flex-col bg-cover bg-center overflow-hidden" style={{ background: "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)" }}>
   
       <div className="sticky top-0 left-0 w-full z-50 bg-white shadow-md">
       <NavbarUser />
