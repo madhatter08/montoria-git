@@ -21,7 +21,7 @@ const tabContent = {
     schoolId: "",
     name: "",
     phone: "",
-    email:"",
+    email: "",
   }),
   guide: Array(8).fill({
     schoolId: "",
@@ -97,24 +97,24 @@ export default function TabPanel() {
           </div>
 
           {/* Table */}
-          <div className="mt-4 overflow-auto">
-            <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg">
-              <thead>
-                <tr className="bg-[#9d16be] text-white">
+          <div className="bg-white rounded-lg mt-4  shadow overflow-hidden">
+            <table className="w-full table-fixed"> {/* Use table-fixed for equal column sizes */}
+              <thead className="bg-[#9d16be] text-white">
+                <tr>
                   {Object.keys(tabContent[activeTab][0]).map((field, i) => (
-                    <th key={i} className="border p-2">{field.toUpperCase().replace(/_/g, " ")}</th>
+                    <th key={i} className="p-3 text-left w-1/6">{field.toUpperCase().replace(/_/g, " ")}</th>
                   ))}
-                  <th className="border p-2">ACTION</th>
+                  <th className="p-3 text-left w-1/6">ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {tabContent[activeTab].map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr key={index} className="border-b">
                     {Object.values(item).map((value, i) => (
-                      <td key={i} className="border p-2 text-center">{value}</td>
+                      <td key={i} className="p-3">{value}</td>
                     ))}
-                    <td className="border p-2 text-center">
-                      <div className="flex justify-center space-x-2">
+                    <td className="p-3">
+                      <div className="flex justify-start space-x-2">
                         <img src={assets.edit_profile} alt="Edit" className="w-5 h-5 cursor-pointer" />
                         <img src={assets.delete_icon} alt="Delete" className="w-5 h-5 cursor-pointer" />
                       </div>
@@ -137,7 +137,6 @@ export default function TabPanel() {
       {isFormOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
           <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
-            
             {renderForm()}
           </div>
         </div>

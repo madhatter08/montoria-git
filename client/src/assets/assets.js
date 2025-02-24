@@ -24,6 +24,7 @@ import sidebar_open from './sidebar_open.png'
 import edit from './edit.png'
 import edit_profile from './edit_profile.png'
 import delete_icon from './delete_icon.png'
+import check from './check.png'
 
 export const assets = {
     arrow_icon,
@@ -51,6 +52,7 @@ export const assets = {
     sidebar_open,
     edit,
     edit_profile,
-    delete_icon
+    delete_icon,
+    check
 
 }
