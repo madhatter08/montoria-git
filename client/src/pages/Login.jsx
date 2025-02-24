@@ -53,8 +53,13 @@ const Login = () => {
     window.location.href = mailtoLink;
   };
   return (
-    <div className='flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-br from-blue-200 to-purple-400'>
-      <img onClick={() => navigate("/")} src={assets.montoria_home} alt="montoria logo" className='absolute left-5 sm:left-20 top-5 w-36 sm:w-40 cursor-pointer' />
+    <div className='flex items-center justify-center min-h-screen bg-cover px-6 sm:px-0' style={{ backgroundImage: `url(${assets.login_bg})`, backgroundPosition: "center 50%", }}>
+      <div className="absolute inset-0 bg-black opacity-40"></div>
+      <div className="w-full flex justify-between items-center p-4 sm:p-6 sm:px-24 absolute top-0">
+        <img onClick={() => navigate("/")} src={assets.montoria_home} alt="montoria logo" className='absolute left-5 sm:left-20 top-5 w-36 sm:w-48 hover:scale-110 cursor-pointer transition-all' />
+      </div>
+
+      <div className="relative z-10 w-full flex flex-col items-center">
       <div className='bg-slate-900 p-10 rounded-lg shadow-lg w-full sm:w-96 text-indigo-300 text-sm'>
         <h2 className='text-3xl font-semibold text-white text-center mb-3'>Login</h2>
         <p className='text-center text-sm mb-6'>Login to your account</p>
@@ -79,6 +84,7 @@ const Login = () => {
           <p className='text-gray-400 text-center text-xs mt-4'>Can&apos;t access your account? {' '}
           <span onClick={handleEmailClick} className='text-blue-400 cursor-pointer underline'>Contact us</span></p>
         </form>
+        </div>
       </div>
     </div>
   )

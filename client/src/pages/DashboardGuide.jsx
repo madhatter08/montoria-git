@@ -8,15 +8,15 @@ const DashboardGuide = () => {
   const { userData } = useContext(AppContext);
   return (
     <div
-          className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${assets.background})`,
-            backgroundRepeat: "repeat",
-          }}
-        >
-      <NavbarUser />
-      <div>Dashboard Guide: {userData ? userData.roleData.firstName : "Guide"}</div>
-      <Scheduler />
+      className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center"
+      style={{
+        background: "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)",
+        backgroundRepeat: "repeat",
+      }}
+    >
+    <NavbarUser />
+    <div>Dashboard Guide: {userData ? userData.roleData.firstName : "Guide"}</div>
+    <Scheduler />
     </div>
   );
 };
