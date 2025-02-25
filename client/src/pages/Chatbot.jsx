@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
 import NavbarUser from "../components/NavbarUser";
+import { useContext } from "react";
+import { AppContext } from "../context/AppContext";
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -10,6 +12,12 @@ const Chatbot = () => {
   const [chatTopic, setChatTopic] = useState(""); // State for chat topic
   const [selectedChat, setSelectedChat] = useState(null); // State for selected chat
   const messagesEndRef = useRef(null);
+
+  const { userData } = useContext(AppContext);
+  const displayName =
+    userData.role === "admin"
+      ? userData.roleData?.name
+      : userData.roleData?.firstName;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,17 +71,26 @@ const Chatbot = () => {
 
   return (
     <div className="w-full h-screen flex bg-cover bg-center overflow-hidden" style={{ background: "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)" }}>
+      {/* Sidebar Toggle Button */}
+      <button
+        onClick={toggleSidebar}
+        className={`absolute top-[125px] z-50 
+          ${isSidebarOpen ? "xl:left-[16.5%] lg:left-[24.5%] md:left-[24.5%] sm:left-[33%] left-[35%] rounded-r-lg" : "left-6 rounded-lg"} 
+          p-2 bg-white hover:bg-gray-100 transition-all`}
+      >
+        <img src={isSidebarOpen ? assets.sidebar_open : assets.sidebar_close} alt="Menu" className="w-6 h-6" />
+      </button>
+
       {/* Sidebar for Saved Chats */}
       {isSidebarOpen && (
-        <div className="w-1/8 bg-white p-4 border-r border-gray-200 overflow-y-auto" style={{ marginTop: "64px" }}> {/* Adjusted margin to account for Navbar */}
+        <div 
+          className="xl:w-1/6 lg:w-1/4 md:w-1/4 w-1/3 mt-26 bg-white p-4 border-r shadow-lg border-gray-200 overflow-y-auto transition-all" 
+        >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Saved Chats</h2>
-            <button onClick={toggleSidebar} className="p-1 hover:bg-gray-200 rounded-full">
-              <img src={assets.close} alt="Close" className="w-5 h-5" />
-            </button>
+            <h2 className="text-xl font-bold mt-4">Saved Chats</h2>
           </div>
           {savedChats.length === 0 ? (
-            <p className="text-gray-500">No saved chats yet.</p>
+            <p className="text-gray-500 text-base">No saved chats yet.</p>
           ) : (
             savedChats.map((chat) => (
               <div
@@ -90,6 +107,7 @@ const Chatbot = () => {
           )}
         </div>
       )}
+
 
       {/* Main Chat Area */}
       <div className={`flex-1 flex flex-col ${isSidebarOpen ? "ml-1/8" : "ml-0"}`}>
@@ -129,7 +147,7 @@ const Chatbot = () => {
               <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-2xl">
                 <img className="w-25h-25 md:w-35 md:h-35" src={assets.chatbot_logo} alt="Chatbot" />
                 <div className="text-center md:text-left flex flex-col">
-                  <h2 className="text-[#000000] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, User!</h2>
+                  <h2 className="text-[#000000] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, {displayName}!</h2>
                   <p className="text-[#000000] text-lg md:text-2xl font-semibold mt-2">How may I help you today?</p>
                 </div>
               </div>
@@ -188,14 +206,6 @@ const Chatbot = () => {
           </button>
         </div>
       </div>
-
-      {/* Sidebar Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="fixed top-30 left-6 p-2 bg-purple-300 rounded-r-lg shadow-lg hover:bg-gray-100 transition"
-      >
-        <img src={isSidebarOpen ? assets.sidebar_close : assets.sidebar_open} alt="Menu" className="w-6 h-6" />
-      </button>
     </div>
   );
 };

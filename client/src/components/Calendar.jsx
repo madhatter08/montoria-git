@@ -21,7 +21,7 @@ const Calendar = () => {
 
   return (
     <>
-      <div className="w-full max-w-[1200px] h-[66.6vw] max-h-[90vh] sm:w-[90vw] sm:h-[60vw] md:w-[80vw] md:h-[53.3vw] lg:w-[75vw] lg:h-[50vw] overflow-y-auto rounded-2xl mt-30 mb-20">
+      <div className="w-full max-w-full sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[75vw] h-auto sm:h-[60vw] md:h-[53.3vw] lg:h-[50vw] overflow-y-auto rounded-xl mx-auto backdrop-blur-md shadow-lg">
         <ScheduleXCalendar calendarApp={calendar} />
       </div>
     </>

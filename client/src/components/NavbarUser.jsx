@@ -8,8 +8,7 @@ const NavbarUser = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const location = useLocation();
-  const { userData, backendUrl, setUserData, setIsLoggedIn } =
-    useContext(AppContext);
+  const { userData, backendUrl, setUserData, setIsLoggedIn } = useContext(AppContext);
   const role = userData ? userData.role : "admin";
   const displayName =
     userData.role === "admin"
@@ -198,7 +197,7 @@ const NavbarUser = () => {
             </li>
           ))}
           <li
-            className="list-none w-full text-center p-4 hover:bg-purple-500 hover:text-white transition-all cursor-pointer"
+            className="list-none w-full text-2xl text-center p-4 hover:bg-purple-500 hover:text-white transition-all cursor-pointer"
             onClick={logout}
           >
             Logout
