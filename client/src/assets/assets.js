@@ -27,6 +27,7 @@ import delete_icon from './delete_icon.png'
 import check from './check.png'
 import login_bg from './login_bg.jpg'
 import montoria_logo_white from './montoria_logo_white.png'
+import bookmark from './bookmark.png'
 
 export const assets = {
     arrow_icon,
@@ -57,5 +58,6 @@ export const assets = {
     delete_icon,
     check,
     login_bg,
-    montoria_logo_white
+    montoria_logo_white,
+    bookmark
 }
