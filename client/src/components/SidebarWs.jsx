@@ -1,6 +1,8 @@
 import { assets } from "../assets/assets";
 import PropTypes from "prop-types";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
+import { useContext } from "react";
 
 const menuItems = [
   { label: "CLASS", icon: assets.classes, path: "/workspace/class" },
@@ -18,7 +20,14 @@ const menuItems = [
 ];
 
 const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
+  const { userData } = useContext(AppContext);
+  const displayName =
+    userData?.role === "admin"
+      ? userData.roleData?.name || "Admin"
+      : userData.roleData?.firstName || "Guide";
+
+  const displayRole = userData?.role ? userData.role.toUpperCase() : "UNKNOWN";
 
   return (
     <div className="relative">
@@ -48,7 +57,7 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
 
             {/* Greeting */}
             <div className="text-white text-2xl font-extrabold text-center mt-4">
-              HELLO, <br /> GUIDE
+              HELLO, <br /> {displayName}
             </div>
 
             {/* Navigation Buttons */}
@@ -78,11 +87,11 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
               <div className="w-full bg-purple-100 rounded-lg p-2 flex items-center shadow-lg">
                 <img
                   src="https://placehold.co/40x40"
-                  alt="Admin"
+                  alt="User image"
                   className="w-10 h-10 rounded-full"
                 />
                 <div className="text-gray-900 font-bold pl-2 text-sm">
-                  ADMIN <br /> 2021-30028
+                  {displayRole} <br /> 2021-30028
                 </div>
               </div>
             </div>
