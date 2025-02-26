@@ -11,7 +11,7 @@ const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-transparent  bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-5xl border w-96">
         <h2 className="text-xl font-bold mb-4">Edit Remarks</h2>
         <textarea
@@ -46,6 +46,14 @@ const Progress = () => {
   const [selectedStudent, setSelectedStudent] = useState("STUDENT NAME");
   const [searchTerm, setSearchTerm] = useState("");
   const [editIndex, setEditIndex] = useState(null); // Track which row's remarks form is open
+  const [feedback, setFeedback] = useState(Array(4).fill(Array(3).fill(""))); // Feedback for each week in each quarter
+  const [selectedWeek, setSelectedWeek] = useState(Array(4).fill(null)); // Track selected week for each quarter
+
+  // Calculate counts for Presented, Practiced, Mastered, and Total
+  const countPresented = progress.filter((row) => row.presented).length;
+  const countPracticed = progress.filter((row) => row.practiced).length;
+  const countMastered = progress.filter((row) => row.mastered).length;
+  const totalWorks = progress.length; // Total number of works
 
   const handleCheckboxChange = (index, field) => {
     setProgress((prev) => {
@@ -83,6 +91,27 @@ const Progress = () => {
       return newProgress;
     });
     setEditIndex(null); // Close the remarks form
+  };
+
+  const handleFeedbackChange = (quarterIndex, weekIndex, value) => {
+    setFeedback((prev) => {
+      const newFeedback = [...prev];
+      newFeedback[quarterIndex] = [...newFeedback[quarterIndex]];
+      newFeedback[quarterIndex][weekIndex] = value;
+      return newFeedback;
+    });
+  };
+
+  const handleSaveFeedback = (quarterIndex, weekIndex) => {
+    alert(`Feedback for Quarter ${quarterIndex + 1}, Week ${weekIndex + 1} saved: ${feedback[quarterIndex][weekIndex]}`);
+  };
+
+  const handleWeekSelection = (quarterIndex, weekIndex) => {
+    setSelectedWeek((prev) => {
+      const newSelectedWeek = [...prev];
+      newSelectedWeek[quarterIndex] = weekIndex;
+      return newSelectedWeek;
+    });
   };
 
   return (
@@ -125,6 +154,26 @@ const Progress = () => {
         </div>
       </div>
 
+      {/* Count Cards Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-[#3cd416] p-4 rounded-lg shadow text-center">
+          <p className="text-lg font-bold">{countPresented}</p>
+          <p className="text-sm text-black">Presented</p>
+        </div>
+        <div className="bg-[#e5a91b] p-4 rounded-lg shadow text-center">
+          <p className="text-lg font-bold">{countPracticed}</p>
+          <p className="text-sm text-black">Practiced</p>
+        </div>
+        <div className="bg-purple-400 p-4 rounded-lg shadow text-center">
+          <p className="text-lg font-bold">{countMastered}</p>
+          <p className="text-sm text-black">Mastered</p>
+        </div>
+        <div className="bg-[#aeadad] p-4 rounded-lg shadow text-center">
+          <p className="text-lg font-bold">{totalWorks}</p>
+          <p className="text-sm text-black ">Total</p>
+        </div>
+      </div>
+
       {/* Table Section */}
       <div className="overflow-x-auto">
         <table className="w-full table-fixed bg-white rounded-lg shadow overflow-hidden">
@@ -146,7 +195,7 @@ const Progress = () => {
                 <td className="p-3 text-center">
                   <input
                     type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
+                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                     checked={row.presented}
                     onChange={() => handleCheckboxChange(index, "presented")}
                   />
@@ -154,7 +203,7 @@ const Progress = () => {
                 <td className="p-3 text-center">
                   <input
                     type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
+                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                     checked={row.practiced}
                     onChange={() => handleCheckboxChange(index, "practiced")}
                     disabled={!row.presented}
@@ -184,6 +233,50 @@ const Progress = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Quarters Section */}
+      <div className="mt-8">
+        <div className="bg-[#9d16be] text-white p-4 rounded-t-lg">
+          <h2 className="text-2xl font-bold">Feedback</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
+          {Array.from({ length: 4 }).map((_, quarterIndex) => (
+            <div key={quarterIndex} className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-lg font-bold mb-4">Quarter {quarterIndex + 1}</h3>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+                onChange={(e) => handleWeekSelection(quarterIndex, parseInt(e.target.value))}
+              >
+                <option value="">Select Week</option>
+                {Array.from({ length: 3 }).map((_, weekIndex) => (
+                  <option key={weekIndex} value={weekIndex}>
+                    Week {weekIndex + 1}
+                  </option>
+                ))}
+              </select>
+              {selectedWeek[quarterIndex] !== null && (
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Week {selectedWeek[quarterIndex] + 1}</h4>
+                  <textarea
+                    value={feedback[quarterIndex][selectedWeek[quarterIndex]]}
+                    onChange={(e) =>
+                      handleFeedbackChange(quarterIndex, selectedWeek[quarterIndex], e.target.value)
+                    }
+                    className="w-full h-24 p-2 border rounded-lg"
+                    placeholder="Enter feedback..."
+                  />
+                  <button
+                    onClick={() => handleSaveFeedback(quarterIndex, selectedWeek[quarterIndex])}
+                    className="mt-2 bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Remarks Form Modal */}
