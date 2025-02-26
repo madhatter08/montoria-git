@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import styled from "styled-components";
 
 const StudentAdmissionForm = ({ onClose }) => {
   const [formData, setFormData] = useState({
@@ -58,47 +59,43 @@ const StudentAdmissionForm = ({ onClose }) => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-center mb-4">STUDENT ADMISSION FORM</h2>
+      <h2 className="text-2xl font-bold text-center mb-12">STUDENT ADMISSION FORM</h2>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
         {/* Page 1: Photo Upload and Preview */}
         {currentPage === 1 && (
-          <div className="col-span-2 flex flex-col items-center space-y-4">
-            <h3 className="text-xl font-semibold mb-4">Upload Student's Photo</h3>
-            {/* Photo Preview with Border */}
+          <div className="col-span-2 flex justify-center items-center space-x-6">
+            <StyledWrapper>
+              <div className="container">
+                <div className="folder">
+                  <div className="front-side">
+                    <div className="tip" />
+                    <div className="cover" />
+                  </div>
+                  <div className="back-side cover" />
+                </div>
+                <label className="custom-file-upload">
+                  <input
+                    className="title"
+                    type="file"
+                    name="photo"
+                    onChange={handleChange}
+                    accept="image/*"
+                  />
+                  Choose a file
+                </label>
+              </div>
+            </StyledWrapper>
+
+            {/* Photo Preview */}
             {photoPreview && (
               <div className="flex-shrink-0 border-2 border-gray-300 rounded p-2">
                 <img
                   src={photoPreview}
                   alt="Uploaded Photo Preview"
-                  className="w-50 h-50 object-cover rounded"
+                  className="w-32 h-32 object-cover rounded"
                 />
               </div>
             )}
-            {/* Upload Photo Icon and Text */}
-            <label className="cursor-pointer flex items-center space-y-2">
-              <input
-                type="file"
-                name="photo"
-                onChange={handleChange}
-                className="hidden"
-                accept="image/*"
-              />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-12 w-12 text-gray-500 hover:text-[#9d16be]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="text-gray-500">Drag or drop a photo</span>
-            </label>
           </div>
         )}
 
@@ -289,7 +286,6 @@ const StudentAdmissionForm = ({ onClose }) => {
 
         {/* Buttons */}
         <div className="col-span-2 flex justify-end space-x-4 mt-6">
-          {/* Cancel Button (Only on the first page) */}
           {currentPage === 1 && (
             <button
               type="button"
@@ -299,8 +295,6 @@ const StudentAdmissionForm = ({ onClose }) => {
               Cancel
             </button>
           )}
-
-          {/* Previous Button (On pages 2 and 3) */}
           {currentPage > 1 && (
             <button
               type="button"
@@ -310,8 +304,6 @@ const StudentAdmissionForm = ({ onClose }) => {
               Previous
             </button>
           )}
-
-          {/* Next Button (On pages 1 and 2) */}
           {currentPage < 3 && (
             <button
               type="button"
@@ -321,8 +313,6 @@ const StudentAdmissionForm = ({ onClose }) => {
               Next
             </button>
           )}
-
-          {/* Confirm Button (Only on the third page) */}
           {currentPage === 3 && (
             <button
               type="submit"
@@ -336,5 +326,131 @@ const StudentAdmissionForm = ({ onClose }) => {
     </div>
   );
 };
+
+const StyledWrapper = styled.div`
+  .container {
+    --transition: 350ms;
+    --folder-W: 120px;
+    --folder-H: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 10px;
+    background: linear-gradient(#A78BFA 10%, #ffb3dd 70%);
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    height: calc(var(--folder-H) * 1.7);
+    position: relative;
+  }
+
+  .folder {
+    position: absolute;
+    top: -20px;
+    left: calc(50% - 60px);
+    animation: float 2.5s infinite ease-in-out;
+    transition: transform var(--transition) ease;
+  }
+
+  .folder:hover {
+    transform: scale(1.05);
+  }
+
+  .folder .front-side,
+  .folder .back-side {
+    position: absolute;
+    transition: transform var(--transition);
+    transform-origin: bottom center;
+  }
+
+  .folder .back-side::before,
+  .folder .back-side::after {
+    content: "";
+    display: block;
+    background-color: white;
+    opacity: 0.5;
+    z-index: 0;
+    width: var(--folder-W);
+    height: var(--folder-H);
+    position: absolute;
+    transform-origin: bottom center;
+    border-radius: 15px;
+    transition: transform 350ms;
+    z-index: 0;
+  }
+
+  .container:hover .back-side::before {
+    transform: rotateX(-5deg) skewX(5deg);
+  }
+
+  .container:hover .back-side::after {
+    transform: rotateX(-15deg) skewX(12deg);
+  }
+
+  .folder .front-side {
+    z-index: 1;
+  }
+
+  .container:hover .front-side {
+    transform: rotateX(-40deg) skewX(15deg);
+  }
+
+  .folder .tip {
+    background: linear-gradient(135deg, #ff9a56, #ff6f56);
+    width: 80px;
+    height: 20px;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: absolute;
+    top: -10px;
+    z-index: 2;
+  }
+
+  .folder .cover {
+    background: linear-gradient(135deg, #ffe563, #ffc663);
+    width: var(--folder-W);
+    height: var(--folder-H);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+  }
+
+  .custom-file-upload {
+    font-size: 1.1em;
+    color: #;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background var(--transition) ease;
+    display: inline-block;
+    width: 100%;
+    padding: 10px 35px;
+    position: relative;
+  }
+
+  .custom-file-upload:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .custom-file-upload input[type="file"] {
+    display: none;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+`;
 
 export default StudentAdmissionForm;
