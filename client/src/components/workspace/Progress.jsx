@@ -212,7 +212,7 @@ const Progress = () => {
                 <td className="p-3 text-center">
                   <input
                     type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-black"
+                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                     checked={row.mastered}
                     onChange={() => handleCheckboxChange(index, "mastered")}
                     disabled={!row.presented || !row.practiced}

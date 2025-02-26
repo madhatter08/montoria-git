@@ -4,6 +4,7 @@ import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
 import AdminForm from "../Forms/AdminForm"; 
 import GuideForm from "../Forms/GuideForm"; 
 import { assets } from "../assets/assets";
+import AdmissionForm from "../Forms/AdmissionForm";
 
 const tabContent = {
   students: Array(10).fill({
@@ -28,6 +29,11 @@ const tabContent = {
     email: "",
     phone: "",
     class: "",
+  }),admission: Array(8).fill({
+    program: "",
+    level: "",
+    learningArea: "",
+    class: "",
   }),
 };
 
@@ -39,6 +45,7 @@ export default function TabPanel() {
     { name: "GUIDE", key: "guide", count: tabContent.guide.length },
     { name: "ADMIN", key: "admin", count: tabContent.admin.length },
     { name: "STUDENTS", key: "students", count: tabContent.students.length },
+    { name: "ADMISSION", key: "admission", count: tabContent.admission.length },
   ];
 
   // Function to render the appropriate form based on the active tab
@@ -50,6 +57,8 @@ export default function TabPanel() {
         return <AdminForm onClose={() => setIsFormOpen(false)} />;
       case "guide":
         return <GuideForm onClose={() => setIsFormOpen(false)} />;
+      case "admission":
+        return <AdmissionForm onClose={() => setIsFormOpen(false)} />;
       default:
         return null;
     }
@@ -86,8 +95,8 @@ export default function TabPanel() {
             </div>
             <div className="flex space-x-2">
               <button className="border p-2 bg-gray-100 rounded-xl">Export</button>
-              {/* "Create New" Button for Students, Admin, and Guide Tabs */}
-              {(activeTab === "students" || activeTab === "admin" || activeTab === "guide") && (
+              {/* "Create New" Button for Students, Admin, Guide, and Admission Tabs */}
+              {(activeTab === "students" || activeTab === "admin" || activeTab === "guide" || activeTab === "admission") && (
                 <button className="bg-black text-white px-4 py-2 rounded-xl" onClick={() => setIsFormOpen(true)}>
                   + Create New
                 </button>
