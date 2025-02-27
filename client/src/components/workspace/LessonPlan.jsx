@@ -23,8 +23,13 @@ const LessonPlan = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Close modal when clicking outside
   const closeModal = () => setSelectedStudent(null);
+  const removeLesson = (lesson) => {
+    setSelectedStudent((prev) => ({
+      ...prev,
+      lessons: prev.lessons.filter((l) => l !== lesson),
+    }));
+  };
 
   return (
     <div className="flex flex-col w-full h-full p-6 mt-30">
@@ -79,18 +84,18 @@ const LessonPlan = () => {
           {students.map((student, index) => (
             <div
               key={index}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px]"
+              className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer"
+              onClick={(e) => {
+                if (!e.target.closest("select")) {
+                  setSelectedStudent(student);
+                }
+              }}
             >
-              {/* Student Name */}
               <h3 className="text-2xl font-semibold text-center bg-[#9d16be] text-white p-2 rounded-t-lg">
                 {student.name}
               </h3>
 
-              {/* Lesson Plan Content (Clickable) */}
-              <div
-                className="flex-grow p-3 overflow-hidden cursor-pointer"
-                onClick={() => setSelectedStudent(student)}
-              >
+              <div className="flex-grow p-3 overflow-hidden">
                 <ul className="list-disc pl-5 text-gray-700 text-lg">
                   {student.lessons.slice(0, 3).map((lesson, i) => (
                     <li key={i} className="py-1">
@@ -103,9 +108,8 @@ const LessonPlan = () => {
                 </ul>
               </div>
 
-              {/* Dropdown and Check Button */}
               <div className="mt-auto flex items-center gap-2">
-                <select className="flex-grow p-2 border rounded">
+                <select className="w-full lg:w-48 h-12 bg-[#d9d9d9] rounded-[15px] px-4">
                   <option value="">Select Lesson</option>
                   {student.lessons.map((lesson, i) => (
                     <option key={i} value={lesson}>
@@ -113,16 +117,18 @@ const LessonPlan = () => {
                     </option>
                   ))}
                 </select>
-                <button className="bg-green-500 text-white p-2 rounded hover:bg-green-600">
-                  ✓
-                </button>
+                <label htmlFor={`checkboxInput-${index}`} className="bookmark cursor-pointer bg-teal-500 w-10 h-10 flex items-center justify-center rounded-lg">
+                  <input type="checkbox" id={`checkboxInput-${index}`} className="hidden" />
+                  <svg width={15} viewBox="0 0 50 70" fill="none" xmlns="http://www.w3.org/2000/svg" className="svgIcon">
+                    <path d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z" stroke="white" strokeWidth={7} />
+                  </svg>
+                </label>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Modal for student details */}
       {selectedStudent && (
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.3)]">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 relative">
@@ -131,8 +137,9 @@ const LessonPlan = () => {
             </h2>
             <ul className="list-disc pl-5 text-lg">
               {selectedStudent.lessons.map((lesson, i) => (
-                <li key={i} className="text-gray-700 py-1">
+                <li key={i} className="text-gray-700 py-1 flex justify-between items-center">
                   {lesson}
+                  <button onClick={() => removeLesson(lesson)} className="text-red-500 hover:text-red-700">✖</button>
                 </li>
               ))}
             </ul>

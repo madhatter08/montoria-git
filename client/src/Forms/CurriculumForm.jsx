@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { assets } from "../assets/assets"; // Ensure you import the assets
 
 const CurriculumForm = ({ onAdd, onClose }) => {
-  const [level, setLevel] = useState('');
-  const [area, setArea] = useState('');
-  const [materials, setMaterials] = useState('');
-  const [work, setWork] = useState('');
-  const [lesson, setLesson] = useState('');
+  const [level, setLevel] = useState("");
+  const [area, setArea] = useState("");
+  const [materials, setMaterials] = useState("");
+  const [work, setWork] = useState("");
+  const [lesson, setLesson] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -18,65 +19,124 @@ const CurriculumForm = ({ onAdd, onClose }) => {
       <div className="bg-white p-8 rounded-lg shadow-lg w-96">
         <h2 className="text-xl font-bold mb-4">Add New Curriculum</h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Level</label>
-            <select
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Select Level</option>
-              <option value="Toddler">Toddler</option>
-              <option value="Preschool">Preschool</option>
-              <option value="Lower Elementary">Lower Elementary</option>
-            </select>
+          {/* Level Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <select
+                required
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              >
+                <option value="">Select Level</option>
+                <option value="Toddler">Toddler</option>
+                <option value="Preschool">Preschool</option>
+                <option value="Lower Elementary">Lower Elementary</option>
+              </select>
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                
+              </span>
+            </label>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Learning Area</label>
-            <select
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Select Learning Area</option>
-              <option value="Language">Language</option>
-              <option value="Math">Math</option>
-              <option value="Science">Science</option>
-              <option value="Literature">Literature</option>
-            </select>
+
+          {/* Learning Area Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <select
+                required
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              >
+                <option value="">Select Learning Area</option>
+                <option value="Language">Language</option>
+                <option value="Math">Math</option>
+                <option value="Science">Science</option>
+                <option value="Literature">Literature</option>
+              </select>
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                
+              </span>
+            </label>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Materials</label>
-            <input
-              type="text"
-              value={materials}
-              onChange={(e) => setMaterials(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+
+          {/* Materials Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={materials}
+                onChange={(e) => setMaterials(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Materials
+              </span>
+            </label>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Work</label>
-            <input
-              type="text"
-              value={work}
-              onChange={(e) => setWork(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+
+          {/* Work Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={work}
+                onChange={(e) => setWork(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Work
+              </span>
+            </label>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Lesson</label>
-            <input
-              type="text"
-              value={lesson}
-              onChange={(e) => setLesson(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+
+          {/* Lesson Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={lesson}
+                onChange={(e) => setLesson(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+               
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Lesson
+              </span>
+            </label>
           </div>
+
+          {/* Buttons */}
           <div className="flex justify-end">
             <button
               type="button"
