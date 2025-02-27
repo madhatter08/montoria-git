@@ -41,20 +41,42 @@ const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
 
 const Progress = () => {
   const [progress, setProgress] = useState(
-    Array(15).fill({ presented: false, practiced: false, mastered: false, remarks: "" })
+    Array(15).fill({
+      presented: false,
+      practiced: false,
+      mastered: false,
+      remarks: "",
+      expanded: false,
+      subRows: [], // Start with no sub-rows
+      date: "", // Single date field for the main row
+    })
   );
+
   const [selectedStudent, setSelectedStudent] = useState("STUDENT NAME");
   const [searchTerm, setSearchTerm] = useState("");
-  const [editIndex, setEditIndex] = useState(null); // Track which row's remarks form is open
-  const [feedback, setFeedback] = useState(Array(4).fill(Array(3).fill(""))); // Feedback for each week in each quarter
-  const [selectedWeek, setSelectedWeek] = useState(Array(4).fill(null)); // Track selected week for each quarter
+  const [editIndex, setEditIndex] = useState(null);
+  const [feedback, setFeedback] = useState(Array(4).fill(Array(3).fill("")));
+  const [selectedWeek, setSelectedWeek] = useState(Array(4).fill(null));
 
   // Calculate counts for Presented, Practiced, Mastered, and Total
   const countPresented = progress.filter((row) => row.presented).length;
-  const countPracticed = progress.filter((row) => row.practiced).length;
+  const countPracticed = progress.reduce(
+    (total, row) => total + row.subRows.filter((subRow) => subRow.practiced).length,
+    0
+  );
   const countMastered = progress.filter((row) => row.mastered).length;
-  const totalWorks = progress.length; // Total number of works
+  const totalWorks = progress.length;
 
+  // Toggle dropdown for a row
+  const toggleDropdown = (index) => {
+    setProgress((prev) => {
+      const newProgress = [...prev];
+      newProgress[index].expanded = !newProgress[index].expanded;
+      return newProgress;
+    });
+  };
+
+  // Handle checkbox change for progress table
   const handleCheckboxChange = (index, field) => {
     setProgress((prev) => {
       const newProgress = [...prev];
@@ -66,6 +88,8 @@ const Progress = () => {
           row.practiced = false;
           row.mastered = false;
         }
+        // Update the date when "PRESENTED" is clicked
+        row.date = row.presented ? new Date().toLocaleDateString() : "";
       } else if (field === "practiced" && row.presented) {
         row.practiced = !row.practiced;
         if (!row.practiced) {
@@ -73,6 +97,8 @@ const Progress = () => {
         }
       } else if (field === "mastered" && row.presented && row.practiced) {
         row.mastered = !row.mastered;
+        // Update the date when "MASTERED" is clicked
+        row.date = row.mastered ? new Date().toLocaleDateString() : row.date;
       }
 
       newProgress[index] = row;
@@ -80,19 +106,88 @@ const Progress = () => {
     });
   };
 
-  const handleEditRemarks = (index) => {
-    setEditIndex(index); // Open the remarks form for the specific row
+  // Handle checkbox change for sub-rows
+  const handleSubRowCheckboxChange = (index, subIndex, field) => {
+    setProgress((prev) => {
+      const newProgress = [...prev];
+      const row = { ...newProgress[index] };
+      const subRow = { ...row.subRows[subIndex] };
+
+      if (field === "presented") {
+        subRow.presented = !subRow.presented;
+        if (!subRow.presented) {
+          subRow.practiced = false;
+          subRow.mastered = false;
+        }
+        // Update the date when "PRESENTED" is clicked
+        subRow.date = subRow.presented ? new Date().toLocaleDateString() : "";
+      } else if (field === "practiced" && subRow.presented) {
+        subRow.practiced = !subRow.practiced;
+        if (!subRow.practiced) {
+          subRow.mastered = false;
+        }
+      } else if (field === "mastered" && subRow.presented && subRow.practiced) {
+        subRow.mastered = !subRow.mastered;
+        // Update the date when "MASTERED" is clicked
+        subRow.date = subRow.mastered ? new Date().toLocaleDateString() : subRow.date;
+      }
+
+      // Update the sub-row
+      row.subRows[subIndex] = subRow;
+
+      // Update the main row to reflect the latest sub-row's state
+      const latestSubRow = row.subRows[row.subRows.length - 1];
+      row.presented = latestSubRow.presented;
+      row.practiced = latestSubRow.practiced;
+      row.mastered = latestSubRow.mastered;
+      row.date = latestSubRow.date;
+
+      newProgress[index] = row;
+      return newProgress;
+    });
   };
 
+  // Handle adding a new sub-row
+// Handle adding a new sub-row
+const handleAddSubRow = (index) => {
+  setProgress((prev) => {
+    return prev.map((row, i) => {
+      if (i === index) {
+        return {
+          ...row,
+          subRows: [
+            ...(row.subRows || []), // Ensure subRows exists
+            {
+              presented: true, // Automatically checked
+              practiced: false,
+              mastered: false,
+              date: new Date().toLocaleDateString(), // Set the date when presented
+            }
+          ]
+        };
+      }
+      return row; // Keep other rows unchanged
+    });
+  });
+};
+
+
+  // Handle edit remarks for progress table
+  const handleEditRemarks = (index) => {
+    setEditIndex(index);
+  };
+
+  // Handle save remarks for progress table
   const handleSaveRemarks = (index, remarks) => {
     setProgress((prev) => {
       const newProgress = [...prev];
       newProgress[index].remarks = remarks;
       return newProgress;
     });
-    setEditIndex(null); // Close the remarks form
+    setEditIndex(null);
   };
 
+  // Handle feedback change for quarters
   const handleFeedbackChange = (quarterIndex, weekIndex, value) => {
     setFeedback((prev) => {
       const newFeedback = [...prev];
@@ -102,10 +197,12 @@ const Progress = () => {
     });
   };
 
+  // Handle save feedback for quarters
   const handleSaveFeedback = (quarterIndex, weekIndex) => {
     alert(`Feedback for Quarter ${quarterIndex + 1}, Week ${weekIndex + 1} saved: ${feedback[quarterIndex][weekIndex]}`);
   };
 
+  // Handle week selection for quarters
   const handleWeekSelection = (quarterIndex, weekIndex) => {
     setSelectedWeek((prev) => {
       const newSelectedWeek = [...prev];
@@ -184,59 +281,114 @@ const Progress = () => {
               <th className="p-3 text-center w-1/12">PRACTICED</th>
               <th className="p-3 text-center w-1/12">MASTERED</th>
               <th className="p-3 text-center w-1/6">REMARKS</th>
-              <th className="p-3 text-center w-1/8">DATE PRESENTED</th>
-              <th className="p-3 text-center w-1/8">DATE MASTERED</th>
+              <th className="p-3 text-center w-1/8">DATE</th>
+              <th className="p-3 text-center w-1/12">ADD</th>
             </tr>
           </thead>
           <tbody>
             {progress.map((row, index) => (
-              <tr key={index} className="border-b">
-                <td className="p-3">Work {index + 1}</td>
-                <td className="p-3 text-center">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
-                    checked={row.presented}
-                    onChange={() => handleCheckboxChange(index, "presented")}
-                  />
-                </td>
-                <td className="p-3 text-center">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
-                    checked={row.practiced}
-                    onChange={() => handleCheckboxChange(index, "practiced")}
-                    disabled={!row.presented}
-                  />
-                </td>
-                <td className="p-3 text-center">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
-                    checked={row.mastered}
-                    onChange={() => handleCheckboxChange(index, "mastered")}
-                    disabled={!row.presented || !row.practiced}
-                  />
-                </td>
-                <td className="p-3 relative">
-                  {row.remarks || "-"}
-                  <button
-                    onClick={() => handleEditRemarks(index)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  >
-                    <img src={assets.edit} alt="Edit" className="w-5 h-5" />
-                  </button>
-                </td>
-                <td className="p-3">-</td>
-                <td className="p-3">-</td>
-              </tr>
+              <>
+                {/* Main Row */}
+                <tr key={index} className="border-b">
+                  <td className="p-3 flex justify-between items-center">
+                    Work {index + 1}
+                    <button
+                      onClick={() => toggleDropdown(index)}
+                      className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    >
+                      {row.expanded ? "▲" : "▼"}
+                    </button>
+                  </td>
+                  <td className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
+                      checked={row.presented}
+                      onChange={() => handleCheckboxChange(index, "presented")}
+                    />
+                  </td>
+                  <td className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
+                      checked={row.practiced}
+                      onChange={() => handleCheckboxChange(index, "practiced")}
+                      disabled={!row.presented}
+                    />
+                  </td>
+                  <td className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
+                      checked={row.mastered}
+                      onChange={() => handleCheckboxChange(index, "mastered")}
+                      disabled={!row.presented || !row.practiced}
+                    />
+                  </td>
+                  <td className="p-3 relative">
+                    {row.remarks || "-"}
+                    <button
+                      onClick={() => handleEditRemarks(index)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                    >
+                      <img src={assets.edit} alt="Edit" className="w-5 h-5" />
+                    </button>
+                  </td>
+                  <td className="p-3">{row.date || "-"}</td>
+                  <td className="p-3 text-center">
+                    <button
+                      onClick={() => handleAddSubRow(index)}
+                      className="bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+                    >
+                      Add
+                    </button>
+                  </td>
+                </tr>
+
+                {/* Sub-Rows */}
+                {row.expanded &&
+                  row.subRows.map((subRow, subIndex) => (
+                    <tr key={`sub-${index}-${subIndex}`} className="border-b bg-gray-300">
+                      <td className="p-3">Sub Work {subIndex + 1}</td>
+                      <td className="p-3 text-center">
+                        <input
+                          type="checkbox"
+                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
+                          checked={subRow.presented}
+                          onChange={() => handleSubRowCheckboxChange(index, subIndex, "presented")}
+                        />
+                      </td>
+                      <td className="p-3 text-center">
+                        <input
+                          type="checkbox"
+                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
+                          checked={subRow.practiced}
+                          onChange={() => handleSubRowCheckboxChange(index, subIndex, "practiced")}
+                          disabled={!subRow.presented}
+                        />
+                      </td>
+                      <td className="p-3 text-center">
+                        <input
+                          type="checkbox"
+                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
+                          checked={subRow.mastered}
+                          onChange={() => handleSubRowCheckboxChange(index, subIndex, "mastered")}
+                          disabled={!subRow.presented || !subRow.practiced}
+                        />
+                      </td>
+                      <td className="p-3">-</td>
+                      <td className="p-3">{subRow.date || "-"}</td>
+                      <td className="p-3"></td>
+                    </tr>
+                  ))}
+              </>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Quarters Section */}
-      <div className="mt-8">
+     {/* Quarters Section */}
+     <div className="mt-8">
         <div className="bg-[#9d16be] text-white p-4 rounded-t-lg">
           <h2 className="text-2xl font-bold">Feedback</h2>
         </div>
@@ -245,7 +397,7 @@ const Progress = () => {
             <div key={quarterIndex} className="bg-white rounded-lg shadow p-4">
               <h3 className="text-lg font-bold mb-4">Quarter {quarterIndex + 1}</h3>
               <select
-                className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+                className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4 mb-4" // Updated dropdown styling
                 onChange={(e) => handleWeekSelection(quarterIndex, parseInt(e.target.value))}
               >
                 <option value="">Select Week</option>
@@ -278,7 +430,6 @@ const Progress = () => {
           ))}
         </div>
       </div>
-
       {/* Remarks Form Modal */}
       {editIndex !== null && (
         <RemarksForm

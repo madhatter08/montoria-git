@@ -1,26 +1,15 @@
 import React, { useState } from 'react';
 import { assets } from '../../assets/assets'; // Import assets for the search icon
+import CurriculumForm from '../../Forms/CurriculumForm'; // Import the form component
+import styled from 'styled-components'; // Import styled-components
 
 const Curriculum = () => {
   const [selectedLearningArea, setSelectedLearningArea] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Toddler'); // State for active tab
-
-  const handleLearningAreaChange = (e) => {
-    setSelectedLearningArea(e.target.value);
-  };
-
-  const handleLevelChange = (e) => {
-    setSelectedLevel(e.target.value);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // Sample data for each tab
-  const curriculumData = {
+  const [showForm, setShowForm] = useState(false); // State to control form visibility
+  const [curriculumData, setCurriculumData] = useState({
     Toddler: [
       {
         id: 1,
@@ -75,13 +64,52 @@ const Curriculum = () => {
         lesson: 'Comprehension',
       },
     ],
+  });
+
+  const handleLearningAreaChange = (e) => {
+    setSelectedLearningArea(e.target.value);
+  };
+
+  const handleLevelChange = (e) => {
+    setSelectedLevel(e.target.value);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleAddCurriculum = (newCurriculum) => {
+    const newId = curriculumData[activeTab].length + 1;
+    const updatedCurriculum = {
+      ...curriculumData,
+      [activeTab]: [...curriculumData[activeTab], { ...newCurriculum, id: newId }],
+    };
+    setCurriculumData(updatedCurriculum);
+  };
+
+  const handleDeleteCurriculum = (id) => {
+    const updatedCurriculum = {
+      ...curriculumData,
+      [activeTab]: curriculumData[activeTab].filter((item) => item.id !== id),
+    };
+    setCurriculumData(updatedCurriculum);
+  };
+
+  const handleEditCurriculum = (id, updatedItem) => {
+    const updatedCurriculum = {
+      ...curriculumData,
+      [activeTab]: curriculumData[activeTab].map((item) =>
+        item.id === id ? { ...item, ...updatedItem } : item
+      ),
+    };
+    setCurriculumData(updatedCurriculum);
   };
 
   return (
     <div className="p-8 bg-white min-h-screen overflow-y-auto">
       <h1 className="text-2xl font-bold mb-4">Curriculum Page</h1>
 
-      {/* Dropdowns and Search Bar */}
+      {/* Dropdowns, Search Bar, and Create Button */}
       <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
         {/* Dropdowns on the Left */}
         <div className="flex space-x-4">
@@ -130,6 +158,16 @@ const Curriculum = () => {
             className="absolute left-3 top-3.5 w-5 h-5"
           />
         </div>
+
+        {/* Create Button on the Right */}
+        <div className="mb-8 mt-12">
+          <StyledWrapper>
+            <button className="Btn" onClick={() => setShowForm(true)}>
+              <div className="sign">+</div>
+              <div className="text">Create</div>
+            </button>
+          </StyledWrapper>
+        </div>
       </div>
 
       {/* Tab Panel */}
@@ -157,6 +195,7 @@ const Curriculum = () => {
               <th className="p-3 text-left w-1/5">MATERIALS</th>
               <th className="p-3 text-left w-1/5">WORK</th>
               <th className="p-3 text-left w-1/5">LESSON</th>
+              <th className="p-3 text-left w-1/5">ACTIONS</th> {/* Added Actions column */}
             </tr>
           </thead>
           <tbody>
@@ -167,13 +206,100 @@ const Curriculum = () => {
                 <td className="p-3">{item.materials}</td>
                 <td className="p-3">{item.work}</td>
                 <td className="p-3">{item.lesson}</td>
+                <td className="p-3">
+                  <button
+                    onClick={() => handleEditCurriculum(item.id, { /* updated data */ })}
+                    className="mr-2 text-blue-500 hover:text-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCurriculum(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Form Modal */}
+      {showForm && (
+        <CurriculumForm
+          onAdd={handleAddCurriculum}
+          onClose={() => setShowForm(false)}
+        />
+      )}
     </div>
   );
 };
+
+// Styled-components for the Create button
+const StyledWrapper = styled.div`
+  .Btn {
+    display: flex;
+    align-items: center;
+    border-radius: 12px
+    justify-content: flex-start;
+    width: 45px;
+    height: 45px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition-duration: 0.3s;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+    background-color: black;
+  }
+
+  /* plus sign */
+  .sign {
+    width: 100%;
+    font-size: 2em;
+    color: white;
+    transition-duration: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* text */
+  .text {
+    position: absolute;
+    right: 0%;
+    width: 0%;
+    opacity: 0;
+    color: white;
+    font-size: 1.2em;
+    font-weight: 500;
+    transition-duration: 0.3s;
+  }
+  /* hover effect on button width */
+  .Btn:hover {
+    width: 125px;
+    border-radius: 12px;;
+    transition-duration: 0.3s;
+  }
+
+  .Btn:hover .sign {
+    width: 30%;
+    transition-duration: 0.3s;
+    padding-left: 20px;
+  }
+  /* hover effect button's text */
+  .Btn:hover .text {
+    opacity: 1;
+    width: 70%;
+    transition-duration: 0.3s;
+    padding-right: 20px;
+  }
+  /* button click effect*/
+  .Btn:active {
+    transform: translate(2px, 2px);
+  }
+`;
 
 export default Curriculum;
