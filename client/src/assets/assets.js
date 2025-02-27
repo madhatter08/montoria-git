@@ -29,6 +29,9 @@ import login_bg from './login_bg.jpg'
 import montoria_logo_white from './montoria_logo_white.png'
 import bookmark from './bookmark.png'
 
+
+
+
 export const assets = {
     arrow_icon,
     lock_icon,
@@ -59,5 +62,6 @@ export const assets = {
     check,
     login_bg,
     montoria_logo_white,
-    bookmark
+    bookmark,
+    
 }

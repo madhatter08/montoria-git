@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
+import { assets } from "../assets/assets"; // Ensure you import the assets
 
 // Styled Delete Button Component
 const DeleteButton = ({ onClick }) => {
@@ -135,29 +136,47 @@ const AdmissionForm = ({ onClose }) => {
         <h2 className="text-2xl font-bold mb-4">Admission Form</h2>
         <form onSubmit={handleSubmit}>
           {/* Program Field */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Program *</label>
-            <input
-              type="text"
-              value={program}
-              onChange={(e) => setProgram(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              placeholder="Enter Program"
-              required
-            />
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={program}
+                onChange={(e) => setProgram(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder=""
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Program
+              </span>
+            </label>
           </div>
 
           {/* Level Field */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Level *</label>
-            <input
-              type="text"
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              placeholder="Enter Level"
-              required
-            />
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder=""
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Level
+              </span>
+            </label>
           </div>
 
           {/* Learning Areas Fields */}
@@ -165,14 +184,26 @@ const AdmissionForm = ({ onClose }) => {
             <label className="block text-sm font-medium mb-1">Learning Areas *</label>
             {learningAreas.map((area, index) => (
               <div key={index} className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  value={area}
-                  onChange={(e) => handleLearningAreaChange(index, e.target.value)}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder={`Learning Area ${index + 1}`}
-                  required={index < 5} // First 5 fields are required
-                />
+                <div className="relative w-full">
+                  <label className="relative block">
+                    <input
+                      type="text"
+                      value={area}
+                      onChange={(e) => handleLearningAreaChange(index, e.target.value)}
+                      className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                    
+                      required={index < 5} // First 5 fields are required
+                    />
+                    <img
+                      src={assets.person_icon} // Replace with appropriate icon if needed
+                      alt="person icon"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                    />
+                    <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                      Learning Area {index + 1}
+                    </span>
+                  </label>
+                </div>
                 {learningAreas.length > 5 && (
                   <DeleteButton onClick={() => removeLearningArea(index)} />
                 )}
@@ -190,16 +221,25 @@ const AdmissionForm = ({ onClose }) => {
           </div>
 
           {/* Class Field */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Class *</label>
-            <input
-              type="text"
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              placeholder="Enter Class"
-              required
-            />
+          <div className="relative mb-4">
+            <label className="relative block">
+              <input
+                required
+                type="text"
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder=""
+              />
+              <img
+                src={assets.person_icon} // Replace with appropriate icon if needed
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Class
+              </span>
+            </label>
           </div>
 
           {/* Error Message */}
