@@ -1,10 +1,11 @@
 import { useState } from "react";
 import NavbarUser from "../components/NavbarUser";
 import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
-import AdminForm from "../Forms/AdminForm"; 
-import GuideForm from "../Forms/GuideForm"; 
-import { assets } from "../assets/assets";
+import AdminForm from "../Forms/AdminForm";
+import GuideForm from "../Forms/GuideForm";
 import AdmissionForm from "../Forms/AdmissionForm";
+import { assets } from "../assets/assets";
+import styled from "styled-components";
 
 const tabContent = {
   students: Array(10).fill({
@@ -29,13 +30,87 @@ const tabContent = {
     email: "",
     phone: "",
     class: "",
-  }),admission: Array(8).fill({
+  }),
+  admission: Array(8).fill({
     program: "",
     level: "",
     learningArea: "",
     class: "",
   }),
 };
+
+const Button = ({ onClick }) => {
+  return (
+    <StyledWrapper>
+      <button className="Btn" onClick={onClick}>
+        <div className="sign">+</div>
+        <div className="text">Create</div>
+      </button>
+    </StyledWrapper>
+  );
+};
+
+const StyledWrapper = styled.div`
+  .Btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 45px;
+    height: 45px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition-duration: .3s;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+    background-color: black;
+  }
+
+  .sign {
+    width: 100%;
+    font-size: 2em;
+    color: white;
+    transition-duration: .3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .text {
+    position: absolute;
+    right: 0%;
+    width: 0%;
+    opacity: 0;
+    color: white;
+    font-size: 1.2em;
+    font-weight: 500;
+    transition-duration: .3s;
+  }
+
+  .Btn:hover {
+    width: 125px;
+    border-radius: 12px;
+    transition-duration: .3s;
+  }
+
+  .Btn:hover .sign {
+    width: 30%;
+    transition-duration: .3s;
+    padding-left: 20px;
+  }
+
+  .Btn:hover .text {
+    opacity: 1;
+    width: 70%;
+    transition-duration: .3s;
+    padding-right: 20px;
+  }
+
+  .Btn:active {
+    transform: translate(2px ,2px);
+  }
+`;
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("students");
@@ -48,7 +123,6 @@ export default function TabPanel() {
     { name: "ADMISSION", key: "admission", count: tabContent.admission.length },
   ];
 
-  // Function to render the appropriate form based on the active tab
   const renderForm = () => {
     switch (activeTab) {
       case "students":
@@ -71,14 +145,11 @@ export default function TabPanel() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6 rounded-lg mt-10 bg-transparent">
-        {/* Tabs */}
         <div className="flex mt-20 bg-white w-full rounded-t-lg p-4">
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              className={`py-2 px-6 font-medium transition-all relative ${
-                activeTab === tab.key ? "border-b-4 border-[#9d16be] text-black" : "text-gray-500"
-              }`}
+              className={`py-2 px-6 font-medium transition-all relative ${activeTab === tab.key ? "border-b-4 border-[#9d16be] text-black" : "text-gray-500"}`}
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.name} <span className="ml-2 bg-gray-300 px-2 py-1 text-xs rounded-full">{tab.count}</span>
@@ -87,7 +158,6 @@ export default function TabPanel() {
         </div>
 
         <div className="bg-white p-6 rounded-b-lg shadow-md">
-          {/* Search & Actions */}
           <div className="mt-0 flex justify-between items-center">
             <div className="relative w-1/3">
               <input type="text" placeholder="Search" className="border p-2 rounded-xl w-full pl-10" />
@@ -95,18 +165,14 @@ export default function TabPanel() {
             </div>
             <div className="flex space-x-2">
               <button className="border p-2 bg-gray-100 rounded-xl">Export</button>
-              {/* "Create New" Button for Students, Admin, Guide, and Admission Tabs */}
               {(activeTab === "students" || activeTab === "admin" || activeTab === "guide" || activeTab === "admission") && (
-                <button className="bg-black text-white px-4 py-2 rounded-xl" onClick={() => setIsFormOpen(true)}>
-                  + Create New
-                </button>
+                <Button onClick={() => setIsFormOpen(true)} />
               )}
             </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-lg mt-4  shadow overflow-hidden">
-            <table className="w-full table-fixed"> {/* Use table-fixed for equal column sizes */}
+          <div className="bg-white rounded-lg mt-4 shadow overflow-hidden">
+            <table className="w-full table-fixed">
               <thead className="bg-[#9d16be] text-white">
                 <tr>
                   {Object.keys(tabContent[activeTab][0]).map((field, i) => (
@@ -133,7 +199,6 @@ export default function TabPanel() {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="flex justify-between mt-6">
             <button className="border p-2 rounded-xl">&lt; Previous</button>
             <button className="border p-2 rounded-xl">Next &gt;</button>

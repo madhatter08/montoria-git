@@ -63,7 +63,7 @@ const StudentAdmissionForm = ({ onClose }) => {
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
         {/* Page 1: Photo Upload and Preview */}
         {currentPage === 1 && (
-          <div className="col-span-2 flex justify-center items-center space-x-6">
+          <div className="col-span-2  flex justify-center items-center space-x-6">
             <StyledWrapper>
               <div className="container">
                 <div className="folder">
