@@ -1,11 +1,25 @@
 import express from "express";
-import getChatResponse from "../config/groq.js";
+import OpenAI from "openai";
+import "dotenv/config"; // Ensure .env is loaded
 
 const router = express.Router();
+
+const openai = new OpenAI({
+    baseURL: "https://api.deepseek.com",
+    apiKey: process.env.DEEPSEEK_API_KEY, // Load from .env
+});
+
+// Log API key for debugging (REMOVE after testing)
+console.log("DeepSeek API Key:", process.env.DEEPSEEK_API_KEY);
 
 router.post("/chat", async (req, res) => {
     try {
         const userMessage = req.body.message;
+
+        if (!userMessage) {
+            return res.status(400).json({ error: "Message is required" });
+        }
+
         const messages = [
             {
                 role: "system",
@@ -53,14 +67,17 @@ Here are some example questions the user may ask, or similar inquiries:
      3. [Activity 3] - Short details and example
 
 4. "Can you list the materials needed for [Activity]?"
-   - Provide as many materials as necessary if needed.
-`
+   - Provide as many materials as necessary if needed.`
             },
             { role: "user", content: userMessage }
         ];
 
-        const response = await getChatResponse(messages);
-        res.json({ response });
+        const completion = await openai.chat.completions.create({
+            messages,
+            model: "deepseek-reasoner", // Use DeepSeek Reasoner model
+        });
+
+        res.json({ response: completion.choices[0].message.content });
     } catch (error) {
         console.error("Chat API Error:", error);
         res.status(500).json({ error: "Internal Server Error" });
