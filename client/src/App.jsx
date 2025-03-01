@@ -15,6 +15,7 @@ import Admission from './pages/Admission'
 import Attendance from './pages/Attendance'
 
 
+
 const App = () => {
   return (
     <div>
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/workspace/*" element={<Workspace />} />
         <Route path="/admission" element={<Admission/>} />
         <Route path="/attendance" element={<Attendance/>} />
+     
 
 
         {/* Public Routes

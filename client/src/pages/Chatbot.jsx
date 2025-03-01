@@ -688,7 +688,7 @@ const Chatbot = () => {
 
           <input
             type="text"
-            className="w-[85%] max-w-[1300px] p-2 rounded-lg border border-gray-300 outline-none flex-shrink"
+            className="w-[83%] sm:w-40% p-2 rounded-lg border border-gray-300 outline-none flex-shrink"
             placeholder="Type a message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
