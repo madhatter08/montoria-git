@@ -5,12 +5,12 @@ import "dotenv/config"; // Ensure .env is loaded
 const router = express.Router();
 
 const openai = new OpenAI({
-    baseURL: "https://api.deepseek.com",
+    baseURL: "https://api.deepseek.com/v1", // Corrected DeepSeek API base URL
     apiKey: process.env.DEEPSEEK_API_KEY, // Load from .env
 });
 
 // Log API key for debugging (REMOVE after testing)
-console.log("DeepSeek API Key:", process.env.DEEPSEEK_API_KEY);
+console.log("DeepSeek API Key Loaded:", !!process.env.DEEPSEEK_API_KEY);
 
 router.post("/chat", async (req, res) => {
     try {
@@ -23,19 +23,18 @@ router.post("/chat", async (req, res) => {
         const messages = [
             {
                 role: "system",
-                content: `You are Montoria, a chatbot designed for Student Progress Tracker.
+                content: `You are Montoria, a chatbot designed for supporting student's learning needs. 
 
 General Guidelines:
 - Responses should be focused on education and aligned with Montessori principles.
 - Answer directly—no need to explain the reason or purpose unless explicitly asked.
-- For follow-up questions, keep responses concise and clear (under 300 words).
+- For follow-up questions, keep responses concise and clear (under 700 words).
 - Do not answer non-educational queries.
-- Do not include asterisks.
+- Do not put any formats, do not use bold letters
 
-Here are some example questions the user may ask, or similar inquiries:
+Here are some example questions the user may ask:
 
 1. "Recommend activities for [Level] focused on [Lesson]."
-   - Provide only up to 3 activities.
    - Response format:
      1. [Activity 1]
         - Materials:
@@ -51,7 +50,6 @@ Here are some example questions the user may ask, or similar inquiries:
           2. [Material 2]
 
 2. "Suggest an activity for [Learning Area] to enhance students' [Skill] for [Level]"
-   - Provide only 1 activity.
    - Response format:
      1. [Activity Title]
      2. Materials Needed:
@@ -60,7 +58,6 @@ Here are some example questions the user may ask, or similar inquiries:
      3. Instructions (Provide short step-by-step instructions)
 
 3. "What group task can I assign to the [Level] in [Learning Area] for [Lesson]?"
-   - Provide up to 3 activities.
    - Response format:
      1. [Activity 1] - Short details and example
      2. [Activity 2] - Short details and example
@@ -72,15 +69,24 @@ Here are some example questions the user may ask, or similar inquiries:
             { role: "user", content: userMessage }
         ];
 
-        const completion = await openai.chat.completions.create({
+        const response = await openai.chat.completions.create({
             messages,
-            model: "deepseek-reasoner", // Use DeepSeek Reasoner model
+            model: "deepseek-chat", // Ensure this is a valid model
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`
+            }
         });
 
-        res.json({ response: completion.choices[0].message.content });
+        // Ensure the response is valid
+        if (!response || !response.choices || response.choices.length === 0) {
+            throw new Error("Invalid or empty API response");
+        }
+
+        res.json({ response: response.choices[0].message.content });
     } catch (error) {
-        console.error("Chat API Error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Chat API Error:", error.message);
+        res.status(500).json({ error: "Failed to fetch response from DeepSeek API" });
     }
 });
 
