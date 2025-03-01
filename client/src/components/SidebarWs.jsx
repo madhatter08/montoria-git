@@ -28,7 +28,7 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
       : userData.roleData?.firstName || "Guide";
 
   const displayRole = userData?.role ? userData.role.toUpperCase() : "UNKNOWN";
-
+  const displaySchoolId = userData?.schoolId ? userData.schoolId : "???";
   return (
     <div className="relative">
       {/* Sidebar positioned below the navigation bar */}
@@ -91,7 +91,7 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
                   className="w-10 h-10 rounded-full"
                 />
                 <div className="text-gray-900 font-bold pl-2 text-sm">
-                  {displayRole} <br /> 2021-30028
+                  {displayRole} <br /> {displaySchoolId}
                 </div>
               </div>
             </div>

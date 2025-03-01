@@ -28,7 +28,6 @@ const Workspace = () => {
 
   return (
     <div className="relative h-screen w-full flex flex-col">
-      {/* Navbar */}
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
         <NavbarUser />
       </div>

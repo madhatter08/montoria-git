@@ -8,6 +8,9 @@ import {
     addWork,
     addMaterial,
     addCurriculum,
+    getAllCurriculum,
+    deleteCurriculum,
+    editCurriculum
 } from "../controllers/schoolController.js";
 
 const schoolRouter = express.Router();
@@ -21,6 +24,9 @@ schoolRouter.post("/add-work", addWork);
 schoolRouter.post("/add-material", addMaterial);
 
 schoolRouter.post("/add-curriculum", addCurriculum);
+schoolRouter.get("/get-curriculum", getAllCurriculum);
+schoolRouter.delete("/delete-curriculum/:id", deleteCurriculum);
+schoolRouter.put("/edit-curriculum/:id", editCurriculum);
 
 
 
