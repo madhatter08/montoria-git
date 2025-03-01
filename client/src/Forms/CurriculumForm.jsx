@@ -1,24 +1,115 @@
-import React, { useState } from "react";
-import { assets } from "../assets/assets"; // Ensure you import the assets
+import { useState, useEffect } from "react";
+import { assets } from "../assets/assets";
+import PropTypes from "prop-types";
+import axios from "axios";
+import { toast } from "react-toastify";
 
-const CurriculumForm = ({ onAdd, onClose }) => {
-  const [level, setLevel] = useState("");
-  const [area, setArea] = useState("");
-  const [materials, setMaterials] = useState("");
-  const [work, setWork] = useState("");
-  const [lesson, setLesson] = useState("");
+const CurriculumForm = ({ onClose, refreshData, editData }) => {
+  // Initialize state with editData if provided
+  const [program, setProgram] = useState(editData?.Program || "");
+  const [level, setLevel] = useState(editData?.Level || "");
+  const [area, setArea] = useState(editData?.Areas || "");
+  const [materials, setMaterials] = useState(editData?.Material || "");
+  const [work, setWork] = useState(editData?.Work || "");
+  const [lesson, setLesson] = useState(editData?.Lesson || "");
 
-  const handleSubmit = (e) => {
+  // Update state when editData changes
+  useEffect(() => {
+    if (editData) {
+      setProgram(editData.Program);
+      setLevel(editData.Level);
+      setArea(editData.Areas);
+      setMaterials(editData.Material);
+      setWork(editData.Work);
+      setLesson(editData.Lesson);
+    }
+  }, [editData]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAdd({ level, area, materials, work, lesson });
-    onClose();
+
+    const curriculumData = {
+      Program: program,
+      Level: level,
+      Areas: area,
+      Material: materials,
+      Work: work,
+      Lesson: lesson,
+    };
+
+    try {
+      let response;
+      if (editData) {
+        // Edit existing curriculum
+        response = await axios.put(
+          `http://localhost:4000/api/school/edit-curriculum/${editData._id}`,
+          curriculumData
+        );
+      } else {
+        // Add new curriculum
+        response = await axios.post(
+          "http://localhost:4000/api/school/add-curriculum",
+          curriculumData
+        );
+      }
+
+      if (response.data.success) {
+        toast.success(
+          editData
+            ? "Curriculum updated successfully!"
+            : "Curriculum added successfully!"
+        );
+        refreshData();
+        onClose();
+      } else {
+        toast.error(response.data.message || "Failed to save curriculum.");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "An error occurred. Please try again."
+      );
+    }
+  };
+
+  const programLevels = {
+    Toddler: ["Toddler"],
+    Preschool: ["Junior Casa", "Junior Advanced Casa", "Advanced Casa"],
+    "Lower Elementary": ["Grade 1", "Grade 2", "Grade 3"],
   };
 
   return (
     <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-transparent bg-opacity-50 flex items-start justify-center mt-20">
       <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Add New Curriculum</h2>
+        <h2 className="text-xl font-bold mb-4">
+          {editData ? "Edit Curriculum" : "Add New Curriculum"}
+        </h2>
         <form onSubmit={handleSubmit}>
+          {/* Program Field */}
+          <div className="relative mb-4">
+            <label className="relative block">
+              <select
+                required
+                value={program}
+                onChange={(e) => {
+                  setProgram(e.target.value);
+                  setLevel("");
+                }}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              >
+                <option value="">Select Program</option>
+                <option value="Toddler">Toddler</option>
+                <option value="Preschool">Preschool</option>
+                <option value="Lower Elementary">Lower Elementary</option>
+              </select>
+              <img
+                src={assets.person_icon}
+                alt="person icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+              />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
+            </label>
+          </div>
+
           {/* Level Field */}
           <div className="relative mb-4">
             <label className="relative block">
@@ -26,21 +117,22 @@ const CurriculumForm = ({ onAdd, onClose }) => {
                 required
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
+                disabled={!program}
               >
                 <option value="">Select Level</option>
-                <option value="Toddler">Toddler</option>
-                <option value="Preschool">Preschool</option>
-                <option value="Lower Elementary">Lower Elementary</option>
+                {programLevels[program]?.map((levelOption) => (
+                  <option key={levelOption} value={levelOption}>
+                    {levelOption}
+                  </option>
+                ))}
               </select>
               <img
-                src={assets.person_icon} // Replace with appropriate icon if needed
+                src={assets.person_icon}
                 alt="person icon"
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
               />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                
-              </span>
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
             </label>
           </div>
 
@@ -60,13 +152,11 @@ const CurriculumForm = ({ onAdd, onClose }) => {
                 <option value="Literature">Literature</option>
               </select>
               <img
-                src={assets.person_icon} // Replace with appropriate icon if needed
+                src={assets.person_icon}
                 alt="person icon"
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
               />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                
-              </span>
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
             </label>
           </div>
 
@@ -79,10 +169,9 @@ const CurriculumForm = ({ onAdd, onClose }) => {
                 value={materials}
                 onChange={(e) => setMaterials(e.target.value)}
                 className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                
               />
               <img
-                src={assets.person_icon} // Replace with appropriate icon if needed
+                src={assets.person_icon}
                 alt="person icon"
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
               />
@@ -101,10 +190,9 @@ const CurriculumForm = ({ onAdd, onClose }) => {
                 value={work}
                 onChange={(e) => setWork(e.target.value)}
                 className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                
               />
               <img
-                src={assets.person_icon} // Replace with appropriate icon if needed
+                src={assets.person_icon}
                 alt="person icon"
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
               />
@@ -123,10 +211,9 @@ const CurriculumForm = ({ onAdd, onClose }) => {
                 value={lesson}
                 onChange={(e) => setLesson(e.target.value)}
                 className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-               
               />
               <img
-                src={assets.person_icon} // Replace with appropriate icon if needed
+                src={assets.person_icon}
                 alt="person icon"
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
               />
@@ -149,13 +236,19 @@ const CurriculumForm = ({ onAdd, onClose }) => {
               type="submit"
               className="px-4 py-2 bg-[#9d16be] text-white rounded"
             >
-              Add
+              {editData ? "Update" : "Add"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
+};
+
+CurriculumForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  refreshData: PropTypes.func.isRequired,
+  editData: PropTypes.object,
 };
 
 export default CurriculumForm;

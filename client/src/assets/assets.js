@@ -30,7 +30,8 @@ import montoria_logo_white from './montoria_logo_white.png'
 import bookmark from './bookmark.png'
 import montoria1 from './montoria1.png'
 import back_icon from './back_icon.png'
-
+import phone_icon from './phone_icon.png'
+import no_pfp from './no_pfp.png'
 
 
 
@@ -66,6 +67,7 @@ export const assets = {
     montoria_logo_white,
     bookmark,
     montoria1,
-    back_icon
-    
+    back_icon,
+    phone_icon,
+    no_pfp,
 }

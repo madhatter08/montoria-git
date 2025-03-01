@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { assets } from "../assets/assets"; // Ensure you import the assets
+import { assets } from "../assets/assets";
+import PropTypes from "prop-types";
 
 // Styled Delete Button Component
 const DeleteButton = ({ onClick }) => {
@@ -265,6 +266,12 @@ const AdmissionForm = ({ onClose }) => {
       </div>
     </div>
   );
+};
+AdmissionForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
+};
+DeleteButton.propTypes = {
+  onClick: PropTypes.func.isRequired,
 };
 
 export default AdmissionForm;
