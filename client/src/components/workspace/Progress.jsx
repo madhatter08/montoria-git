@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { assets } from "../../assets/assets";
+import { toast } from "react-toastify";
 
 // Mock RemarksForm component (replace with your actual form component)
 const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
@@ -199,7 +200,7 @@ const handleAddSubRow = (index) => {
 
   // Handle save feedback for quarters
   const handleSaveFeedback = (quarterIndex, weekIndex) => {
-    alert(`Feedback for Quarter ${quarterIndex + 1}, Week ${weekIndex + 1} saved: ${feedback[quarterIndex][weekIndex]}`);
+    toast(`Feedback for Quarter ${quarterIndex + 1}, Week ${weekIndex + 1} `);
   };
 
   // Handle week selection for quarters
