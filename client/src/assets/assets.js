@@ -32,7 +32,14 @@ import montoria1 from './montoria1.png'
 import back_icon from './back_icon.png'
 import phone_icon from './phone_icon.png'
 import no_pfp from './no_pfp.png'
-
+import heroBg from './heroBg.png'
+import workspace_icon from './workspace_icon.png'
+import reportcard_icon from './reportcard_icon.png'
+import lessonplan_icon from './lessonplan_icon.png'
+import aboutImage1 from './aboutImage1.png'
+import aboutImage2 from './aboutImage2.png'
+import heroBg2 from './heroBg2.png'
+import heroBg3 from './heroBg3.png'
 
 
 export const assets = {
@@ -70,4 +77,12 @@ export const assets = {
     back_icon,
     phone_icon,
     no_pfp,
+    heroBg,  
+    workspace_icon,
+    lessonplan_icon,
+    reportcard_icon,
+    aboutImage1,
+    aboutImage2,
+    heroBg2,
+    heroBg3
 }
