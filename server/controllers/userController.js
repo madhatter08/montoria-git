@@ -41,3 +41,19 @@ export const getUserData = async (req, res) => {
     return res.json({ success: false, message: error.message });
   }
 };
+
+export const getAllUserData = async (req, res) => {
+  try {
+    const users = await userModel
+      .find()
+      .select("-password -resetOtp -resetOtpExpiresAt -__v -createdAt -updatedAt");
+
+    if (!users.length) {
+      return res.json({ success: false, message: "No users found" });
+    }
+
+    res.json({ success: true, users });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};

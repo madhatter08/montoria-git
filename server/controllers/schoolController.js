@@ -5,25 +5,97 @@ import areaModel from "../models/acads/areaModel.js";
 import lessonModel from "../models/acads/lessonModel.js";
 import workModel from "../models/acads/workModel.js";
 import materialModel from "../models/acads/materialModel.js";
-
 import curriculumModel from "../models/acads/curriculumModel.js";
 
 export const addCurriculum = async (req, res) => { 
-  const { curId, progName, levelName, areaName, lessonName, workName, materialName, photo } = req.body;
-  if ( !curId, !progName || !levelName || !areaName || !lessonName || !workName ) {
+  const { Program, Level, Areas, Material, Lesson, Work } = req.body;
+  if ( !Program || !Level || !Areas || !Material || !Lesson || !Work ) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
-  const existingCurId = await curriculumModel.findOne({ curId });
-    if (existingCurId) {
+  const existing = await curriculumModel.findOne({ Program, Level, Areas, Material, Lesson, Work });
+    if (existing) {
       return res.status(400).json({ success: false, message: "Curriculum already exist." });
     }
 
   try {
-    const newCurriculum = new curriculumModel({ curId, progName, levelName, areaName, lessonName, workName, materialName, photo: photo || null });
+    const newCurriculum = new curriculumModel({ Program, Level, Areas, Material, Lesson, Work });
     await newCurriculum.save();
     res.status(201).json({ success: true, message: "Curriculum added successfully", data: newCurriculum });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAllCurriculum = async (req, res) => {
+  try {
+    const data = await curriculumModel.find();
+
+    if (!data.length) {
+      return res.json({ success: false, message: "No data found" });
+    }
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const deleteCurriculum = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const curriculum = await curriculumModel.findById(id);
+    if (!curriculum) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Curriculum not found" });
+    }
+
+    await curriculumModel.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Curriculum deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting curriculum:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error while deleting curriculum",
+      });
+  }
+};
+
+export const editCurriculum = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    const curriculum = await curriculumModel.findById(id);
+    if (!curriculum) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Curriculum not found" });
+    }
+
+    const updatedCurriculum = await curriculumModel.findByIdAndUpdate(
+      id,
+      updatedData,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Curriculum updated successfully",
+      data: updatedCurriculum,
+    });
+  } catch (error) {
+    console.error("Error updating curriculum:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error while updating curriculum",
+      });
   }
 };
 

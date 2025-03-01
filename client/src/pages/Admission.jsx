@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import NavbarUser from "../components/NavbarUser";
 import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
 import AdminForm from "../Forms/AdminForm";
@@ -6,38 +7,414 @@ import GuideForm from "../Forms/GuideForm";
 import AdmissionForm from "../Forms/AdmissionForm";
 import { assets } from "../assets/assets";
 import styled from "styled-components";
+import PropTypes from "prop-types";
 
-const tabContent = {
-  students: Array(10).fill({
-    schoolId: "12345",
-    name: "John Doe",
-    age: "10",
-    birthday: "01/01/2013",
-    parent: "Jane Doe",
-    phone: "123-456-7890",
-    email: "john.doe@example.com",
-    remarks: "Good student with excellent performance in all subjects.",
-  }),
-  admin: Array(5).fill({
-    schoolId: "54321",
-    name: "Admin User",
-    phone: "987-654-3210",
-    email: "admin@example.com",
-  }),
-  guide: Array(8).fill({
-    schoolId: "67890",
-    name: "Guide User",
-    email: "guide@example.com",
-    phone: "555-555-5555",
-    class: "Class A",
-  }),
-  admission: Array(8).fill({
-    program: "Math",
-    level: "Beginner",
-    learningArea: "Algebra",
-    class: "Class B",
-  }),
-};
+export default function TabPanel() {
+  const [activeTab, setActiveTab] = useState(
+    localStorage.getItem("activeTab") || "students"
+  );
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedRemarks, setSelectedRemarks] = useState(null);
+  const [data, setData] = useState({
+    students: [],
+    admin: [],
+    guide: [],
+    admission: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+
+  // Fetch data dynamically from the backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await axios.get("http://localhost:4000/api/user/all", {
+          withCredentials: true,
+        });
+
+        if (res.data.success) {
+          const users = res.data.users;
+
+          // Separate users by role
+          const students = users.filter((user) => user.role === "student");
+          const admin = users.filter((user) => user.role === "admin");
+          const guide = users.filter((user) => user.role === "guide");
+
+          // Fetch admissions separately
+          const admissionRes = await axios.get(
+            "http://localhost:4000/api/user/all",
+            {
+              withCredentials: true,
+            }
+          );
+
+          setData({
+            students,
+            admin,
+            guide,
+            admission: admissionRes.data.admissions || [],
+          });
+        } else {
+          setError("Failed to fetch users.");
+        }
+      } catch (err) {
+        setError("Error fetching users.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  if (loading) return <p>Loading users...</p>;
+  if (error) return <p>{error}</p>;
+
+  const tabs = [
+    { name: "GUIDE", key: "guide", count: data.guide.length },
+    { name: "ADMIN", key: "admin", count: data.admin.length },
+    { name: "STUDENTS", key: "students", count: data.students.length },
+    { name: "ADMISSION", key: "admission", count: data.admission.length },
+  ];
+
+  const renderForm = () => {
+    switch (activeTab) {
+      case "students":
+        return <StudentAdmissionForm onClose={() => setIsFormOpen(false)} />;
+      case "admin":
+        return <AdminForm onClose={() => setIsFormOpen(false)} />;
+      case "guide":
+        return <GuideForm onClose={() => setIsFormOpen(false)} />;
+      case "admission":
+        return <AdmissionForm onClose={() => setIsFormOpen(false)} />;
+      default:
+        return null;
+    }
+  };
+
+  const handleDelete = (index) => {
+    const newData = { ...data };
+    newData[activeTab] = newData[activeTab].filter((_, i) => i !== index);
+    setData(newData);
+  };
+
+  const handleEdit = (index) => {
+    setEditItem({ ...data[activeTab][index], index });
+    setIsFormOpen(true);
+  };
+
+  const handleSave = (updatedItem) => {
+    const newData = { ...data };
+    newData[activeTab][updatedItem.index] = updatedItem;
+    setData(newData);
+    setEditItem(null);
+    setIsFormOpen(false);
+  };
+
+  const exportToExcel = () => {
+    const table = document.querySelector("table");
+    const rows = table.querySelectorAll("tr");
+    let csvContent = "data:text/csv;charset=utf-8,";
+
+    rows.forEach((row) => {
+      const rowData = [];
+      row.querySelectorAll("th, td").forEach((cell) => {
+        rowData.push(cell.innerText);
+      });
+      csvContent += rowData.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${activeTab}_data.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleRemarksClick = (remarks) => {
+    setSelectedRemarks(remarks);
+  };
+
+  const closeRemarksModal = () => {
+    setSelectedRemarks(null);
+  };
+
+  return (
+    <div
+      className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto"
+      style={{
+        background:
+          "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)",
+      }}
+    >
+      <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
+        <NavbarUser />
+      </div>
+
+      <div className="max-w-100% mx-auto p-6 rounded-lg mt-10 bg-transparent">
+        <div className="flex mt-20 bg-white w-full rounded-t-lg p-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`py-2 px-6 font-medium transition-all relative ${
+                activeTab === tab.key
+                  ? "border-b-4 border-[#9d16be] text-black"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.name}{" "}
+              <span className="ml-2 bg-gray-300 px-2 py-1 text-xs rounded-full">
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-white p-6 rounded-b-lg shadow-md">
+          <div className="mt-0 flex justify-between items-center">
+            <div className="relative w-1/3">
+              <input
+                type="text"
+                placeholder="Search"
+                className="border p-2 rounded-xl w-full pl-10"
+              />
+              <img
+                src={assets.search}
+                alt="Search"
+                className="absolute left-3 top-2.5 w-5 h-5"
+              />
+            </div>
+            <div className="flex space-x-2">
+              <button
+                className="border p-2 bg-gray-100 rounded-xl"
+                onClick={exportToExcel}
+              >
+                Export to Excel
+              </button>
+
+              {(activeTab === "students" ||
+                activeTab === "admin" ||
+                activeTab === "guide" ||
+                activeTab === "admission") && (
+                <Button onClick={() => setIsFormOpen(true)} />
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg mt-4 shadow overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#9d16be] text-white">
+                <tr>
+                  {activeTab === "students" && (
+                    <>
+                      <th className="p-3 text-left">Photo</th>
+                      <th className="p-3 text-left">School ID</th>
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Level</th>
+                      <th className="p-3 text-left">LRN</th>
+                      <th className="p-3 text-left">Birthday</th>
+                      <th className="p-3 text-left">Address</th>
+                      <th className="p-3 text-left">Parent</th>
+                      <th className="p-3 text-left">Phone</th>
+                    </>
+                  )}
+                  {activeTab === "admin" && (
+                    <>
+                      <th className="p-3 text-left">School ID</th>
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Email</th>
+                      <th className="p-3 text-left">Phone</th>
+                    </>
+                  )}
+                  {activeTab === "guide" && (
+                    <>
+                      <th className="p-3 text-left">Photo</th>
+                      <th className="p-3 text-left">School ID</th>
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Birthday</th>
+                      <th className="p-3 text-left">Address</th>
+                      <th className="p-3 text-left">Email</th>
+                      <th className="p-3 text-left">Phone</th>
+                      <th className="p-3 text-left">Class</th>
+                    </>
+                  )}
+                  {activeTab === "admission" && (
+                    <>
+                      <th className="p-3 text-left">Program</th>
+                      <th className="p-3 text-left">Level</th>
+                      <th className="p-3 text-left">Learning Area</th>
+                    </>
+                  )}
+                  <th className="p-3 text-left min-w-[100px]">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data[activeTab].map((item, index) => (
+                  <tr key={index} className="border-b">
+                    {activeTab === "students" && (
+                      <>
+                        <td className="p-3">
+                          {item.studentData?.photo ? (
+                            <img
+                              src={item.studentData.photo}
+                              alt="User image"
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <img
+                              src={assets.no_pfp}
+                              alt="Placeholder"
+                              className="w-10 h-10 rounded-full"
+                            />
+                          )}
+                        </td>
+                        <td className="p-3">{item.schoolId}</td>
+                        <td className="p-3">
+                          {`${item.studentData.lastName}, ${
+                            item.studentData.firstName
+                          } ${
+                            item.studentData.middleName
+                              ? `${item.studentData.middleName.charAt(0)}.`
+                              : ""
+                          }`}
+                        </td>
+                        <td className="p-3">{item.studentData.levelId}</td>
+                        <td className="p-3">{item.studentData.lrn}</td>
+                        <td className="p-3">
+                          {
+                            new Date(item.studentData.birthday)
+                              .toISOString()
+                              .split("T")[0]
+                          }
+                        </td>
+                        <td className="p-3">{item.studentData.address}</td>
+                        <td className="p-3">
+                          {`${item.studentData.parent[0].name} (${item.studentData.parent[0].relationship})`}
+                        </td>
+                        <td className="p-3">
+                          {item.studentData.parent[0].contactNumber}
+                        </td>
+                      </>
+                    )}
+                    {activeTab === "admin" && (
+                      <>
+                        <td className="p-3">{item.schoolId}</td>
+                        <td className="p-3">{item.adminData.name}</td>
+                        <td className="p-3">{item.email}</td>
+                        <td className="p-3">{item.phone}</td>
+                      </>
+                    )}
+                    {activeTab === "guide" && (
+                      <>
+                        <td className="p-3">
+                          {item.guideData?.photo ? (
+                            <img
+                              src={item.guideData.photo}
+                              alt="User image"
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <img
+                              src={assets.no_pfp}
+                              alt="Placeholder"
+                              className="w-10 h-10 rounded-full"
+                            />
+                          )}
+                        </td>
+                        <td className="p-3">{item.schoolId}</td>
+                        <td className="p-3">
+                          {`${item.guideData.lastName}, ${
+                            item.guideData.firstName
+                          } ${
+                            item.guideData.middleName
+                              ? `${item.guideData.middleName.charAt(0)}.`
+                              : ""
+                          }`}
+                        </td>
+                        <td className="p-3">
+                          {
+                            new Date(item.guideData.birthday)
+                              .toISOString()
+                              .split("T")[0]
+                          }
+                        </td>
+                        <td className="p-3">{item.guideData.address}</td>
+                        <td className="p-3">{item.email}</td>
+                        <td className="p-3">{item.guideData.contactNumber}</td>
+                        <td className="p-3">
+                          {item.guideData.class?.join(", ") ??
+                            "No classes assigned"}
+                        </td>
+                      </>
+                    )}
+                    {activeTab === "admission" && (
+                      <>
+                        <td className="p-3">{item.program}</td>
+                        <td className="p-3">{item.level}</td>
+                        <td className="p-3">{item.learningArea}</td>
+                      </>
+                    )}
+                    <td className="p-3 min-w-[100px]">
+                      <div className="flex justify-start space-x-2">
+                        <img
+                          src={assets.edit_profile}
+                          alt="Edit"
+                          className="w-5 h-5 cursor-pointer"
+                          onClick={() => handleEdit(index)}
+                        />
+                        <img
+                          src={assets.delete_icon}
+                          alt="Delete"
+                          className="w-5 h-5 cursor-pointer"
+                          onClick={() => handleDelete(index)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-between mt-6">
+            <button className="border p-2 rounded-xl">&lt; Previous</button>
+            <button className="border p-2 rounded-xl">Next &gt;</button>
+          </div>
+        </div>
+      </div>
+
+      {isFormOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
+          <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
+            {renderForm()}
+          </div>
+        </div>
+      )}
+
+      {selectedRemarks && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-2xl w-[90%] max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">Remarks</h2>
+            <p>{selectedRemarks}</p>
+            <button
+              className="mt-4 p-2 bg-[#9d16be] text-white rounded-lg"
+              onClick={closeRemarksModal}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const Button = ({ onClick }) => {
   return (
@@ -112,186 +489,6 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default function TabPanel() {
-  const [activeTab, setActiveTab] = useState("students");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedRemarks, setSelectedRemarks] = useState(null);
-  const [data, setData] = useState(tabContent);
-  const [editItem, setEditItem] = useState(null);
-
-  const tabs = [
-    { name: "GUIDE", key: "guide", count: data.guide.length },
-    { name: "ADMIN", key: "admin", count: data.admin.length },
-    { name: "STUDENTS", key: "students", count: data.students.length },
-    { name: "ADMISSION", key: "admission", count: data.admission.length },
-  ];
-
-  const renderForm = () => {
-    switch (activeTab) {
-      case "students":
-        return <StudentAdmissionForm onClose={() => setIsFormOpen(false)} />;
-      case "admin":
-        return <AdminForm onClose={() => setIsFormOpen(false)} />;
-      case "guide":
-        return <GuideForm onClose={() => setIsFormOpen(false)} />;
-      case "admission":
-        return <AdmissionForm onClose={() => setIsFormOpen(false)} />;
-      default:
-        return null;
-    }
-  };
-
-  const handleDelete = (index) => {
-    const newData = { ...data };
-    newData[activeTab] = newData[activeTab].filter((_, i) => i !== index);
-    setData(newData);
-  };
-
-  const handleEdit = (index) => {
-    setEditItem({ ...data[activeTab][index], index });
-    setIsFormOpen(true);
-  };
-
-  const handleSave = (updatedItem) => {
-    const newData = { ...data };
-    newData[activeTab][updatedItem.index] = updatedItem;
-    setData(newData);
-    setEditItem(null);
-    setIsFormOpen(false);
-  };
-
-  const exportToExcel = () => {
-    const table = document.querySelector("table");
-    const rows = table.querySelectorAll("tr");
-    let csvContent = "data:text/csv;charset=utf-8,";
-
-    rows.forEach((row) => {
-      const rowData = [];
-      row.querySelectorAll("th, td").forEach((cell) => {
-        rowData.push(cell.innerText);
-      });
-      csvContent += rowData.join(",") + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${activeTab}_data.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleRemarksClick = (remarks) => {
-    setSelectedRemarks(remarks);
-  };
-
-  const closeRemarksModal = () => {
-    setSelectedRemarks(null);
-  };
-
-  return (
-    <div className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto" style={{ background: "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)" }}>
-      <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
-        <NavbarUser />
-      </div>
-
-      <div className="max-w-7xl mx-auto p-6 rounded-lg mt-10 bg-transparent">
-        <div className="flex mt-20 bg-white w-full rounded-t-lg p-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              className={`py-2 px-6 font-medium transition-all relative ${activeTab === tab.key ? "border-b-4 border-[#9d16be] text-black" : "text-gray-500"}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.name} <span className="ml-2 bg-gray-300 px-2 py-1 text-xs rounded-full">{tab.count}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="bg-white p-6 rounded-b-lg shadow-md">
-          <div className="mt-0 flex justify-between items-center">
-            <div className="relative w-1/3">
-              <input type="text" placeholder="Search" className="border p-2 rounded-xl w-full pl-10" />
-              <img src={assets.search} alt="Search" className="absolute left-3 top-2.5 w-5 h-5" />
-            </div>
-            <div className="flex space-x-2">
-              <button className="border p-2 bg-gray-100 rounded-xl" onClick={exportToExcel}>Export to Excel</button>
-        
-              {(activeTab === "students" || activeTab === "admin" || activeTab === "guide" || activeTab === "admission") && (
-                <Button onClick={() => setIsFormOpen(true)} />
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg mt-4 shadow overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#9d16be] text-white">
-                <tr>
-                  {Object.keys(data[activeTab][0]).map((field, i) => (
-                    <th
-                      key={i}
-                      className={`p-3 text-left ${field === "age" || field === "birthday" ? "w-[100px]" : "min-w-[150px] max-w-[200px]"}`}
-                    >
-                      {field.toUpperCase().replace(/_/g, " ")}
-                    </th>
-                  ))}
-                  <th className="p-3 text-left min-w-[100px]">ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data[activeTab].map((item, index) => (
-                  <tr key={index} className="border-b">
-                    {Object.entries(item).map(([key, value], i) => (
-                      <td
-                        key={i}
-                        className={`p-3 ${key === "age" || key === "birthday" ? "w-[100px]" : "min-w-[150px] max-w-[200px]"} ${key === "remarks" ? "cursor-pointer hover:bg-gray-100" : ""}`}
-                        onClick={key === "remarks" ? () => handleRemarksClick(value) : undefined}
-                      >
-                        {value}
-                      </td>
-                    ))}
-                    <td className="p-3 min-w-[100px]">
-                      <div className="flex justify-start space-x-2">
-                        <img src={assets.edit_profile} alt="Edit" className="w-5 h-5 cursor-pointer" onClick={() => handleEdit(index)} />
-                        <img src={assets.delete_icon} alt="Delete" className="w-5 h-5 cursor-pointer" onClick={() => handleDelete(index)} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-between mt-6">
-            <button className="border p-2 rounded-xl">&lt; Previous</button>
-            <button className="border p-2 rounded-xl">Next &gt;</button>
-          </div>
-        </div>
-      </div>
-
-      {isFormOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
-          <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
-            {renderForm()}
-          </div>
-        </div>
-      )}
-
-      {selectedRemarks && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-2xl w-[90%] max-w-2xl">
-            <h2 className="text-xl font-bold mb-4">Remarks</h2>
-            <p>{selectedRemarks}</p>
-            <button
-              className="mt-4 p-2 bg-[#9d16be] text-white rounded-lg"
-              onClick={closeRemarksModal}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+Button.propTypes = {
+  onClick: PropTypes.func.isRequired,
+};

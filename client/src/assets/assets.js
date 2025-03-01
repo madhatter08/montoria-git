@@ -28,7 +28,8 @@ import check from './check.png'
 import login_bg from './login_bg.jpg'
 import montoria_logo_white from './montoria_logo_white.png'
 import bookmark from './bookmark.png'
-
+import phone_icon from './phone_icon.png'
+import no_pfp from './no_pfp.png'
 
 
 
@@ -63,5 +64,6 @@ export const assets = {
     login_bg,
     montoria_logo_white,
     bookmark,
-    
+    phone_icon,
+    no_pfp,
 }

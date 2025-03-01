@@ -1,5 +1,5 @@
-import React from "react";
-import { assets } from "../assets/assets"; // Ensure you import the assets
+import { assets } from "../assets/assets";
+import PropTypes from "prop-types";
 
 const AdminForm = ({ onClose }) => {
   return (
@@ -56,7 +56,7 @@ const AdminForm = ({ onClose }) => {
               className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
             />
             <img
-              src={assets.email_icon} // Replace with appropriate icon if needed
+              src={assets.mail_icon} // Replace with appropriate icon if needed
               alt="email icon"
               className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
             />
@@ -76,7 +76,7 @@ const AdminForm = ({ onClose }) => {
               className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
             />
             <img
-              src={assets.phone_icon} // Replace with appropriate icon if needed
+              src={assets.mail_icon} // Replace with appropriate icon if needed
               alt="phone icon"
               className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
             />
@@ -105,6 +105,9 @@ const AdminForm = ({ onClose }) => {
       </form>
     </div>
   );
+};
+AdminForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
 };
 
 export default AdminForm;
