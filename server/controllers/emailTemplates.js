@@ -8,9 +8,11 @@ export const WELCOME_EMAIL_TEMPLATE = `
         <p><strong>Your account details:</strong></p>
         <ul style="list-style-type: none; padding: 0;">
             <li><strong>School ID:</strong> \{schoolId}</li>
+            <li><strong>Temporary Password:</strong> montoria@1234</li>
         </ul>
+        <p>It is important to <strong>reset your password</strong> before you use your account.</p>
         <p>If you have any questions, feel free to reach out to us at <a href="mailto:support@montoria.com">montoria.montessori@gmail.com</a>. We're here to support you every step of the way.</p>
-        <p style="margin-top: 20px;">Wishing you success and happiness in your new role!</p>
+        <p style="margin-top: 20px;">Wishing you success and exciting opportunities ahead!</p>
         <br>
         <p>Best Regards,<br>The MONTORIA Team</p>
         <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;" />

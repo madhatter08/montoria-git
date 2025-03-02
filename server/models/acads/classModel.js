@@ -14,8 +14,8 @@ const scheduleSchema = new mongoose.Schema({
 }, { _id: false });
 
 const classSchema = new mongoose.Schema({
-    progName: { type: String, ref: "program" },
-    className: { type: String, required: true, trim: true },
+    program: { type: String, ref: "program" },
+    class: { type: String, required: true, trim: true },
     guides: [{ type: String, ref: "user" }],
     capacity: { type: Number, required: true, min: 0 },
     students: [{ type: String, ref: "user" }],
