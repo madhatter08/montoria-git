@@ -40,6 +40,7 @@ import aboutImage1 from './aboutImage1.png'
 import aboutImage2 from './aboutImage2.png'
 import heroBg2 from './heroBg2.png'
 import heroBg3 from './heroBg3.png'
+import sidebar_icon from './sidebar_icon.png'
 
 
 export const assets = {
@@ -84,5 +85,6 @@ export const assets = {
     aboutImage1,
     aboutImage2,
     heroBg2,
-    heroBg3
+    heroBg3,
+    sidebar_icon
 }

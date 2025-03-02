@@ -4,275 +4,29 @@ import NavbarUser from "../components/NavbarUser";
 import { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 import styled from "styled-components";
-import HelpForm from "../Forms/HelpForm"; 
+import HelpForm from "../Forms/HelpForm";
 import { toast } from "react-toastify";
 
-// Loader Component
-const Loader = () => {
-  return (
-    <StyledWrapper>
-      <div className="loader-container">
-        <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" className="pencil">
-          <defs>
-            <clipPath id="pencil-eraser">
-              <rect height={30} width={30} ry={5} rx={5} />
-            </clipPath>
-          </defs>
-          <circle transform="rotate(-113,100,100)" strokeLinecap="round" strokeDashoffset="439.82" strokeDasharray="439.82 439.82" strokeWidth={2} stroke="currentColor" fill="none" r={70} className="pencil__stroke" />
-          <g transform="translate(100,100)" className="pencil__rotate">
-            <g fill="none">
-              <circle transform="rotate(-90)" strokeDashoffset={402} strokeDasharray="402.12 402.12" strokeWidth={30} stroke="hsl(223,90%,50%)" r={64} className="pencil__body1" />
-              <circle transform="rotate(-90)" strokeDashoffset={465} strokeDasharray="464.96 464.96" strokeWidth={10} stroke="hsl(223,90%,60%)" r={74} className="pencil__body2" />
-              <circle transform="rotate(-90)" strokeDashoffset={339} strokeDasharray="339.29 339.29" strokeWidth={10} stroke="hsl(223,90%,40%)" r={54} className="pencil__body3" />
-            </g>
-            <g transform="rotate(-90) translate(49,0)" className="pencil__eraser">
-              <g className="pencil__eraser-skew">
-                <rect height={30} width={30} ry={5} rx={5} fill="hsl(223,90%,70%)" />
-                <rect clipPath="url(#pencil-eraser)" height={30} width={5} fill="hsl(223,90%,60%)" />
-                <rect height={20} width={30} fill="hsl(223,10%,90%)" />
-                <rect height={20} width={15} fill="hsl(223,10%,70%)" />
-                <rect height={20} width={5} fill="hsl(223,10%,80%)" />
-                <rect height={2} width={30} y={6} fill="hsla(223,10%,10%,0.2)" />
-                <rect height={2} width={30} y={13} fill="hsla(223,10%,10%,0.2)" />
-              </g>
-            </g>
-            <g transform="rotate(-90) translate(49,-30)" className="pencil__point">
-              <polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)" />
-              <polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)" />
-              <polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)" />
-            </g>
-          </g>
-        </svg>
-      </div>
-    </StyledWrapper>
-  );
-};
+// Checkbox Component for Saving Chats
+const Checkbox = ({ onClick }) => (
+  <StyledCheckboxWrapper>
+    <label className="container" onClick={onClick}>
+      <input type="checkbox" defaultChecked="checked" />
+      <svg className="save-regular" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 384 512">
+        <path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z" />
+      </svg>
+      <svg className="save-solid" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 384 512">
+        <path d="M0 48V487.7C0 501.1 10.9 512 24.3 512c5 0 9.9-1.5 14-4.4L192 400 345.7 507.6c4.1 2.9 9 4.4 14 4.4c13.4 0 24.3-10.9 24.3-24.3V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48z" />
+      </svg>
+    </label>
+  </StyledCheckboxWrapper>
+);
 
-const StyledWrapper = styled.div`
-  .loader-container {
-    position: fixed; /* Keep it in the center of the screen */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 9999; /* Make sure it's on top */
-    background: 
-    padding: 20px;
-    border-radius: 10px;
-  }
-
-  .pencil {
-    display: block;
-    width: 10em;
-    height: 10em;
-  }
-
-  .pencil__body1,
-  .pencil__body2,
-  .pencil__body3,
-  .pencil__eraser,
-  .pencil__eraser-skew,
-  .pencil__point,
-  .pencil__rotate,
-  .pencil__stroke {
-    animation-duration: 3s;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-  }
-
-  .pencil__body1,
-  .pencil__body2,
-  .pencil__body3 {
-    transform: rotate(-90deg);
-  }
-
-  .pencil__body1 {
-    animation-name: pencilBody1;
-  }
-
-  .pencil__body2 {
-    animation-name: pencilBody2;
-  }
-
-  .pencil__body3 {
-    animation-name: pencilBody3;
-  }
-
-  .pencil__eraser {
-    animation-name: pencilEraser;
-    transform: rotate(-90deg) translate(49px, 0);
-  }
-
-  .pencil__eraser-skew {
-    animation-name: pencilEraserSkew;
-    animation-timing-function: ease-in-out;
-  }
-
-  .pencil__point {
-    animation-name: pencilPoint;
-    transform: rotate(-90deg) translate(49px, -30px);
-  }
-
-  .pencil__rotate {
-    animation-name: pencilRotate;
-  }
-
-  .pencil__stroke {
-    animation-name: pencilStroke;
-    transform: translate(100px, 100px) rotate(-113deg);
-  }
-
-  /* Animations */
-  @keyframes pencilBody1 {
-    from,
-    to {
-      stroke-dashoffset: 351.86;
-      transform: rotate(-90deg);
-    }
-
-    50% {
-      stroke-dashoffset: 150.8;
-      transform: rotate(-225deg);
-    }
-  }
-
-  @keyframes pencilBody2 {
-    from,
-    to {
-      stroke-dashoffset: 406.84;
-      transform: rotate(-90deg);
-    }
-
-    50% {
-      stroke-dashoffset: 174.36;
-      transform: rotate(-225deg);
-    }
-  }
-
-  @keyframes pencilBody3 {
-    from,
-    to {
-      stroke-dashoffset: 296.88;
-      transform: rotate(-90deg);
-    }
-
-    50% {
-      stroke-dashoffset: 127.23;
-      transform: rotate(-225deg);
-    }
-  }
-
-  @keyframes pencilEraser {
-    from,
-    to {
-      transform: rotate(-45deg) translate(49px, 0);
-    }
-
-    50% {
-      transform: rotate(0deg) translate(49px, 0);
-    }
-  }
-
-  @keyframes pencilEraserSkew {
-    from,
-    32.5%,
-    67.5%,
-    to {
-      transform: skewX(0);
-    }
-
-    35%,
-    65% {
-      transform: skewX(-4deg);
-    }
-
-    37.5%,
-    62.5% {
-      transform: skewX(8deg);
-    }
-
-    40%,
-    45%,
-    50%,
-    55%,
-    60% {
-      transform: skewX(-15deg);
-    }
-
-    42.5%,
-    47.5%,
-    52.5%,
-    57.5% {
-      transform: skewX(15deg);
-    }
-  }
-
-  @keyframes pencilPoint {
-    from,
-    to {
-      transform: rotate(-90deg) translate(49px, -30px);
-    }
-
-    50% {
-      transform: rotate(-225deg) translate(49px, -30px);
-    }
-  }
-
-  @keyframes pencilRotate {
-    from {
-      transform: translate(100px, 100px) rotate(0);
-    }
-
-    to {
-      transform: translate(100px, 100px) rotate(720deg);
-    }
-  }
-
-  @keyframes pencilStroke {
-    from {
-      stroke-dashoffset: 439.82;
-      transform: translate(100px, 100px) rotate(-113deg);
-    }
-
-    50% {
-      stroke-dashoffset: 164.93;
-      transform: translate(100px, 100px) rotate(-113deg);
-    }
-
-    75%,
-    to {
-      stroke-dashoffset: 439.82;
-      transform: translate(100px, 100px) rotate(112deg);
-    }
-  }
-`;
-
-
-// Checkbox Component
-const Checkbox = ({ onClick }) => {
-  return (
-    <StyledCheckboxWrapper>
-      <label className="container" onClick={onClick}>
-        <input type="checkbox" defaultChecked="checked" />
-        <svg className="save-regular" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 384 512">
-          <path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z" />
-        </svg>
-        <svg className="save-solid" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 384 512">
-          <path d="M0 48V487.7C0 501.1 10.9 512 24.3 512c5 0 9.9-1.5 14-4.4L192 400 345.7 507.6c4.1 2.9 9 4.4 14 4.4c13.4 0 24.3-10.9 24.3-24.3V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48z" />
-        </svg>
-      </label>
-    </StyledCheckboxWrapper>
-  );
-};
-
+// Styled Components
 const StyledCheckboxWrapper = styled.div`
-  position: fixed;
-  bottom: 33px; /* Adjust this value to avoid overlap with send button */
-  right: 40px; /* Place it in the bottom-right corner */
-  z-index: 1000; /* Ensure it's above other elements */
-
   .container {
     --color: #9d16be;
-    --size: 45px;
+    --size: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -284,7 +38,7 @@ const StyledCheckboxWrapper = styled.div`
     background: white;
     padding: 10px;
     border-radius: 50%;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Add some shadow for better visibility */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   .container .save-regular {
@@ -327,83 +81,14 @@ const StyledCheckboxWrapper = styled.div`
   }
 `;
 
-
-// SendButton Component
-const SendButton = ({ onClick }) => {
-  return (
-    <StyledSendButtonWrapper>
-      <button onClick={onClick}>
-        <div className="svg-wrapper-1">
-          <div className="svg-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24}>
-              <path fill="none" d="M0 0h24v24H0z" />
-              <path fill="currentColor" d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z" />
-            </svg>
-          </div>
-        </div>
-        <span>Send</span>
-      </button>
-    </StyledSendButtonWrapper>
-  );
-};
-
-const StyledSendButtonWrapper = styled.div`
-  position: absolute;
-  right: 5.5rem;
-  bottom: 1rem;
-  
- button {
-    font-family: inherit;
-    font-size: 16px; /* Reduced font size */
-    background: #9d16be;
-    color: white;
-    padding: 0.9em 0.9em; /* Smaller padding */
-    display: flex;
-    align-items: center;
-    border: none;
-    border-radius: 12px; /* Slightly smaller rounded corners */
-    overflow: hidden;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  button span {
-    display: block;
-    margin-left: 0.3em;
-    transition: all 0.3s ease-in-out;
-  }
-
-  button svg {
-    display: block;
-    transform-origin: center center;
-    transition: transform 0.3s ease-in-out;
-  }
-
-  button:hover .svg-wrapper {
-    animation: fly-1 0.6s ease-in-out infinite alternate;
-  }
-
-  button:hover svg {
-    transform: translateX(1.2em) rotate(45deg) scale(1.1);
-  }
-
-  button:hover span {
-    transform: translateX(5em);
-  }
-
-  button:active {
-    transform: scale(0.95);
-  }
-
-  @keyframes fly-1 {
-    from {
-      transform: translateY(0.1em);
-    }
-
-    to {
-      transform: translateY(-0.1em);
-    }
-  }
-`;
+// Loader Component
+const Loader = () => (
+  <div className="flex items-center gap-2">
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></div>
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></div>
+  </div>
+);
 
 // Chatbot Component
 const Chatbot = () => {
@@ -411,155 +96,206 @@ const Chatbot = () => {
   const [input, setInput] = useState("");
   const [savedChats, setSavedChats] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [chatTopic, setChatTopic] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
   const [showHelpForm, setShowHelpForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSaveChatForm, setShowSaveChatForm] = useState(false);
+  const [chatTopic, setChatTopic] = useState("");
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState(null);
   const messagesEndRef = useRef(null);
-  
 
   const { userData } = useContext(AppContext);
-  const displayName =
-    userData.role === "admin"
-      ? userData.roleData?.name
-      : userData.roleData?.firstName;
+  const displayName = userData.role === "admin" ? userData.roleData?.name : userData.roleData?.firstName;
 
+  // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Handle sending a message
   const handleSendMessage = async () => {
-    if (input.trim() === "") return;
-  
+    if (input.trim() === "") {
+      toast.error("Please enter a message.");
+      return;
+    }
+
     const userMessage = { text: input, sender: "user" };
     setInput("");
     setIsLoading(true);
-  
+
     // Add the user message and loader immediately
     if (selectedChat) {
+      const updatedMessages = [...selectedChat.messages, userMessage, { sender: "bot", isLoading: true }];
       setSelectedChat((prevChat) => ({
         ...prevChat,
-        messages: [...prevChat.messages, userMessage, { text: "Montoria is typing...", sender: "bot", isLoading: true }],
+        messages: updatedMessages,
       }));
+      // Update the savedChats state with the new messages
+      setSavedChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === selectedChat.id ? { ...chat, messages: updatedMessages } : chat
+        )
+      );
     } else {
-      setMessages((prevMessages) => [...prevMessages, userMessage, { text: "Montoria is typing...", sender: "bot", isLoading: true }]);
+      setMessages((prevMessages) => [...prevMessages, userMessage, { sender: "bot", isLoading: true }]);
     }
-  
+
     try {
       const response = await fetch("http://localhost:4000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input }),
       });
-  
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
       const data = await response.json();
+
       if (data?.response) {
         const botMessage = { text: data.response, sender: "bot" };
-  
+
         if (selectedChat) {
+          const updatedMessages = [...selectedChat.messages.filter((msg) => !msg.isLoading), botMessage];
           setSelectedChat((prevChat) => ({
             ...prevChat,
-            messages: prevChat.messages.filter(msg => !msg.isLoading).concat(botMessage), // Remove loader
+            messages: updatedMessages,
           }));
-  
+          // Update the savedChats state with the new messages
           setSavedChats((prevChats) =>
             prevChats.map((chat) =>
-              chat.id === selectedChat.id ? { ...chat, messages: [...chat.messages, userMessage, botMessage] } : chat
+              chat.id === selectedChat.id ? { ...chat, messages: updatedMessages } : chat
             )
           );
         } else {
-          setMessages((prevMessages) =>
-            prevMessages.filter(msg => !msg.isLoading).concat(botMessage) // Remove loader
-          );
+          setMessages((prevMessages) => [
+            ...prevMessages.filter((msg) => !msg.isLoading),
+            botMessage,
+          ]);
         }
+      } else {
+        throw new Error("Invalid response from the server.");
       }
     } catch (error) {
       console.error("Error fetching API response:", error);
+      const errorMessage = { text: "Failed to fetch response. Please try again.", sender: "bot" };
+
+      if (selectedChat) {
+        const updatedMessages = [...selectedChat.messages.filter((msg) => !msg.isLoading), errorMessage];
+        setSelectedChat((prevChat) => ({
+          ...prevChat,
+          messages: updatedMessages,
+        }));
+        // Update the savedChats state with the error message
+        setSavedChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.id === selectedChat.id ? { ...chat, messages: updatedMessages } : chat
+          )
+        );
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages.filter((msg) => !msg.isLoading),
+          errorMessage,
+        ]);
+      }
     } finally {
       setIsLoading(false);
     }
   };
-  
 
-  const summarizeChatTopic = (messages) => {
-    if (messages.length === 0) return "Untitled Chat";
-
-    const maxLength = 5; // Limit topic length
-    const userMessages = messages
-      .filter(msg => msg.sender === "user")
-      .map(msg => msg.text)
-      .join(" ")
-      .split(" ")
-      .slice(0, maxLength)
-      .join(" ");
-
-    return userMessages.length > 0 ? userMessages : "Chat Summary";
+  // Handle saving a chat
+  const handleSaveChat = () => {
+    if (messages.length === 0) {
+      toast.error("No messages to save.");
+      return;
+    }
+    setShowSaveChatForm(true);
   };
 
-  const handleSaveChat = () => {
-    if (messages.length === 0) return;
-  
-    // Generate a topic based on the first few messages OR use user input topic
-    const topic = chatTopic || messages.slice(0, 3).map(m => m.text).join(" ").substring(0, 50) || `Chat ${new Date().toLocaleTimeString()}`;
-  
-    setSavedChats((prevChats) => {
-      const existingChatIndex = prevChats.findIndex(chat => chat.topic === topic);
-  
-      if (existingChatIndex !== -1) {
-        // If chat exists, update the messages by appending only new ones
+  // Handle saving the chat after form submission
+  const handleSaveChatSubmit = (e) => {
+    e.preventDefault();
+
+    if (!chatTopic.trim()) {
+      toast.error("Please enter a name for the chat.");
+      return;
+    }
+
+    // Check if a chat with the same topic already exists
+    const existingChatIndex = savedChats.findIndex((chat) => chat.topic === chatTopic);
+
+    if (existingChatIndex !== -1) {
+      // If chat exists, update the messages by appending only new ones
+      setSavedChats((prevChats) => {
         const updatedChats = [...prevChats];
         const existingMessages = updatedChats[existingChatIndex].messages;
         const newMessages = messages.filter(
           (msg) => !existingMessages.some((existingMsg) => existingMsg.text === msg.text)
         );
-  
+
         updatedChats[existingChatIndex] = {
           ...updatedChats[existingChatIndex],
           messages: [...existingMessages, ...newMessages],
         };
-  
+
         // Show toast notification (avoiding duplicate)
         if (!toast.isActive("chat-updated-toast")) {
           toast.success("Chat updated!", { toastId: "chat-updated-toast", autoClose: 2000 });
         }
-  
+
         return updatedChats;
-      } else {
-        // If it's a new conversation, save it as a new card
-        const newChat = { id: Date.now(), topic, messages: [...messages] };
-  
-        if (!toast.isActive("chat-saved-toast")) {
-          toast.success("Chat saved!", { toastId: "chat-saved-toast", autoClose: 2000 });
-        }
-  
-        return [...prevChats, newChat];
-      }
-    });
-  
-    setChatTopic(""); // Reset topic input
-  };
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
+      });
+    } else {
+      // If it's a new conversation, save it as a new card
+      const newChat = { id: Date.now(), topic: chatTopic, messages: [...messages] };
+      setSavedChats((prevChats) => [...prevChats, newChat]);
+      toast.success("Chat saved!", { autoClose: 2000 });
+    }
+
+    // Reset form and close modal
+    setChatTopic("");
+    setShowSaveChatForm(false);
   };
 
+  // Handle loading a saved chat
   const handleChatClick = (chat) => {
-    setMessages([]); // Clear existing messages
     setSelectedChat(chat);
-    setMessages(chat.messages); // Set messages to the selected chat's messages
+    setMessages(chat.messages);
   };
 
+  // Handle closing a saved chat
   const handleCloseSavedChat = () => {
     setSelectedChat(null);
-    setMessages([]); // Clear messages when closing the saved chat
+    setMessages([]);
   };
 
-  const toggleHelpForm = () => {
-    setShowHelpForm((prev) => !prev);
-  };
-
+  // Handle starting a new chat
   const handleNewChat = () => {
     setMessages([]);
     setSelectedChat(null);
+  };
+
+  // Handle deleting a saved chat
+  const handleDeleteChat = (chatId) => {
+    setChatToDelete(chatId);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Confirm deletion of a saved chat
+  const confirmDeleteChat = () => {
+    setSavedChats((prevChats) => prevChats.filter((chat) => chat.id !== chatToDelete));
+    toast.success("Chat deleted!", { autoClose: 2000 });
+    setShowDeleteConfirmation(false);
+    setChatToDelete(null);
   };
 
   return (
@@ -584,11 +320,23 @@ const Chatbot = () => {
             savedChats.map((chat) => (
               <div
                 key={chat.id}
-                className="p-3 mb-2 bg-gray-200 rounded-lg cursor-pointer hover:bg-gray-300"
+                className="p-3 mb-2 bg-gray-200 rounded-lg cursor-pointer hover:bg-gray-300 relative"
                 onClick={() => handleChatClick(chat)}
               >
+                {/* Chat Topic and Message Count */}
                 <p className="text-sm font-semibold">{chat.topic}</p>
-                <p className="text-xs text-gray-500">{chat.messages.length} messages</p>
+                
+
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the chat from being opened when deleting
+                    handleDeleteChat(chat.id);
+                  }}
+                  className="absolute top-2 right-2 p-1 bg-transparent text-white rounded-full hover:bg-gray-200 transition"
+                >
+                  <img src={assets.delete_icon} alt="Delete" className="w-4 h-4" />
+                </button>
               </div>
             ))
           )}
@@ -597,12 +345,8 @@ const Chatbot = () => {
 
       {/* Main Chat Area */}
       <div className={`flex-1 flex flex-col ${isSidebarOpen ? "ml-1/8" : "ml-0"}`}>
-        <div className="sticky top-0 left-0 w-full z-50 bg-white shadow-md">
-          <NavbarUser />
-        </div>
-
+        <NavbarUser />
         <div className="flex-1 px-4 py-6 mt-25 flex flex-col items-center justify-start pb-20 overflow-y-auto relative">
-          {/* Display Selected Saved Chat */}
           {selectedChat ? (
             <div className="w-full max-w-2xl">
               <div className="flex justify-between items-center mb-4">
@@ -619,7 +363,7 @@ const Chatbot = () => {
                     className={`p-3 mb-5 rounded-3xl max-w-[75%] break-words ${msg.sender === "user" ? "bg-[#9d16be] text-white self-end text-left ml-auto" : "bg-white text-gray-900 self-start text-left mr-auto"}`}
                     style={{ wordWrap: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}
                   >
-                    {msg.text}
+                    {msg.isLoading ? <Loader /> : msg.text}
                   </div>
                 </div>
               ))}
@@ -627,7 +371,7 @@ const Chatbot = () => {
           ) : (
             <>
               <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-2xl">
-                <img className="w-25h-25 md:w-35 md:h-35" src={assets.chatbot_logo} alt="Chatbot" />
+                <img className="w-25 h-25 md:w-35 md:h-35" src={assets.chatbot_logo} alt="Chatbot" />
                 <div className="text-center md:text-left flex flex-col">
                   <h2 className="text-[#000000] text-2xl md:text-4xl font-bold font-['League Spartan']">Hello, {displayName}!</h2>
                   <p className="text-[#000000] text-lg md:text-2xl font-semibold mt-2">How may I help you today?</p>
@@ -643,15 +387,15 @@ const Chatbot = () => {
                       className={`p-3 rounded-3xl max-w-[75%] break-words ${msg.sender === "user" ? "bg-[#9d16be] text-white self-end text-left ml-auto" : "bg-white text-gray-900 self-start text-left mr-auto"}`}
                       style={{ wordWrap: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}
                     >
-                      {msg.text}
+                      {msg.isLoading ? <Loader /> : msg.text}
                     </div>
                   </div>
                 ))}
                 {isLoading && (
                   <div className="flex items-start gap-2">
-                    <img src={assets.chatbot_logo} alt="Chatbot" className="w-16 h-16 rounded-full self-start" />
+                   
                     <div className="p-3 rounded-3xl max-w-[75%] break-words bg-transparent text-gray-900 self-start text-left mr-auto">
-                      <Loader />
+                  
                     </div>
                   </div>
                 )}
@@ -662,12 +406,13 @@ const Chatbot = () => {
         </div>
 
         {/* Input Area */}
-        <div className="bottom-0 left-0 right-0 p-4 bg-gray-100 flex items-center shadow-lg relative">
-          {/* Help Button and HelpForm */}
+        <div className="bottom-0 left-0 right-0 p-4 bg-gray-100 flex items-center gap-2 shadow-lg relative">
+          {/* Help Button with Hover */}
           <div className="relative">
             <button
-              onClick={toggleHelpForm}
-              className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition mr-3"
+              onMouseEnter={() => setShowHelpForm(true)}
+              onMouseLeave={() => setShowHelpForm(false)}
+              className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition"
             >
               <img src={assets.help} alt="Help" className="w-10 h-10" />
             </button>
@@ -679,28 +424,86 @@ const Chatbot = () => {
           </div>
 
           {/* New Chat Button */}
-          <button
-            onClick={handleNewChat}
-            className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition mr-3"
-          >
+          <button onClick={handleNewChat} className="p-2 bg-gray-200 rounded-2xl shadow-lg hover:bg-gray-300 transition">
             <img src={assets.new_chat} alt="New Chat" className="w-10 h-10" />
           </button>
 
+          {/* Input Field */}
           <input
             type="text"
-            className="w-[83%] sm:w-40% p-2 rounded-lg border border-gray-300 outline-none flex-shrink"
+            className="flex-1 p-2 rounded-lg border border-gray-300 outline-none"
             placeholder="Type a message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            disabled={isLoading}
           />
 
-          {/* Use the Checkbox component */}
+          {/* Checkbox and Send Button */}
           <Checkbox onClick={handleSaveChat} />
-
-          <SendButton onClick={handleSendMessage} />
+          <button onClick={handleSendMessage} className="p-2 bg-[#9d16be] text-white rounded-lg hover:bg-[#7c0f8e] transition" disabled={isLoading}>
+            Send
+          </button>
         </div>
       </div>
+
+      {/* Save Chat Form Modal */}
+      {showSaveChatForm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Save Chat</h2>
+            <form onSubmit={handleSaveChatSubmit}>
+              <input
+                type="text"
+                className="w-full p-2 rounded-lg border border-gray-300 outline-none mb-4"
+                placeholder="Enter a name for this chat"
+                value={chatTopic}
+                onChange={(e) => setChatTopic(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveChatForm(false)}
+                  className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="p-2 bg-[#9d16be] text-white rounded-lg hover:bg-[#7c0f8e] transition"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Delete Chat</h2>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete this chat?</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteChat}
+                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
