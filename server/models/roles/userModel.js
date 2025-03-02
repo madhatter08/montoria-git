@@ -1,18 +1,21 @@
 import mongoose from 'mongoose';
 
 const adminSchema = new mongoose.Schema({
+  photo: { type: String },
   name: { type: String, required: true, trim: true },
+  contactNumber: { type: String, required: true, trim: true },
 }, { _id: false });
 
 const guideSchema = new mongoose.Schema({
+    photo: { type: String },
+    guideType: { type: String, enum: ["General", "Preschool", "Lower Elementary"] },
     firstName: { type: String, required: true, trim: true },
     middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
     address: { type: String, required: true, trim: true },
     birthday: { type: Date, required: true },
     contactNumber: { type: String, required: true, trim: true },
-    photo: { type: String, trim: true },
-    class: [{ type: Number, ref: "class" }],
+    class: { type: String, ref: "class" },
 }, { _id: false });
 
 const parentSchema = new mongoose.Schema({
@@ -22,7 +25,8 @@ const parentSchema = new mongoose.Schema({
 }, { _id: false });
 
 const studentSchema = new mongoose.Schema({
-    roleId: { type: Number, autoIncrement: true },
+    photo: { type: String },
+    lrn: { type: String, trim: true },
     firstName: { type: String, required: true, trim: true },
     middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
@@ -30,11 +34,13 @@ const studentSchema = new mongoose.Schema({
     gender: { type: String, enum: ["Male", "Female", "Others"], required: true },
     birthday: { type: Date, required: true },
     address: { type: String, required: true, trim: true },
-    parent: [parentSchema],
-    photo: { type: String, trim: true },
-    allergy: { type: String, trim: true, default: "N/A"},
-    levelId: { type: Number, ref: "level" },
-    classId: { type: Number, ref: "class" },
+    //parent: parentSchema,
+    parentName: { type: String, required: true },
+    parentRel: { type: String, required: true, trim: true },
+    parentPhone: { type: String, required: true },
+    program: { type: String, ref: "program" },
+    level: { type: String, ref: "level" },
+    class: { type: String, ref: "class" },
     remarks: { type: String, trim: true },
   }, { _id: false });
 

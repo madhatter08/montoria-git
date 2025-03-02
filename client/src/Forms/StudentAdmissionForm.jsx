@@ -1,52 +1,279 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { assets } from "../assets/assets";
+import PropTypes from "prop-types";
+import axios from "axios";
+import { toast } from "react-toastify";
 import styled from "styled-components";
 
-const StudentAdmissionForm = ({ onClose }) => {
+const StudentAdmissionForm = ({ onClose, refreshData, editData }) => {
+  const [schoolId, setSchoolId] = useState(editData?.schoolId || "");
+  const [lrn, setLrn] = useState(editData?.studentData.lrn || "");
+  const [email, setEmail] = useState(editData?.email || "");
+  const [firstName, setFirstName] = useState(editData?.studentData.firstName || "");
+  const [middleName, setMiddleName] = useState(editData?.studentData.middleName || "");
+  const [lastName, setLastName] = useState(editData?.studentData.lastName || "");
+  const [age, setAge] = useState(editData?.studentData.age || "");
+  const [gender, setGender] = useState(editData?.studentData.gender || "");
+  const [birthday, setBirthday] = useState(
+    editData?.studentData.birthday
+      ? new Date(editData.studentData.birthday).toISOString().split("T")[0]
+      : ""
+  );
+  const [address, setAddress] = useState(editData?.studentData.address || "");
+  const [parentName, setParentName] = useState(editData?.studentData.parentName || "");
+  const [parentRel, setParentRel] = useState(editData?.studentData.parentRel || "");
+  const [parentPhone, setParentPhone] = useState(editData?.studentData.parentPhone || "");
+  const [program, setProgram] = useState(editData?.studentData.program || "");
+  const [level, setLevel] = useState(editData?.studentData.level || "");
+  const [className, setClass] = useState(editData?.studentData.class || "");
+  const [remarks, setRemarks] = useState(editData?.studentData.remarks || "");
+  const [photo, setPhoto] = useState(editData?.studentData.photo || "");
+
   const [formData, setFormData] = useState({
     schoolId: "",
+    lrn: "",
     firstName: "",
     middleName: "",
     lastName: "",
     gender: "",
     age: "",
     birthday: "",
+    program: "",
     level: "",
     class: "",
-    parent: "",
-    relationship: "",
-    phoneNumber: "",
+    parentName: "",
+    parentRel: "",
+    parentPhone: "",
     email: "",
     address: "",
     remarks: "",
     photo: null,
+    password: "montoria@1234",
   });
+  
+
+  // Update state when editData changes
+  useEffect(() => {
+    if (editData) {
+      setSchoolId(editData.schoolId);
+      setLrn(editData.lrn);
+      setFirstName(editData.firstName);
+      setMiddleName(editData.middleName);
+      setLastName(editData.lastName);
+      setGender(editData.gender);
+      setAge(editData.age);
+      setAddress(editData.address);
+      setBirthday(editData.birthday);
+      setProgram(editData.program);
+      setLevel(editData.level);
+      setClass(editData.className);
+      setRemarks(editData.remarks);
+      setParentName(editData.parentName);
+      setParentRel(editData.parentRel);
+      setParentPhone(editData.parentPhone);
+      setEmail(editData.email);
+      setPhoto(editData.photo);
+    }
+  }, [editData]);
+
+  useEffect(() => {
+    console.log("Edit Data:", editData);
+  }, [editData]);
 
   const [photoPreview, setPhotoPreview] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const handleChange = (e) => {
-    if (e.target.name === "photo") {
-      const file = e.target.files[0];
-      setFormData({ ...formData, [e.target.name]: file });
+  // const handleChange = (e) => {
+  //   if (e.target.name === "photo") {
+  //     const file = e.target.files[0];
+  //     setFormData({ ...formData, [e.target.name]: file });
 
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPhotoPreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPhotoPreview(null);
-      }
-    } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
+  //     if (file) {
+  //       const reader = new FileReader();
+  //       reader.onloadend = () => {
+  //         setPhotoPreview(reader.result);
+  //       };
+  //       reader.readAsDataURL(file);
+  //     } else {
+  //       setPhotoPreview(null);
+  //     }
+
+  //     const { name, value } = e.target;
+  //     if (name === "birthday") {
+  //       const isoDate = new Date(value).toISOString();
+  //       setFormData({ ...formData, [name]: isoDate });
+  //     } else {
+  //       setFormData({ ...formData, [name]: value });
+  //     }
+  //   } else {
+  //     setFormData({ ...formData, [e.target.name]: e.target.value });
+  //   }
+  // };
+
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+  //   console.log("Form Data Submitted:", formData);
+  //   onClose();
+  // };
+
+  useEffect(() => {
+    if (editData) {
+      setSchoolId(editData.schoolId || "");
+      setLrn(editData.studentData?.lrn || "");
+      setFirstName(editData.studentData?.firstName || "");
+      setMiddleName(editData.studentData?.middleName || "");
+      setLastName(editData.studentData?.lastName || "");
+      setGender(editData.studentData?.gender || "");
+      setAge(editData.studentData?.age || "");
+      setAddress(editData.studentData?.address || "");
+      setBirthday(
+        editData.studentData?.birthday
+          ? new Date(editData.studentData.birthday).toISOString().split("T")[0]
+          : ""
+      );
+      setProgram(editData.studentData?.program || "");
+      setLevel(editData.studentData?.level || "");
+      setClass(editData.studentData?.class || "");
+      setRemarks(editData.studentData?.remarks || "");
+      setParentName(editData.studentData?.parentName || "");
+      setParentRel(editData.studentData?.parentRel || "");
+      setParentPhone(editData.studentData?.parentPhone || "");
+      setEmail(editData.email || "");
+      setPhoto(editData.studentData?.photo || "");
+    }
+  }, [editData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    switch (name) {
+      case "schoolId":
+        setSchoolId(value);
+        break;
+      case "lrn":
+        setLrn(value);
+        break;
+      case "firstName":
+        setFirstName(value);
+        break;
+      case "middleName":
+        setMiddleName(value);
+        break;
+      case "lastName":
+        setLastName(value);
+        break;
+      case "gender":
+        setGender(value);
+        break;
+      case "age":
+        setAge(value);
+        break;
+      case "birthday":
+        setBirthday(value);
+        break;
+      case "address":
+        setAddress(value);
+        break;
+      case "program":
+        setProgram(value);
+        break;
+      case "level":
+        setLevel(value);
+        break;
+      case "class":
+        setClass(value);
+        break;
+      case "parentName":
+        setParentName(value);
+        break;
+      case "parentRel":
+        setParentRel(value);
+        break;
+      case "parentPhone":
+        setParentPhone(value);
+        break;
+      case "email":
+        setEmail(value);
+        break;
+      case "remarks":
+        setRemarks(value);
+        break;
+      case "photo":
+        const file = e.target.files[0];
+        setPhoto(file);
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setPhotoPreview(reader.result);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          setPhotoPreview(null);
+        }
+        break;
+      default:
+        break;
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data Submitted:", formData);
-    onClose();
+
+    const student = {
+      schoolId,
+      lrn,
+      firstName,
+      middleName,
+      lastName,
+      address,
+      gender,
+      age,
+      birthday,
+      program,
+      level,
+      parentName,
+      parentRel,
+      parentPhone,
+      email,
+      class: className,
+      remarks,
+      photo,
+      roleId: 3,
+      password: "montoria@1234",
+    };
+
+    try {
+      let response;
+      if (editData) {
+        // Edit existing guide
+        response = await axios.put(
+          `http://localhost:4000/api/user/edit-user/${editData._id}`,
+          student
+        );
+      } else {
+        // Add new guide
+        response = await axios.post(
+          "http://localhost:4000/api/user/add-user",
+          student
+        );
+      }
+
+      if (response.data.success) {
+        toast.success(
+          editData
+            ? "Student updated successfully!"
+            : "Student enrolled successfully!"
+        );
+        refreshData();
+        onClose();
+      } else {
+        toast.error(response.data.message || "Failed to save student data.");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "An error occurred. Please try again."
+      );
+    }
   };
 
   const nextPage = () => {
@@ -57,13 +284,78 @@ const StudentAdmissionForm = ({ onClose }) => {
     setCurrentPage(currentPage - 1);
   };
 
+  const handleProgramChange = (e) => {
+    const selectedProgram = e.target.value;
+    setProgram(selectedProgram);
+
+    // Automatically set level and reset class when program changes
+    if (selectedProgram === "Toddler") {
+      setLevel("Toddler");
+      setClass("");
+    } else if (selectedProgram === "Preschool") {
+      setLevel("");
+      setClass("");
+    } else if (selectedProgram === "Lower Elementary") {
+      setLevel("");
+      setClass("");
+    }
+  };
+
+   useEffect(() => {
+     setLevel("");
+     setClass("");
+   }, [program]);
+  
+  const handleProgramChange1 = (e) => {
+    setProgram(e.target.value);
+    setLevel("");
+    setClass("");
+  };
+
+  // Function to calculate age based on birthday
+  const calculateAge = (birthday) => {
+    const birthDate = new Date(birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    // Adjust age if the birthday hasn't occurred yet this year
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // Handle birthday change
+  const handleBirthdayChange = (e) => {
+    const selectedBirthday = e.target.value;
+    setBirthday(selectedBirthday);
+
+    // Calculate and set age if a valid date is selected
+    if (selectedBirthday) {
+      const calculatedAge = calculateAge(selectedBirthday);
+      setAge(calculatedAge);
+    } else {
+      setAge("");
+    }
+  };
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-center mb-12">STUDENT ADMISSION FORM</h2>
+      <h2 className="text-2xl font-bold text-center mb-8 mt-3">
+        {editData ? "Edit Student Information" : "STUDENT ADMISSION FORM"}
+      </h2>
+      <h3 className="text-xl font-semibold text-center">
+        {currentPage === 3 && "Upload Student Profile"}
+      </h3>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
         {/* Page 1: Photo Upload and Preview */}
-        {currentPage === 1 && (
-          <div className="col-span-2  flex justify-center items-center space-x-6">
+        {currentPage === 3 && (
+          <div className="col-span-2  flex justify-center items-center space-x-6 pt-20">
             <StyledWrapper>
               <div className="container">
                 <div className="folder">
@@ -100,186 +392,440 @@ const StudentAdmissionForm = ({ onClose }) => {
         )}
 
         {/* Page 2: Student Information */}
-        {currentPage === 2 && (
+        {currentPage === 1 && (
           <>
-            <h3 className="col-span-2 text-xl font-semibold ">Student Information</h3>
+            <h3 className="col-span-2 text-xl font-semibold ">
+              Student Information
+            </h3>
             {/* Column 1 */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="schoolId"
-                  placeholder="2022-1234"
-                  value={formData.schoolId}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="schoolId"
+                    value={schoolId}
+                    //onChange={handleChange}
+                    onChange={(e) => setSchoolId(e.target.value)}
+                    required
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    School ID
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="firstName"
-                  placeholder="First Name"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="firstName"
+                    value={firstName}
+                    //onChange={handleChange}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    First Name
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="middleName"
-                  placeholder="Middle Name"
-                  value={formData.middleName}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="middleName"
+                    value={middleName}
+                    //onChange={}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Middle Name
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="lastName"
-                  placeholder="Last Name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="lastName"
+                    value={lastName}
+                    //onChange={}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Last Name
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="gender"
-                  placeholder="Gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="age"
+                    value={age}
+                    //onChange={(e) => setAge(e.target.value)}
+                    type="number"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Age
+                  </span>
+                </label>
+              </div>
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="birthday"
+                    value={birthday}
+                    required
+                    //onChange={handleChange}
+                    //onChange={(e) => setBirthday(e.target.value)}
+                    onChange={handleBirthdayChange}
+                    type="date"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Birthday
+                  </span>
+                </label>
               </div>
             </div>
 
             {/* Column 2 */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="number"
-                  name="age"
-                  placeholder="Age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="lrn"
+                    value={lrn}
+                    //onChange={handleChange}
+                    onChange={(e) => setLrn(e.target.value)}
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    LRN
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="date"
-                  name="birthday"
-                  value={formData.birthday}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+
+              <div className="relative">
+                <label className="relative block">
+                  <select
+                    name="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    required
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+                  >
+                    <option value="" disabled>
+                      Select Gender
+                    </option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Gender
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+
+              <div className="relative">
+                <label className="relative block">
+                  <input
+                    name="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                    type="text"
+                    placeholder=""
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                  />
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Address
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="level"
-                  placeholder="Level"
-                  value={formData.level}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <select
+                    name="program"
+                    value={program}
+                    //onChange={(e) => setProgram(e.target.value)}
+                    onChange={handleProgramChange}
+                    required
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+                  >
+                    <option value="" disabled>
+                      Select Program
+                    </option>
+                    <option value="Toddler">Toddler</option>
+                    <option value="Preschool">Preschool</option>
+                    <option value="Lower Elementary">Lower Elementary</option>
+                  </select>
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Program
+                  </span>
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700"></label>
-                <input
-                  type="text"
-                  name="class"
-                  placeholder="Class"
-                  value={formData.class}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
+              <div className="relative">
+                <label className="relative block">
+                  <select
+                    name="level"
+                    value={level}
+                    //onChange={handleLevelChange}
+                    onChange={(e) => setLevel(e.target.value)}
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+                  >
+                    <option value="" disabled>
+                      Select Level
+                    </option>
+                    {program === "Toddler" && (
+                      <option value="Toddler">Toddler</option>
+                    )}
+                    {program === "Preschool" && (
+                      <>
+                        <option value="Junior Casa">Junior Casa</option>
+                        <option value="Junior Advanced Casa">
+                          Junior Advanced Casa
+                        </option>
+                        <option value="Advanced Casa">Advanced Casa</option>
+                      </>
+                    )}
+                    {program === "Lower Elementary" && (
+                      <>
+                        <option value="Grade 1">Grade 1</option>
+                        <option value="Grade 2">Grade 2</option>
+                        <option value="Grade 3">Grade 3</option>
+                      </>
+                    )}
+                  </select>
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Level
+                  </span>
+                </label>
+              </div>
+              <div className="relative">
+                <label className="relative block">
+                  <select
+                    name="class"
+                    value={className}
+                    //onChange={handleClassChange}
+                    onChange={(e) => setClass(e.target.value)}
+                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+                  >
+                    <option value="" disabled>
+                      Select Class Section
+                    </option>
+                    {program === "Toddler" && (
+                      <>
+                        <option value="Playgroup 1">Playgroup 1</option>
+                        <option value="Playgroup 2">Playgroup 2</option>
+                      </>
+                    )}
+                    {program === "Preschool" && (
+                      <>
+                        <option value="Casa 1">Casa 1</option>
+                        <option value="Casa 2">Casa 2</option>
+                      </>
+                    )}
+                    {program === "Lower Elementary" && (
+                      <>
+                        <option value="Class 1">Class 1</option>
+                        <option value="Class 2">Class 2</option>
+                      </>
+                    )}
+                  </select>
+                  <img
+                    src={assets.person_icon}
+                    alt="person icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                  />
+                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                    Class Section
+                  </span>
+                </label>
               </div>
             </div>
           </>
         )}
 
         {/* Page 3: Parent Information */}
-        {currentPage === 3 && (
+        {currentPage === 2 && (
           <div className="space-y-4 col-span-2">
-            <h3 className="text-xl font-semibold mb-4">Parent Information</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700"></label>
-              <input
-                type="text"
-                name="parent"
-                placeholder="Parent Name"
-                value={formData.parent}
-                onChange={handleChange}
-                className="border p-2 rounded w-full"
-              />
+            <h3 className="text-xl font-semibold mb-4">
+              Parent / Guardian Information
+            </h3>
+            <div className="relative">
+              <label className="relative block">
+                <input
+                  name="parentName"
+                  value={parentName}
+                  onChange={(e) => setParentName(e.target.value)}
+                  required
+                  type="text"
+                  placeholder=""
+                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                />
+                <img
+                  src={assets.person_icon}
+                  alt="person icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                />
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                  Full Name
+                </span>
+              </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700"></label>
-              <input
-                type="text"
-                name="relationship"
-                placeholder="Relationship"
-                value={formData.relationship}
-                onChange={handleChange}
-                className="border p-2 rounded w-full"
-              />
+            <div className="relative">
+              <label className="relative block">
+                <input
+                  name="parentRel"
+                  value={parentRel}
+                  onChange={(e) => setParentRel(e.target.value)}
+                  required
+                  type="text"
+                  placeholder=""
+                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                />
+                <img
+                  src={assets.person_icon}
+                  alt="person icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                />
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                  Relationship
+                </span>
+              </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700"></label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                placeholder="Phone Number"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                className="border p-2 rounded w-full"
-              />
+            <div className="relative">
+              <label className="relative block">
+                <input
+                  name="parentPhone"
+                  value={parentPhone}
+                  onChange={(e) => setParentPhone(e.target.value)}
+                  required
+                  type="string"
+                  placeholder=""
+                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                />
+                <img
+                  src={assets.mail_icon}
+                  alt="phone icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                />
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                  Phone Number
+                </span>
+              </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700"></label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                value={formData.email}
-                onChange={handleChange}
-                className="border p-2 rounded w-full"
-              />
+            <div className="relative">
+              <label className="relative block">
+                <input
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  type="email"
+                  placeholder=""
+                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                />
+                <img
+                  src={assets.mail_icon}
+                  alt="email icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                />
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                  Email
+                </span>
+              </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700"></label>
-              <input
-                type="text"
-                name="remarks"
-                placeholder="Remarks (Medical conditions, special needs, allergies)"
-                value={formData.remarks}
-                onChange={handleChange}
-                className="border p-2 rounded w-full"
-              />
+            <div className="relative">
+              <label className="relative block">
+                <input
+                  name="remarks"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  type="text"
+                  placeholder="Medical conditions, special needs, allergies"
+                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                />
+                <img
+                  src={assets.person_icon}
+                  alt="person icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
+                />
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                  Remarks
+                </span>
+              </label>
             </div>
           </div>
         )}
@@ -337,7 +883,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: flex-end;
     padding: 10px;
-    background: linear-gradient(#A78BFA 10%, #ffb3dd 70%);
+    background: linear-gradient(#a78bfa 10%, #ffb3dd 70%);
     border-radius: 15px;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
     height: calc(var(--folder-H) * 1.7);
@@ -452,5 +998,11 @@ const StyledWrapper = styled.div`
     }
   }
 `;
+
+StudentAdmissionForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  refreshData: PropTypes.func.isRequired,
+  editData: PropTypes.object,
+};
 
 export default StudentAdmissionForm;

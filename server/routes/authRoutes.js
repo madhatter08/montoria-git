@@ -3,7 +3,6 @@ import {
   isAuthenticated,
   login,
   logout,
-  addUser,
   resetPassword,
   sendResetOTP,
   //sendVerifyOtp,
@@ -14,7 +13,6 @@ import userToken from "../middleware/userToken.js";
 const authRouter = express.Router();
 
 // API Endpoints
-authRouter.post("/add-user", addUser);
 authRouter.post("/login", login);
 authRouter.post("/logout", logout);
 authRouter.post("/send-reset-otp", sendResetOTP);

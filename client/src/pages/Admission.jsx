@@ -8,8 +8,11 @@ import AdmissionForm from "../Forms/AdmissionForm";
 import { assets } from "../assets/assets";
 import styled from "styled-components";
 import PropTypes from "prop-types";
+import ConfirmationModal from "../components/ConfirmationModal";
+import { toast } from "react-toastify";
 
 export default function TabPanel() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState(
     localStorage.getItem("activeTab") || "students"
   );
@@ -21,6 +24,9 @@ export default function TabPanel() {
     guide: [],
     admission: [],
   });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [editData, setEditData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,47 +35,98 @@ export default function TabPanel() {
   }, [activeTab]);
 
   // Fetch data dynamically from the backend
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get("http://localhost:4000/api/user/all", {
-          withCredentials: true,
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get("http://localhost:4000/api/user/all", {
+        withCredentials: true,
+      });
+
+      if (res.data.success) {
+        const users = res.data.users;
+
+        // Separate users by role
+        const students = users.filter((user) => user.role === "student");
+        const admin = users.filter((user) => user.role === "admin");
+        const guide = users.filter((user) => user.role === "guide");
+
+        // Fetch admissions separately
+        const admissionRes = await axios.get(
+          "http://localhost:4000/api/user/all",
+          {
+            withCredentials: true,
+          }
+        );
+
+        setData({
+          students,
+          admin,
+          guide,
+          admission: admissionRes.data.admissions || [],
         });
-
-        if (res.data.success) {
-          const users = res.data.users;
-
-          // Separate users by role
-          const students = users.filter((user) => user.role === "student");
-          const admin = users.filter((user) => user.role === "admin");
-          const guide = users.filter((user) => user.role === "guide");
-
-          // Fetch admissions separately
-          const admissionRes = await axios.get(
-            "http://localhost:4000/api/user/all",
-            {
-              withCredentials: true,
-            }
-          );
-
-          setData({
-            students,
-            admin,
-            guide,
-            admission: admissionRes.data.admissions || [],
-          });
-        } else {
-          setError("Failed to fetch users.");
-        }
-      } catch (err) {
-        setError("Error fetching users.");
-      } finally {
-        setLoading(false);
+      } else {
+        setError("Failed to fetch users.");
       }
-    };
-
+    } catch (err) {
+      setError("Error fetching users.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchUsers();
   }, []);
+
+  const refreshData = () => {
+    fetchUsers();
+  };
+
+  const openDeleteModal = (id) => {
+    setItemToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      const res = await axios.delete(
+        `http://localhost:4000/api/user/delete-user/${itemToDelete}`
+      );
+      if (res.data.success) {
+        // Update local state
+        const updatedUserData = {
+          ...data,
+          [activeTab]: data[activeTab].filter(
+            (item) => item._id !== itemToDelete
+          ),
+        };
+        setData(updatedUserData);
+        toast.success("User deleted successfully!"); // Success toast
+      } else {
+        toast.error("Failed to delete user."); // Error toast
+      }
+    } catch (err) {
+      console.error("Error deleting curriculum:", err);
+      toast.error("An error occurred while deleting the curriculum."); // Error toast
+    } finally {
+      setDeleteModalOpen(false); // Close the modal
+      setItemToDelete(null); // Reset the item to delete
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false); // Close the modal
+    setItemToDelete(null); // Reset the item to delete
+  };
+
+  const handleEditData = (id) => {
+    const itemToEdit = data[activeTab].find(
+      (item) => item._id === id
+    );
+    setEditData(itemToEdit); // Set the item to edit
+    setIsFormOpen(true); // Open the form
+  };
 
   if (loading) return <p>Loading users...</p>;
   if (error) return <p>{error}</p>;
@@ -84,11 +141,34 @@ export default function TabPanel() {
   const renderForm = () => {
     switch (activeTab) {
       case "students":
-        return <StudentAdmissionForm onClose={() => setIsFormOpen(false)} />;
+        return (<StudentAdmissionForm
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditData(null);
+            }}
+            refreshData={refreshData}
+            editData={editData}
+          />
+        );
       case "admin":
-        return <AdminForm onClose={() => setIsFormOpen(false)} />;
+        return (<AdminForm
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditData(null);
+            }}
+            refreshData={refreshData}
+            editData={editData}
+          />);
       case "guide":
-        return <GuideForm onClose={() => setIsFormOpen(false)} />;
+        return (<GuideForm
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditData(null);
+          }}
+          refreshData={refreshData}
+          editData={editData} 
+        />);
+
       case "admission":
         return <AdmissionForm onClose={() => setIsFormOpen(false)} />;
       default:
@@ -103,7 +183,7 @@ export default function TabPanel() {
   };
 
   const handleEdit = (index) => {
-    setEditItem({ ...data[activeTab][index], index });
+    setEditData({ ...data[activeTab][index], index });
     setIsFormOpen(true);
   };
 
@@ -111,9 +191,73 @@ export default function TabPanel() {
     const newData = { ...data };
     newData[activeTab][updatedItem.index] = updatedItem;
     setData(newData);
-    setEditItem(null);
+    setEditData(null);
     setIsFormOpen(false);
   };
+
+  const filterData = (data, activeTab, searchQuery) => {
+    if (!searchQuery) return data; // Return all data if search query is empty
+
+    const searchLower = searchQuery.toLowerCase();
+
+    switch (activeTab) {
+      case "guide":
+        return data.filter((item) => {
+          const guideData = item.guideData;
+          return (
+            guideData.firstName.toLowerCase().includes(searchLower) ||
+            guideData.lastName.toLowerCase().includes(searchLower) ||
+            guideData.address.toLowerCase().includes(searchLower) ||
+            guideData.contactNumber.toLowerCase().includes(searchLower) ||
+            guideData.class.toLowerCase().includes(searchLower) ||
+            guideData.guideType.toLowerCase().includes(searchLower) ||
+            guideData.birthday.toLowerCase().includes(searchLower) ||
+            item.email.toLowerCase().includes(searchLower) ||
+            item.schoolId.toLowerCase().includes(searchLower)
+          );
+        });
+
+      case "admin":
+        return data.filter((item) => {
+          const adminData = item.adminData;
+          return (
+            adminData.name.toLowerCase().includes(searchLower) ||
+            item.email.toLowerCase().includes(searchLower) ||
+            item.schoolId.toLowerCase().includes(searchLower) ||
+            adminData.contactNumber.toLowerCase().includes(searchLower)
+          );
+        });
+
+      case "students":
+        return data.filter((item) => {
+          const studentData = item.studentData;
+          return (
+            item.email.toLowerCase().includes(searchLower) ||
+            item.schoolId.toLowerCase().includes(searchLower) ||
+            studentData.firstName.toLowerCase().includes(searchLower) ||
+            studentData.lastName.toLowerCase().includes(searchLower) ||
+            studentData.level.toLowerCase().includes(searchLower) ||
+            studentData.address.toLowerCase().includes(searchLower) ||
+            studentData.parentName.toLowerCase().includes(searchLower) ||
+            studentData.parentPhone.toLowerCase().includes(searchLower) ||
+            studentData.address.toLowerCase().includes(searchLower)
+          );
+        });
+
+      case "admission":
+        return data.filter((item) => {
+          return (
+            item.program.toLowerCase().includes(searchLower) ||
+            item.level.toLowerCase().includes(searchLower) ||
+            item.learningArea.toLowerCase().includes(searchLower)
+          );
+        });
+
+      default:
+        return data;
+    }
+  };
+  const filteredData = filterData(data[activeTab], activeTab, searchQuery);
 
   const exportToExcel = () => {
     const table = document.querySelector("table");
@@ -183,6 +327,8 @@ export default function TabPanel() {
               <input
                 type="text"
                 placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="border p-2 rounded-xl w-full pl-10"
               />
               <img
@@ -221,12 +367,14 @@ export default function TabPanel() {
                       <th className="p-3 text-left">LRN</th>
                       <th className="p-3 text-left">Birthday</th>
                       <th className="p-3 text-left">Address</th>
-                      <th className="p-3 text-left">Parent</th>
+                      <th className="p-3 text-left">Parent / Guardian</th>
                       <th className="p-3 text-left">Phone</th>
+                      <th className="p-3 text-left">Email</th>
                     </>
                   )}
                   {activeTab === "admin" && (
                     <>
+                      <th className="p-3 text-left">Photo</th>
                       <th className="p-3 text-left">School ID</th>
                       <th className="p-3 text-left">Name</th>
                       <th className="p-3 text-left">Email</th>
@@ -237,6 +385,7 @@ export default function TabPanel() {
                     <>
                       <th className="p-3 text-left">Photo</th>
                       <th className="p-3 text-left">School ID</th>
+                      <th className="p-3 text-left">Type</th>
                       <th className="p-3 text-left">Name</th>
                       <th className="p-3 text-left">Birthday</th>
                       <th className="p-3 text-left">Address</th>
@@ -256,129 +405,157 @@ export default function TabPanel() {
                 </tr>
               </thead>
               <tbody>
-                {data[activeTab].map((item, index) => (
-                  <tr key={index} className="border-b">
-                    {activeTab === "students" && (
-                      <>
-                        <td className="p-3">
-                          {item.studentData?.photo ? (
-                            <img
-                              src={item.studentData.photo}
-                              alt="User image"
-                              className="w-10 h-10 rounded-full"
-                            />
-                          ) : (
-                            <img
-                              src={assets.no_pfp}
-                              alt="Placeholder"
-                              className="w-10 h-10 rounded-full"
-                            />
-                          )}
-                        </td>
-                        <td className="p-3">{item.schoolId}</td>
-                        <td className="p-3">
-                          {`${item.studentData.lastName}, ${
-                            item.studentData.firstName
-                          } ${
-                            item.studentData.middleName
-                              ? `${item.studentData.middleName.charAt(0)}.`
-                              : ""
-                          }`}
-                        </td>
-                        <td className="p-3">{item.studentData.levelId}</td>
-                        <td className="p-3">{item.studentData.lrn}</td>
-                        <td className="p-3">
-                          {
-                            new Date(item.studentData.birthday)
-                              .toISOString()
-                              .split("T")[0]
-                          }
-                        </td>
-                        <td className="p-3">{item.studentData.address}</td>
-                        <td className="p-3">
-                          {`${item.studentData.parent[0].name} (${item.studentData.parent[0].relationship})`}
-                        </td>
-                        <td className="p-3">
-                          {item.studentData.parent[0].contactNumber}
-                        </td>
-                      </>
-                    )}
-                    {activeTab === "admin" && (
-                      <>
-                        <td className="p-3">{item.schoolId}</td>
-                        <td className="p-3">{item.adminData.name}</td>
-                        <td className="p-3">{item.email}</td>
-                        <td className="p-3">{item.phone}</td>
-                      </>
-                    )}
-                    {activeTab === "guide" && (
-                      <>
-                        <td className="p-3">
-                          {item.guideData?.photo ? (
-                            <img
-                              src={item.guideData.photo}
-                              alt="User image"
-                              className="w-10 h-10 rounded-full"
-                            />
-                          ) : (
-                            <img
-                              src={assets.no_pfp}
-                              alt="Placeholder"
-                              className="w-10 h-10 rounded-full"
-                            />
-                          )}
-                        </td>
-                        <td className="p-3">{item.schoolId}</td>
-                        <td className="p-3">
-                          {`${item.guideData.lastName}, ${
-                            item.guideData.firstName
-                          } ${
-                            item.guideData.middleName
-                              ? `${item.guideData.middleName.charAt(0)}.`
-                              : ""
-                          }`}
-                        </td>
-                        <td className="p-3">
-                          {
-                            new Date(item.guideData.birthday)
-                              .toISOString()
-                              .split("T")[0]
-                          }
-                        </td>
-                        <td className="p-3">{item.guideData.address}</td>
-                        <td className="p-3">{item.email}</td>
-                        <td className="p-3">{item.guideData.contactNumber}</td>
-                        <td className="p-3">
-                          {item.guideData.class?.join(", ") ??
-                            "No classes assigned"}
-                        </td>
-                      </>
-                    )}
-                    {activeTab === "admission" && (
-                      <>
-                        <td className="p-3">{item.program}</td>
-                        <td className="p-3">{item.level}</td>
-                        <td className="p-3">{item.learningArea}</td>
-                      </>
-                    )}
-                    <td className="p-3 min-w-[100px]">
-                      <div className="flex justify-start space-x-2">
-                        <img
-                          src={assets.edit_profile}
-                          alt="Edit"
-                          className="w-5 h-5 cursor-pointer"
-                          onClick={() => handleEdit(index)}
-                        />
-                        <img
-                          src={assets.delete_icon}
-                          alt="Delete"
-                          className="w-5 h-5 cursor-pointer"
-                          onClick={() => handleDelete(index)}
-                        />
-                      </div>
+                {filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="p-3 text-center">
+                      No results found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredData.map((item, index) => (
+                    <tr key={index} className="border-b">
+                      {activeTab === "students" && (
+                        <>
+                          <td className="p-3">
+                            {item.studentData.photo ? (
+                              <img
+                                src={item.studentData.photo}
+                                alt="User image"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <img
+                                src={assets.no_pfp}
+                                alt="Placeholder"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            )}
+                          </td>
+                          <td className="p-3">{item.schoolId}</td>
+                          <td className="p-3">
+                            {`${item.studentData.lastName}, ${
+                              item.studentData.firstName
+                            } ${
+                              item.studentData.middleName
+                                ? `${item.studentData.middleName.charAt(0)}.`
+                                : ""
+                            }`}
+                          </td>
+                          <td className="p-3">{item.studentData.level}</td>
+                          <td className="p-3">{item.studentData.lrn}</td>
+                          <td className="p-3">
+                            {
+                              new Date(item.studentData.birthday)
+                                .toISOString()
+                                .split("T")[0]
+                            }
+                          </td>
+                          <td className="p-3">{item.studentData.address}</td>
+                          <td className="p-3">
+                          {`${item.studentData.parentName} (${item.studentData.parentRel})`}
+                          </td>
+
+                          {/* Parent Contact Number */}
+                          <td className="p-3">
+                          {item.studentData.parentPhone}
+                          </td>
+                          <td className="p-3">{item.email}</td>
+                        </>
+                      )}
+                      {activeTab === "admin" && (
+                        <>
+                          <td className="p-3">
+                            {item.adminData.photo ? (
+                              <img
+                                src={item.adminData.photo}
+                                alt="User image"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <img
+                                src={assets.no_pfp}
+                                alt="Placeholder"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            )}
+                          </td>
+                          <td className="p-3">{item.schoolId}</td>
+                          <td className="p-3">{item.adminData.name}</td>
+                          <td className="p-3">{item.email}</td>
+                          <td className="p-3">
+                            {item.adminData.contactNumber}
+                          </td>
+                        </>
+                      )}
+                      {activeTab === "guide" && (
+                        <>
+                          <td className="p-3">
+                            {item.guideData.photo ? (
+                              <img
+                                src={item.guideData.photo}
+                                alt="User image"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <img
+                                src={assets.no_pfp}
+                                alt="Placeholder"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            )}
+                          </td>
+                          <td className="p-3">{item.schoolId}</td>
+                          <td className="p-3">{item.guideData.guideType}</td>
+                          <td className="p-3">
+                            {`${item.guideData.lastName}, ${
+                              item.guideData.firstName
+                            } ${
+                              item.guideData.middleName
+                                ? `${item.guideData.middleName.charAt(0)}.`
+                                : ""
+                            }`}
+                          </td>
+                          <td className="p-3">
+                            {
+                              new Date(item.guideData.birthday)
+                                .toISOString()
+                                .split("T")[0]
+                            }
+                          </td>
+                          <td className="p-3">{item.guideData.address}</td>
+                          <td className="p-3">{item.email}</td>
+                          <td className="p-3">
+                            {item.guideData.contactNumber}
+                          </td>
+                          <td className="p-3">{item.guideData.class}</td>
+                        </>
+                      )}
+                      {activeTab === "admission" && (
+                        <>
+                          <td className="p-3">{item.program}</td>
+                          <td className="p-3">{item.level}</td>
+                          <td className="p-3">{item.learningArea}</td>
+                        </>
+                      )}
+                      <td className="p-3 min-w-[100px]">
+                        <div className="flex justify-start space-x-2">
+                          <img
+                            src={assets.edit_profile}
+                            alt="Edit"
+                            className="w-5 h-5 cursor-pointer"
+                            onClick={() => handleEditData(item._id, item)}
+                          />
+                          <img
+                            src={assets.delete_icon}
+                            alt="Delete"
+                            className="w-5 h-5 cursor-pointer"
+                            onClick={() => openDeleteModal(item._id)}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -412,6 +589,14 @@ export default function TabPanel() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        message="Are you sure you want to delete this user?"
+      />
     </div>
   );
 }
