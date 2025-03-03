@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import NavbarUser from "../components/NavbarUser";
 import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
@@ -10,6 +10,7 @@ import styled from "styled-components";
 import PropTypes from "prop-types";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { toast } from "react-toastify";
+import { AppContext } from "../context/AppContext";
 
 export default function TabPanel() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +30,7 @@ export default function TabPanel() {
   const [editData, setEditData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { backendUrl } = useContext(AppContext);
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
@@ -37,7 +39,7 @@ export default function TabPanel() {
   // Fetch data dynamically from the backend
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/user/all", {
+      const res = await axios.get(`${backendUrl}/api/user/all`, {
         withCredentials: true,
       });
 
@@ -50,12 +52,9 @@ export default function TabPanel() {
         const guide = users.filter((user) => user.role === "guide");
 
         // Fetch admissions separately
-        const admissionRes = await axios.get(
-          "http://localhost:4000/api/user/all",
-          {
-            withCredentials: true,
-          }
-        );
+        const admissionRes = await axios.get(`${backendUrl}/api/user/all`, {
+          withCredentials: true,
+        });
 
         setData({
           students,
@@ -91,7 +90,7 @@ export default function TabPanel() {
 
     try {
       const res = await axios.delete(
-        `http://localhost:4000/api/user/delete-user/${itemToDelete}`
+        `${backendUrl}/api/user/delete-user/${itemToDelete}`
       );
       if (res.data.success) {
         // Update local state
@@ -240,7 +239,8 @@ export default function TabPanel() {
             studentData.address.toLowerCase().includes(searchLower) ||
             studentData.parentName.toLowerCase().includes(searchLower) ||
             studentData.parentPhone.toLowerCase().includes(searchLower) ||
-            studentData.address.toLowerCase().includes(searchLower)
+            studentData.address.toLowerCase().includes(searchLower) ||
+            studentData.class.toLowerCase().includes(searchLower)
           );
         });
 
@@ -370,6 +370,7 @@ export default function TabPanel() {
                       <th className="p-3 text-left">Parent / Guardian</th>
                       <th className="p-3 text-left">Phone</th>
                       <th className="p-3 text-left">Email</th>
+                      <th className="p-3 text-left">Class</th>
                     </>
                   )}
                   {activeTab === "admin" && (
@@ -452,14 +453,15 @@ export default function TabPanel() {
                           </td>
                           <td className="p-3">{item.studentData.address}</td>
                           <td className="p-3">
-                          {`${item.studentData.parentName} (${item.studentData.parentRel})`}
+                            {`${item.studentData.parentName} (${item.studentData.parentRel})`}
                           </td>
 
                           {/* Parent Contact Number */}
                           <td className="p-3">
-                          {item.studentData.parentPhone}
+                            {item.studentData.parentPhone}
                           </td>
                           <td className="p-3">{item.email}</td>
+                          <td className="p-3">{item.studentData.class}</td>
                         </>
                       )}
                       {activeTab === "admin" && (

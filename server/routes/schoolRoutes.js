@@ -10,8 +10,10 @@ import {
     addCurriculum,
     getAllCurriculum,
     deleteCurriculum,
-    editCurriculum
+    editCurriculum,
+    getClassList,
 } from "../controllers/schoolController.js";
+import userToken from "../middleware/userToken.js";
 
 const schoolRouter = express.Router();
 
@@ -27,6 +29,8 @@ schoolRouter.post("/add-curriculum", addCurriculum);
 schoolRouter.get("/get-curriculum", getAllCurriculum);
 schoolRouter.delete("/delete-curriculum/:id", deleteCurriculum);
 schoolRouter.put("/edit-curriculum/:id", editCurriculum);
+
+schoolRouter.get("/class-list", userToken, getClassList);
 
 
 

@@ -688,18 +688,26 @@ const StudentAdmissionForm = ({ onClose, refreshData, editData }) => {
                       <>
                         <option value="Playgroup 1">Playgroup 1</option>
                         <option value="Playgroup 2">Playgroup 2</option>
+                        <option value="Playgroup 3">Playgroup 3</option>
                       </>
                     )}
                     {program === "Preschool" && (
                       <>
                         <option value="Casa 1">Casa 1</option>
                         <option value="Casa 2">Casa 2</option>
+                        <option value="Casa 3">Casa 3</option>
+                        <option value="Casa 4">Casa 4</option>
+                        <option value="Casa 5">Casa 5</option>
                       </>
                     )}
                     {program === "Lower Elementary" && (
                       <>
-                        <option value="Class 1">Class 1</option>
-                        <option value="Class 2">Class 2</option>
+                        <option value="Class A">Class A</option>
+                        <option value="Class B">Class B</option>
+                        <option value="Class C">Class C</option>
+                        <option value="Class D">Class D</option>
+                        <option value="Class E">Class E</option>
+                        <option value="Class F">Class F</option>
                       </>
                     )}
                   </select>
