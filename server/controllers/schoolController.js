@@ -6,6 +6,8 @@ import lessonModel from "../models/acads/lessonModel.js";
 import workModel from "../models/acads/workModel.js";
 import materialModel from "../models/acads/materialModel.js";
 import curriculumModel from "../models/acads/curriculumModel.js";
+import userModel from "../models/roles/userModel.js";
+
 
 export const addCurriculum = async (req, res) => { 
   const { Program, Level, Areas, Material, Lesson, Work } = req.body;
@@ -98,6 +100,59 @@ export const editCurriculum = async (req, res) => {
       });
   }
 };
+
+
+
+
+export const getClassList = async (req, res) => {
+  try {
+    const userId = req.body.userId;
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    const user = await userModel.findById(userId).exec();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    let students;
+    if (user.role === "admin") {
+      students = await userModel.find({ role: "student" }).exec();
+    } else if (user.role === "guide") {
+      const assignedClass = user.guideData?.class;
+      if (!assignedClass) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Guide class not assigned" });
+      }
+      students = await userModel
+        .find({
+          role: "student",
+          "studentData.class": assignedClass,
+        })
+        .exec();
+    } else {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized access" });
+    }
+
+    res.status(200).json({ success: true, students });
+  } catch (error) {
+    console.error("Error in getClassList:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+
+/*--------------------------------------------------------- */
 
 export const addLevel = async (req, res) => {
   try {

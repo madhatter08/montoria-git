@@ -1,11 +1,56 @@
-import React, { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import ReportCard from "../../Forms/ReportCard"; // Adjust the path as needed
+import { AppContext } from "../../context/AppContext";
+import axios from "axios";
 
 const Class = () => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showReportCard, setShowReportCard] = useState(false); // State to control form visibility
+  const [showReportCard, setShowReportCard] = useState(false);
+  const [students, setStudents] = useState([]); // State to store student data
+  const { backendUrl } = useContext(AppContext);
+
+  // Fetch student data from the backend
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await axios.get(
+          `${backendUrl}/api/school/class-list`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        if (response.status !== 200) {
+          throw new Error("Failed to fetch students");
+        }
+
+        const data = response.data;
+        setStudents(data.students); // Set the fetched student data
+        console.log("Fetched students:", data.students);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    };
+
+    fetchStudents();
+  }, [backendUrl]);
+
+  // Extract unique classes and levels from student data
+  const classes = [
+    ...new Set(students.map((student) => student.studentData.class)),
+  ];
+  const levels = [
+    ...new Set(students.map((student) => student.studentData.level)),
+  ];
+
+  // Format student name as [lastName, firstName middleName (initial + period)]
+  const formatStudentName = (student) => {
+    const { lastName, firstName, middleName } = student.studentData;
+    const middleInitial = middleName ? `${middleName.charAt(0)}.` : ""; // Get the first letter of middleName
+    return `${lastName}, ${firstName} ${middleInitial}`;
+  };
 
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
@@ -20,53 +65,44 @@ const Class = () => {
   };
 
   const handleGenerateReport = () => {
-    setShowReportCard(true); // Show the ReportCard form
+    setShowReportCard(true);
   };
 
   const handleCloseReportCard = () => {
-    setShowReportCard(false); // Hide the ReportCard form
+    setShowReportCard(false);
   };
 
-  // Sample data for the table
-  const students = [
-    {
-      id: 1,
-      photo: "https://placehold.co/120x120",
-      schoolId: "12345",
-      lrn: "987654321",
-      name: "John Doe",
-      gender: "Male",
-      level: "Grade 1",
-      age: 7,
-      birthday: "2016-05-12",
-      remarks: "Good",
-    },
-    {
-      id: 2,
-      photo: "https://placehold.co/120x120",
-      schoolId: "67890",
-      lrn: "123456789",
-      name: "Jane Smith",
-      gender: "Female",
-      level: "Grade 2",
-      age: 8,
-      birthday: "2015-08-20",
-      remarks: "Excellent",
-    },
-    {
-      id: 3,
-      photo: "https://placehold.co/120x120",
-      schoolId: "54321",
-      lrn: "567890123",
-      name: "Alice Johnson",
-      gender: "Female",
-      level: "Grade 3",
-      age: 9,
-      birthday: "2014-03-15",
-      remarks: "Needs Improvement",
-    },
-    // Add more rows as needed
-  ];
+  // Filter students based on selected class, level, and search query
+  const filteredStudents = students.filter((student) => {
+    const matchesClass = selectedClass
+      ? student.studentData.class === selectedClass
+      : true;
+    const matchesLevel = selectedLevel
+      ? student.studentData.level === selectedLevel
+      : true;
+
+    // Convert all searchable fields to lowercase for case-insensitive comparison
+    const searchLower = searchQuery.toLowerCase();
+    const studentName = formatStudentName(student).toLowerCase();
+    const schoolId = student.schoolId.toLowerCase();
+    const gender = student.studentData.gender.toLowerCase();
+    const age = student.studentData.age.toString();
+    const birthday = new Date(
+      student.studentData.birthday
+    ).toLocaleDateString();
+    const remarks = student.studentData.remarks.toLowerCase();
+
+    // Check if the search query matches any of the fields
+    const matchesSearch =
+      studentName.includes(searchLower) ||
+      schoolId.includes(searchLower) ||
+      gender.includes(searchLower) ||
+      age.includes(searchLower) ||
+      birthday.includes(searchLower) ||
+      remarks.includes(searchLower);
+
+    return matchesClass && matchesLevel && matchesSearch;
+  });
 
   return (
     <div className="p-8 bg-white min-h-screen">
@@ -85,9 +121,11 @@ const Class = () => {
               className="w-48 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Class</option>
-              <option value="Class A">Class A</option>
-              <option value="Class B">Class B</option>
-              <option value="Class C">Class C</option>
+              {classes.map((cls, index) => (
+                <option key={index} value={cls}>
+                  {cls}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -100,9 +138,11 @@ const Class = () => {
               className="w-48 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Level</option>
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
+              {levels.map((level, index) => (
+                <option key={index} value={level}>
+                  {level}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -147,25 +187,40 @@ const Class = () => {
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => (
-              <tr key={student.id} className="border-b">
-                <td className="p-3">
-                  <img
-                    src={student.photo}
-                    alt="Student"
-                    className="w-12 h-12 rounded-full"
-                  />
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => (
+                <tr key={student._id} className="border-b">
+                  <td className="p-3">
+                    <img
+                      src={
+                        student.studentData.photo ||
+                        "https://placehold.co/120x120"
+                      }
+                      alt="Student"
+                      className="w-12 h-12 rounded-full"
+                    />
+                  </td>
+                  <td className="p-3">{student.schoolId}</td>
+                  <td className="p-3">{student.studentData.lrn}</td>
+                  <td className="p-3">{formatStudentName(student)}</td>
+                  <td className="p-3">{student.studentData.gender}</td>
+                  <td className="p-3">{student.studentData.level}</td>
+                  <td className="p-3">{student.studentData.age}</td>
+                  <td className="p-3">
+                    {new Date(
+                      student.studentData.birthday
+                    ).toLocaleDateString()}
+                  </td>
+                  <td className="p-3">{student.studentData.remarks}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="9" className="p-3 text-center">
+                  No result found.
                 </td>
-                <td className="p-3">{student.schoolId}</td>
-                <td className="p-3">{student.lrn}</td>
-                <td className="p-3">{student.name}</td>
-                <td className="p-3">{student.gender}</td>
-                <td className="p-3">{student.level}</td>
-                <td className="p-3">{student.age}</td>
-                <td className="p-3">{student.birthday}</td>
-                <td className="p-3">{student.remarks}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
