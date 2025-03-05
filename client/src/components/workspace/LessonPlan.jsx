@@ -2,6 +2,9 @@ import { useState, useEffect, useContext } from "react";
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import PropTypes from "prop-types";
+import { assets } from "../../assets/assets";
+import ConfirmationModal from "../ConfirmationModal";
 
 const LessonPlan = () => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -10,6 +13,10 @@ const LessonPlan = () => {
   const [students, setStudents] = useState([]);
   const [curriculumData, setCurriculum] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const { backendUrl } = useContext(AppContext);
 
   // Fetch student data from the backend
@@ -166,6 +173,110 @@ const LessonPlan = () => {
     }
   };
 
+  const openDeleteModal = (lessonId) => {
+    setItemToDelete(lessonId);
+    setDeleteModalOpen(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      const res = await axios.delete(
+        `${backendUrl}/api/school/delete-lesson/${itemToDelete}`,
+        {
+          data: { studentId: selectedStudent._id }, // Pass the student ID in the request body
+          withCredentials: true,
+        }
+      );
+
+      if (res.data.success) {
+        // Update the local state to remove the deleted lesson
+        setStudents((prevStudents) =>
+          prevStudents.map((student) =>
+            student._id === selectedStudent._id
+              ? {
+                  ...student,
+                  studentData: {
+                    ...student.studentData,
+                    lessons: student.studentData.lessons.filter(
+                      (lesson) => lesson !== itemToDelete
+                    ),
+                  },
+                }
+              : student
+          )
+        );
+
+        toast.success("Lesson deleted successfully!"); // Success toast
+        setSelectedStudent((prevStudent) => ({
+          ...prevStudent,
+          studentData: {
+            ...prevStudent.studentData,
+            lessons: prevStudent.studentData.lessons.filter(
+              (lesson) => lesson !== itemToDelete
+            ),
+          },
+        }));
+      } else {
+        toast.error("Failed to delete lesson."); // Error toast
+      }
+    } catch (err) {
+      console.error("Error deleting lesson:", err);
+      toast.error("An error occurred while deleting the lesson."); // Error toast
+    } finally {
+      setDeleteModalOpen(false); // Close the modal
+      setItemToDelete(null); // Reset the item to delete
+    }
+  };
+
+  const LessonPlanModal = ({ student, onClose }) => {
+    if (!student) return null;
+
+    return (
+      <div className="fixed inset-0 bg-[rgba(0,0,0,0.3)] bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg w-11/12 max-w-2xl">
+          <h2 className="text-2xl font-bold mb-4">
+            Lessons for {formatStudentName(student)}
+          </h2>
+          <ul className="list-disc pl-5 text-gray-700 text-lg">
+            {student.studentData.lessons.map((lesson, i) => (
+              <li key={i} className="py-1 flex justify-between items-center">
+                <span>{lesson}</span>
+                <img
+                  src={assets.delete_icon}
+                  alt="Delete"
+                  className="w-5 h-5 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the modal from closing
+                    openDeleteModal(lesson); // Pass the lesson to delete
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={onClose}
+            className="mt-4 bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  LessonPlanModal.propTypes = {
+    student: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false); // Close the modal
+    setItemToDelete(null); // Reset the item to delete
+  };
+
   return (
     <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Lesson Plan Page</h1>
@@ -232,6 +343,10 @@ const LessonPlan = () => {
             <div
               key={student._id}
               className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer"
+              onClick={() => {
+                setSelectedStudent(student); // Set the selected student
+                setIsModalOpen(true); // Open the modal
+              }}
             >
               <h3 className="text-xl font-semibold text-center bg-[#9d16be] text-white p-2 rounded-t-lg">
                 {formatStudentName(student)}
@@ -259,6 +374,7 @@ const LessonPlan = () => {
                       [student._id]: e.target.value, // Save the selected lesson for this student
                     }));
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <option value="">Select Lesson</option>
                   {getLessonsForStudentLevel(student.studentData.level).map(
@@ -272,6 +388,7 @@ const LessonPlan = () => {
                 <label
                   htmlFor={`checkboxInput-${student._id}`}
                   className="bookmark cursor-pointer bg-teal-500 w-10 h-10 flex items-center justify-center rounded-lg"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <input
                     type="checkbox"
@@ -300,6 +417,22 @@ const LessonPlan = () => {
           <div className="col-span-full text-center">No result found.</div>
         )}
       </div>
+
+      {/* Render the Modal */}
+      {isModalOpen && (
+        <LessonPlanModal
+          student={selectedStudent}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        message="Are you sure you want to delete this lesson?"
+      />
     </div>
   );
 };

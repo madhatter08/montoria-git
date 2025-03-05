@@ -245,6 +245,43 @@ export const saveLesson = async (req, res) => {
   }
 };
 
+export const deleteLesson = async (req, res) => {
+  try {
+    const { id } = req.params; // Lesson ID to delete
+    const { studentId } = req.body; // Student ID to update
+
+    if (!id || !studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lesson ID and Student ID are required",
+      });
+    }
+
+    // Find the student by ID
+    const student = await userModel.findById(studentId).exec();
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    // Remove the lesson from the student's lessons array
+    student.studentData.lessons = student.studentData.lessons.filter(
+      (lesson) => lesson !== id
+    );
+
+    // Save the updated student
+    await student.save();
+
+    res.json({ success: true, message: "Lesson deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting lesson:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting lesson",
+    });
+  }
+};
 
 
 
