@@ -42,6 +42,7 @@ const studentSchema = new mongoose.Schema({
     level: { type: String, ref: "level" },
     class: { type: String, ref: "class" },
     remarks: { type: String, trim: true },
+    lessons: [{ type: String }],
   }, { _id: false });
 
 const userSchema = new mongoose.Schema({

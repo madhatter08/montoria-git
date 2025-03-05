@@ -152,6 +152,147 @@ export const getClassList = async (req, res) => {
 
 
 
+export const lessonPlan = async (req, res) => {
+  try {
+    const userId = req.body.userId;
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    const user = await userModel.findById(userId).exec();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    let students;
+    if (user.role === "admin") {
+      students = await userModel.find({ role: "student" }).exec();
+    } else if (user.role === "guide") {
+      const assignedClass = user.guideData?.class;
+      if (!assignedClass) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Guide class not assigned" });
+      }
+      students = await userModel
+        .find({
+          role: "student",
+          "studentData.class": assignedClass,
+        })
+        .exec();
+    } else {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized access" });
+    }
+
+    const curriculumData = await curriculumModel.find();
+
+    if (!curriculumData.length) {
+      return res.json({ success: false, message: "No data found" });
+    }
+
+    res.status(200).json({ success: true, students, curriculumData });
+  } catch (error) {
+    console.error("Error in lessonPlan:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+
+export const saveLesson = async (req, res) => {
+  try {
+    const { studentId, lesson } = req.body;
+
+    if (!studentId || !lesson) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID and lesson are required",
+      });
+    }
+
+    const student = await userModel.findById(studentId).exec();
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    // Check if the lesson already exists
+    if (student.studentData.lessons.includes(lesson)) {
+      return res.status(400).json({
+        success: false,
+        message: "This lesson is already saved for the student.",
+      });
+    }
+
+    // Add the lesson to the student's lessons array
+    student.studentData.lessons.push(lesson);
+    await student.save();
+
+    res
+      .status(200)
+      .json({ success: true, message: "Lesson saved successfully" });
+  } catch (error) {
+    console.error("Error saving lesson:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteLesson = async (req, res) => {
+  try {
+    const { id } = req.params; // Lesson ID to delete
+    const { studentId } = req.body; // Student ID to update
+
+    if (!id || !studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lesson ID and Student ID are required",
+      });
+    }
+
+    // Find the student by ID
+    const student = await userModel.findById(studentId).exec();
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    // Remove the lesson from the student's lessons array
+    student.studentData.lessons = student.studentData.lessons.filter(
+      (lesson) => lesson !== id
+    );
+
+    // Save the updated student
+    await student.save();
+
+    res.json({ success: true, message: "Lesson deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting lesson:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting lesson",
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 /*--------------------------------------------------------- */
 
 export const addLevel = async (req, res) => {

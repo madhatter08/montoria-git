@@ -48,6 +48,7 @@ const Curriculum = () => {
           Preschool: preschoolData,
           LowerElementary: lowerElementaryData,
         });
+        console.log("Fetched curriculum: ", data);
         //toast.success("Curriculum data refreshed successfully!");
       } else {
         setError("Failed to fetch curriculum data.");
@@ -171,7 +172,7 @@ const Curriculum = () => {
             <select
               value={selectedLearningArea}
               onChange={handleLearningAreaChange}
-              className="w-64 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Learning Area</option>
               {uniqueAreas.map((area) => (
@@ -187,7 +188,7 @@ const Curriculum = () => {
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
-              className="w-64 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Level</option>
               {uniqueLevels.map((level) => (
@@ -200,7 +201,7 @@ const Curriculum = () => {
         </div>
 
         {/* Search Bar in the Middle */}
-        <div className="flex-1 lg:flex-none lg:w-96 mb-8 mt-12 relative">
+        <div className="flex-1 lg:flex-none lg:w-110 mb-8 mt-12 relative">
           <input
             type="text"
             placeholder="Search..."
