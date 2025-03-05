@@ -121,7 +121,7 @@ const LessonPlan = () => {
   const getLessonsForStudentLevel = (studentLevel) => {
     return curriculumData
       .filter((item) => item.Level === studentLevel) // Filter by student's level
-      .map((item) => item.Lesson); // Extract only the Lesson field
+      .map((item) => `${item.Lesson} - ${item.Work}`); // Extract only the Lesson field
   };
 
   const handleBookmarkClick = async (studentId) => {
@@ -240,7 +240,7 @@ const LessonPlan = () => {
           <h2 className="text-2xl font-bold mb-4">
             Lessons for {formatStudentName(student)}
           </h2>
-          <ul className="list-disc pl-5 text-gray-700 text-lg">
+          <ol className="list-decimal pl-5 text-gray-700 text-lg">
             {student.studentData.lessons.map((lesson, i) => (
               <li key={i} className="py-1 flex justify-between items-center">
                 <span>{lesson}</span>
@@ -255,7 +255,7 @@ const LessonPlan = () => {
                 />
               </li>
             ))}
-          </ul>
+          </ol>
           <button
             onClick={onClose}
             className="mt-4 bg-[#9d16be] text-white px-4 py-2 rounded-lg"
@@ -353,16 +353,16 @@ const LessonPlan = () => {
               </h3>
 
               <div className="flex-grow p-3 overflow-hidden">
-                <ul className="list-disc pl-5 text-gray-700 text-lg">
-                  {student.studentData.lessons.slice(0, 3).map((lesson, i) => (
+                <ol className="list-decimal pl-5 text-gray-700 text-base truncate">
+                  {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
                     <li key={i} className="py-1">
                       {lesson}
                     </li>
                   ))}
-                  {student.studentData.lessons.length > 3 && (
+                  {student.studentData.lessons.length > 4 && (
                     <li className="text-gray-500">...</li>
                   )}
-                </ul>
+                </ol>
               </div>
 
               <div className="mt-auto flex items-center gap-2">
