@@ -12,6 +12,9 @@ import {
     deleteCurriculum,
     editCurriculum,
     getClassList,
+    lessonPlan,
+    saveLesson,
+    //getLessonsByLevel,
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -32,6 +35,9 @@ schoolRouter.put("/edit-curriculum/:id", editCurriculum);
 
 schoolRouter.get("/class-list", userToken, getClassList);
 
+schoolRouter.get("/lesson-plan", userToken, lessonPlan);
+schoolRouter.post("/save-lesson", saveLesson);
+//schoolRouter.get("/get-lessons-by-level", getLessonsByLevel);
 
 
 export default schoolRouter;
