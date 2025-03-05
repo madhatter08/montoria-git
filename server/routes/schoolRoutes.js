@@ -38,7 +38,7 @@ schoolRouter.get("/class-list", userToken, getClassList);
 
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", saveLesson);
-schoolRouter.delete("/delete-lesson/:id", deleteLesson);
+schoolRouter.delete("/delete-lesson", deleteLesson);
 //schoolRouter.get("/get-lessons-by-level", getLessonsByLevel);
 
 

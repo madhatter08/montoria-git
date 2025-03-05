@@ -151,6 +151,8 @@ export const getClassList = async (req, res) => {
 
 
 
+/*--------------LESSON PLAN PAGE---------------------- */
+
 
 export const lessonPlan = async (req, res) => {
   try {
@@ -208,12 +210,12 @@ export const lessonPlan = async (req, res) => {
 
 export const saveLesson = async (req, res) => {
   try {
-    const { studentId, lesson } = req.body;
+    const { studentId, lesson_work } = req.body;
 
-    if (!studentId || !lesson) {
+    if (!studentId || !lesson_work) {
       return res.status(400).json({
         success: false,
-        message: "Student ID and lesson are required",
+        message: "Student ID and lesson work are required",
       });
     }
 
@@ -225,7 +227,11 @@ export const saveLesson = async (req, res) => {
     }
 
     // Check if the lesson already exists
-    if (student.studentData.lessons.includes(lesson)) {
+    const lessonExists = student.studentData.lessons.some(
+      (lesson) => lesson.lesson_work === lesson_work
+    );
+
+    if (lessonExists) {
       return res.status(400).json({
         success: false,
         message: "This lesson is already saved for the student.",
@@ -233,7 +239,7 @@ export const saveLesson = async (req, res) => {
     }
 
     // Add the lesson to the student's lessons array
-    student.studentData.lessons.push(lesson);
+    student.studentData.lessons.push({ lesson_work });
     await student.save();
 
     res
@@ -245,15 +251,18 @@ export const saveLesson = async (req, res) => {
   }
 };
 
+
+
+
 export const deleteLesson = async (req, res) => {
   try {
-    const { id } = req.params; // Lesson ID to delete
-    const { studentId } = req.body; // Student ID to update
+    const { studentId, lesson_work } = req.query; // Read from query parameters
 
-    if (!id || !studentId) {
+    // Validate required fields
+    if (!studentId || !lesson_work) {
       return res.status(400).json({
         success: false,
-        message: "Lesson ID and Student ID are required",
+        message: "Student ID and Lesson Work are required",
       });
     }
 
@@ -267,12 +276,13 @@ export const deleteLesson = async (req, res) => {
 
     // Remove the lesson from the student's lessons array
     student.studentData.lessons = student.studentData.lessons.filter(
-      (lesson) => lesson !== id
+      (lesson) => lesson.lesson_work !== lesson_work
     );
 
     // Save the updated student
     await student.save();
 
+    // Return success response
     res.json({ success: true, message: "Lesson deleted successfully" });
   } catch (error) {
     console.error("Error deleting lesson:", error);
@@ -282,7 +292,6 @@ export const deleteLesson = async (req, res) => {
     });
   }
 };
-
 
 
 
