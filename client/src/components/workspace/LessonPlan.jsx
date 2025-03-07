@@ -17,7 +17,7 @@ const LessonPlan = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const { backendUrl } = useContext(AppContext);
+  const { backendUrl, userData } = useContext(AppContext);
 
   // Fetch student data from the backend
   useEffect(() => {
@@ -148,6 +148,9 @@ const LessonPlan = () => {
         {
           studentId,
           lesson_work: selectedLesson,
+          addedBy: userData.email, // Use the email from userData
+          remarks: "", // Default remarks
+          start_date: new Date(), // Current date
         },
         { withCredentials: true }
       );
@@ -163,13 +166,20 @@ const LessonPlan = () => {
                     ...student.studentData,
                     lessons: [
                       ...student.studentData.lessons,
-                      { lesson_work: selectedLesson },
+                      {
+                        lesson_work: selectedLesson,
+                        addedBy: userData.email,
+                        remarks: "",
+                        start_date: new Date(),
+                        subwork: [], // Initialize subwork as an empty array
+                      },
                     ],
                   },
                 }
               : student
           )
         );
+        console.log("Student lesson: ", student.studentData.lessons);
         toast.success("Lesson saved successfully!");
       } else {
         throw new Error("Failed to save lesson");
@@ -433,7 +443,7 @@ const LessonPlan = () => {
             </div>
           ))
         ) : (
-          <div className="col-span-full text-center">No result found.</div>
+          <div className="col-span-full text-center">Loading students...</div>
         )}
       </div>
 

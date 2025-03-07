@@ -15,6 +15,7 @@ import {
     lessonPlan,
     saveLesson,
     deleteLesson,
+    addSubwork,
     //getLessonsByLevel,
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
@@ -39,6 +40,10 @@ schoolRouter.get("/class-list", userToken, getClassList);
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", saveLesson);
 schoolRouter.delete("/delete-lesson", deleteLesson);
+
+//schoolRouter.get("/get-student-progress", userToken, lessonPlan);
+schoolRouter.post("/add-subwork", userToken, addSubwork);
+
 //schoolRouter.get("/get-lessons-by-level", getLessonsByLevel);
 
 

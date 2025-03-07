@@ -53,10 +53,22 @@ const studentSchema = new mongoose.Schema({
   class: { type: String, ref: "class" },
   remarks: { type: String, trim: true },
   //lessons: [{ type: String }],
+  // lessons: [{
+  //   lesson_work: { type: String, }, 
+  //   subwork: [subworkSchema], 
+  // }],
   lessons: [{
-    lesson_work: { type: String, }, 
-    subwork: [subworkSchema], 
-  }]
+    lesson_work: { type: String },
+    addedBy: { type: String },
+    remarks: { type: String },
+    start_date: { type: Date },
+    subwork: [{
+      subwork_name: { type: String },
+      status: { type: String, enum: ["presented", "practiced", "mastered"] },
+      status_date: { type: Date },
+      updatedBy: { type: String }, 
+    }],
+  }],
 }, { _id: false });
 
 const userSchema = new mongoose.Schema({
@@ -79,3 +91,7 @@ const userSchema = new mongoose.Schema({
 const userModel = mongoose.models.user || mongoose.model('user', userSchema)
 
 export default userModel;
+
+
+
+
