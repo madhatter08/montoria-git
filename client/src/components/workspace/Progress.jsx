@@ -64,7 +64,7 @@ const Progress = () => {
   const [feedback, setFeedback] = useState(Array(4).fill(Array(3).fill("")));
   const [selectedWeek, setSelectedWeek] = useState(Array(4).fill(null));
 
-  const { backendUrl } = useContext(AppContext);
+  const { backendUrl, userData } = useContext(AppContext);
 
   // Fetch classes and students based on user role
   useEffect(() => {
@@ -191,27 +191,81 @@ const Progress = () => {
   };
 
   // Handle adding a new sub-row
-  const handleAddSubRow = (index) => {
-    setProgress((prev) => {
-      return prev.map((row, i) => {
-        if (i === index) {
-          return {
-            ...row,
-            expanded: true, // Ensure the parent row is expanded
-            subRows: [
-              ...(row.subRows || []),
-              {
-                presented: true,
-                practiced: false,
-                mastered: false,
-                date: new Date().toLocaleDateString(),
-              },
-            ],
-          };
-        }
-        return row;
-      });
-    });
+  const handleAddSubwork = async (index) => {
+    const lesson = student.studentData.lessons[index];
+    const newSubwork = {
+      subwork_name: `Day ${lesson.subwork.length + 1}: ${lesson.lesson_work}`,
+      status: "presented",
+      subwork_remarks: "",
+      status_date: new Date(),
+      updatedBy: userData.email,
+    };
+
+    try {
+      // Send a request to the backend to add the subwork
+      const response = await axios.post(
+        `${backendUrl}/api/school/add-subwork`,
+        {
+          studentId: student._id,
+          lessonIndex: index,
+          subwork: newSubwork,
+        },
+        { withCredentials: true }
+      );
+
+      if (response.status === 200) {
+        // Update the local state
+        setStudents((prevStudents) =>
+          prevStudents.map((student) =>
+            student._id === student._id
+              ? {
+                  ...student,
+                  studentData: {
+                    ...student.studentData,
+                    lessons: student.studentData.lessons.map((lesson, i) =>
+                      i === index
+                        ? {
+                            ...lesson,
+                            subwork: [...lesson.subwork, newSubwork],
+                          }
+                        : lesson
+                    ),
+                  },
+                }
+              : student
+          )
+        );
+
+        // Update the progress state
+        setProgress((prev) =>
+          prev.map((row, i) => {
+            if (i === index) {
+              return {
+                ...row,
+                expanded: true,
+                subRows: [
+                  ...(row.subRows || []),
+                  {
+                    presented: true,
+                    practiced: false,
+                    mastered: false,
+                    date: new Date().toLocaleDateString(),
+                  },
+                ],
+              };
+            }
+            return row;
+          })
+        );
+
+        toast.success("Subwork added successfully!");
+      } else {
+        throw new Error("Failed to add subwork");
+      }
+    } catch (error) {
+      console.error("Error adding subwork:", error);
+      toast.error("Failed to add subwork.");
+    }
   };
 
   // Handle edit remarks for progress table
@@ -458,7 +512,7 @@ const Progress = () => {
                       </td>
                       <td className="p-3 text-center">
                         <button
-                          onClick={() => handleAddSubRow(index)}
+                          onClick={() => handleAddSubwork(index)}
                           className="bg-[#9d16be] text-white px-4 py-2 rounded-lg"
                         >
                           Add
@@ -468,61 +522,85 @@ const Progress = () => {
 
                     {/* Sub-Rows */}
                     {row.expanded &&
-                      row.subRows.map((subRow, subIndex) => (
-                        <tr
-                          key={`sub-${index}-${subIndex}`}
-                          className="border-b bg-gray-300"
-                        >
-                          <td className="p-3">Sub Work {subIndex + 1}</td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
-                              checked={subRow.presented}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  index,
-                                  subIndex,
-                                  "presented"
-                                )
-                              }
-                            />
-                          </td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
-                              checked={subRow.practiced}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  index,
-                                  subIndex,
-                                  "practiced"
-                                )
-                              }
-                              disabled={!subRow.presented}
-                            />
-                          </td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
-                              checked={subRow.mastered}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  index,
-                                  subIndex,
-                                  "mastered"
-                                )
-                              }
-                              disabled={!subRow.presented || !subRow.practiced}
-                            />
-                          </td>
-                          <td className="p-3">-</td>
-                          <td className="p-3">{subRow.date || "-"}</td>
-                          <td className="p-3"></td>
-                        </tr>
-                      ))}
+                      row.subRows.map((subRow, subIndex) => {
+                        const subwork =
+                          student.studentData.lessons[index]?.subwork[subIndex];
+                        return (
+                          <tr
+                            key={`sub-${index}-${subIndex}`}
+                            className="border-b bg-gray-300"
+                          >
+                            <td className="p-3">
+                              {subwork?.subwork_name ||
+                                `Day ${subIndex + 1}: ${
+                                  student.studentData.lessons[index]
+                                    ?.lesson_work
+                                }`}
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
+                                checked={subRow.presented}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    index,
+                                    subIndex,
+                                    "presented"
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
+                                checked={subRow.practiced}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    index,
+                                    subIndex,
+                                    "practiced"
+                                  )
+                                }
+                                disabled={!subRow.presented}
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
+                                checked={subRow.mastered}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    index,
+                                    subIndex,
+                                    "mastered"
+                                  )
+                                }
+                                disabled={
+                                  !subRow.presented || !subRow.practiced
+                                }
+                              />
+                            </td>
+                            <td className="p-3 flex justify-between items-center">
+                              -
+                              <button onClick={() => handleEditRemarks(index)}>
+                                <img
+                                  src={assets.edit}
+                                  alt="Edit"
+                                  className="w-5 h-5"
+                                  style={{ filter: "grayscale(100%)" }}
+                                />
+                              </button>
+                            </td>
+                            <td className="p-3">
+                              {subwork?.status_date || subRow.date || "-"}
+                            </td>
+                            <td className="p-3">{subwork?.updatedBy || "-"}</td>
+                          </tr>
+                        );
+                      })}
                   </>
                 ));
               })()

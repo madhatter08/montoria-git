@@ -65,6 +65,7 @@ const studentSchema = new mongoose.Schema({
     subwork: [{
       subwork_name: { type: String },
       status: { type: String, enum: ["presented", "practiced", "mastered"] },
+      subwork_remarks: { type: String },
       status_date: { type: Date },
       updatedBy: { type: String }, 
     }],
