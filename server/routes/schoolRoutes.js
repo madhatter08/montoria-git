@@ -1,6 +1,5 @@
 import express from "express";
 import {
-
   addLevel,
   addProgram,
   addClass,
@@ -20,7 +19,8 @@ import {
   lessonPlan,
   saveLesson,
   deleteLesson,
-
+  getSubwork,
+  addSubwork,
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -51,7 +51,12 @@ schoolRouter.get("/feedback-by-quarter", userToken, getFeedbackByQuarter);
 schoolRouter.get("/:schoolId", userToken, getStudentById);
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", saveLesson);
-schoolRouter.delete("/delete-lesson/:id", deleteLesson);
+schoolRouter.delete("/delete-lesson", deleteLesson);
+
+//schoolRouter.get("/get-student-progress", userToken, lessonPlan);
+schoolRouter.get("/get-subwork", userToken, getSubwork);
+schoolRouter.post("/add-subwork", userToken, addSubwork);
+
 //schoolRouter.get("/get-lessons-by-level", getLessonsByLevel);
 
 export default schoolRouter;
