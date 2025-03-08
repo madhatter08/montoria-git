@@ -305,6 +305,49 @@ export const deleteLesson = async (req, res) => {
 
 /*----------------PROGRESS PAGE------------------- */
 
+
+export const getSubwork = async (req, res) => {
+  const { studentId, lessonIndex } = req.query;
+
+  if (!studentId || !lessonIndex) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Student ID and Lesson Index are required.",
+      });
+  }
+
+  try {
+    // Find the student by their ID
+    const student = await userModel.findOne({
+      "studentData.schoolId": studentId,
+    });
+
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    }
+
+    // Check if the lesson index is valid
+    if (lessonIndex < 0 || lessonIndex >= student.studentData.lessons.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid lesson index." });
+    }
+
+    // Get the subwork for the specified lesson
+    const subwork = student.studentData.lessons[lessonIndex].subwork;
+
+    res.status(200).json({ success: true, subwork });
+  } catch (error) {
+    console.error("Error in fetching subwork:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 export const addSubwork = async (req, res) => {
   try {
     const { studentId, lessonIndex, subwork } = req.body;
@@ -313,7 +356,7 @@ export const addSubwork = async (req, res) => {
     console.log("Request Payload:", { studentId, lessonIndex, subwork });
 
     // Validate required fields
-    if (!studentId || !lessonIndex || !subwork) {
+    if (!studentId || lessonIndex === undefined || !subwork) {
       return res.status(400).json({
         success: false,
         message: "studentId, lessonIndex, and subwork are required.",
@@ -321,7 +364,7 @@ export const addSubwork = async (req, res) => {
     }
 
     // Find the student by ID
-    const student = await userModel.findOne({ "studentData._id": studentId });
+    const student = await userModel.findById(studentId);
     if (!student) {
       return res
         .status(404)
@@ -339,8 +382,8 @@ export const addSubwork = async (req, res) => {
     const newSubwork = {
       subwork_name: subwork.subwork_name,
       status: subwork.status,
-      status_date: new Date(), // Automatically set the current date
-      remarks: subwork.remarks || "", // Optional field
+      status_date: subwork.status_date || new Date(), // Automatically set the current date
+      subwork_remarks: subwork.subwork_remarks || "", // Optional field
       updatedBy: subwork.updatedBy,
     };
 

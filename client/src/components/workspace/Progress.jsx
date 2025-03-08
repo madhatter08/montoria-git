@@ -99,6 +99,38 @@ const Progress = () => {
   const filteredStudents = selectedClass
     ? students.filter((student) => student.studentData.class === selectedClass)
     : [];
+  
+  const fetchSubwork = async (studentId, lessonIndex) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/school/get-subwork`, {
+        params: { studentId, lessonIndex },
+        withCredentials: true,
+      });
+
+      if (response.data.success) {
+        // Update the state with the fetched subwork data
+        setProgress((prev) => {
+          const newProgress = [...prev];
+          newProgress[lessonIndex].subRows = response.data.subwork.map(
+            (sub) => ({
+              presented: sub.status === "presented",
+              practiced: sub.status === "practiced",
+              mastered: sub.status === "mastered",
+              date: sub.status_date
+                ? new Date(sub.status_date).toLocaleDateString()
+                : "",
+            })
+          );
+          return newProgress;
+        });
+      } else {
+        toast.error("Failed to fetch subwork data.");
+      }
+    } catch (error) {
+      console.error("Error fetching subwork:", error);
+      toast.error("Failed to fetch subwork data.");
+    }
+  };
 
   // Handle class selection
   const handleClassChange = (e) => {
@@ -122,12 +154,16 @@ const Progress = () => {
   const totalWorks = progress.length;
 
   // Toggle dropdown for a row
-  const toggleDropdown = (index) => {
+  const toggleDropdown = async (index, student) => {
     setProgress((prev) => {
       const newProgress = [...prev];
       newProgress[index].expanded = !newProgress[index].expanded;
       return newProgress;
     });
+
+    if (!progress[index].expanded) {
+      await fetchSubwork(student._id, index);
+    }
   };
 
   // Handle checkbox change for progress table
@@ -191,7 +227,7 @@ const Progress = () => {
   };
 
   // Handle adding a new sub-row
-  const handleAddSubwork = async (index) => {
+  const handleAddSubwork = async (index, student) => {
     const lesson = student.studentData.lessons[index];
     const newSubwork = {
       subwork_name: `Day ${lesson.subwork.length + 1}: ${lesson.lesson_work}`,
@@ -200,6 +236,11 @@ const Progress = () => {
       status_date: new Date(),
       updatedBy: userData.email,
     };
+    console.log("Payload being sent to backend:", {
+      studentId: student.schoolId,
+      lessonIndex: index,
+      subwork: newSubwork,
+    });
 
     try {
       // Send a request to the backend to add the subwork
@@ -452,7 +493,7 @@ const Progress = () => {
                         {student.studentData.lessons[index]?.lesson_work ||
                           `Work ${index + 1}`}
                         <button
-                          onClick={() => toggleDropdown(index)}
+                          onClick={() => toggleDropdown(index, student)}
                           className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
                         >
                           {row.expanded ? "▲" : "▼"}
@@ -512,7 +553,7 @@ const Progress = () => {
                       </td>
                       <td className="p-3 text-center">
                         <button
-                          onClick={() => handleAddSubwork(index)}
+                          onClick={() => handleAddSubwork(index, student)}
                           className="bg-[#9d16be] text-white px-4 py-2 rounded-lg"
                         >
                           Add
