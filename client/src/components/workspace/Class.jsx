@@ -2,29 +2,32 @@ import { useState, useEffect, useContext } from "react";
 import ReportCard from "../../Forms/ReportCard"; // Adjust the path as needed
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
+import { FaFileAlt } from "react-icons/fa"; // Import an icon library (e.g., react-icons)
+
 
 const Class = () => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showReportCard, setShowReportCard] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null); // Track the selected student
   const [students, setStudents] = useState([]); // State to store student data
   const { backendUrl } = useContext(AppContext);
+
 
   // Fetch student data from the backend
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await axios.get(
-          `${backendUrl}/api/school/class-list`,
-          {
-            withCredentials: true,
-          }
-        );
+        const response = await axios.get(`${backendUrl}/api/school/class-list`, {
+          withCredentials: true,
+        });
+
 
         if (response.status !== 200) {
           throw new Error("Failed to fetch students");
         }
+
 
         const data = response.data;
         setStudents(data.students); // Set the fetched student data
@@ -34,16 +37,15 @@ const Class = () => {
       }
     };
 
+
     fetchStudents();
   }, [backendUrl]);
 
+
   // Extract unique classes and levels from student data
-  const classes = [
-    ...new Set(students.map((student) => student.studentData.class)),
-  ];
-  const levels = [
-    ...new Set(students.map((student) => student.studentData.level)),
-  ];
+  const classes = [...new Set(students.map((student) => student.studentData.class))];
+  const levels = [...new Set(students.map((student) => student.studentData.level))];
+
 
   // Format student name as [lastName, firstName middleName (initial + period)]
   const formatStudentName = (student) => {
@@ -52,25 +54,53 @@ const Class = () => {
     return `${lastName}, ${firstName} ${middleInitial}`;
   };
 
+
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
   };
+
 
   const handleLevelChange = (e) => {
     setSelectedLevel(e.target.value);
   };
 
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  const handleGenerateReport = () => {
-    setShowReportCard(true);
+
+  const handleStudentClick = async (student) => {
+    try {
+      // Fetch the student data using the schoolId
+      const response = await axios.get(
+        `${backendUrl}/api/school/${student.schoolId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          withCredentials: true,
+        }
+      );
+  
+      if (response.status !== 200) {
+        throw new Error("Failed to fetch student data");
+      }
+  
+      // Set the fetched student data
+      setSelectedStudent(response.data);
+      setShowReportCard(true); // Open the ReportCard form
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+    }
   };
 
+
   const handleCloseReportCard = () => {
-    setShowReportCard(false);
+    setShowReportCard(false); // Close the ReportCard form
+    setSelectedStudent(null); // Reset the selected student
   };
+
 
   // Filter students based on selected class, level, and search query
   const filteredStudents = students.filter((student) => {
@@ -81,16 +111,16 @@ const Class = () => {
       ? student.studentData.level === selectedLevel
       : true;
 
+
     // Convert all searchable fields to lowercase for case-insensitive comparison
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
     const schoolId = student.schoolId.toLowerCase();
     const gender = student.studentData.gender.toLowerCase();
     const age = student.studentData.age.toString();
-    const birthday = new Date(
-      student.studentData.birthday
-    ).toLocaleDateString();
+    const birthday = new Date(student.studentData.birthday).toLocaleDateString();
     const remarks = student.studentData.remarks.toLowerCase();
+
 
     // Check if the search query matches any of the fields
     const matchesSearch =
@@ -101,14 +131,17 @@ const Class = () => {
       birthday.includes(searchLower) ||
       remarks.includes(searchLower);
 
+
     return matchesClass && matchesLevel && matchesSearch;
   });
+
 
   return (
     <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Class Page</h1>
 
-      {/* Dropdowns, Search Bar, and Generate Report Button */}
+
+      {/* Dropdowns and Search Bar */}
       <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
         {/* Dropdowns on the Left */}
         <div className="flex space-x-4">
@@ -129,6 +162,7 @@ const Class = () => {
             </select>
           </div>
 
+
           {/* Level Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700"></label>
@@ -147,6 +181,7 @@ const Class = () => {
           </div>
         </div>
 
+
         {/* Search Bar in the Middle */}
         <div className="flex-1 lg:flex-none lg:w-96 mb-8 mt-12">
           <label className="block text-sm font-medium text-gray-700"></label>
@@ -158,17 +193,8 @@ const Class = () => {
             className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
           />
         </div>
-
-        {/* Generate Report Button on the Right */}
-        <div>
-          <button
-            onClick={handleGenerateReport}
-            className="px-6 mt-4.5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-400"
-          >
-            Generate Report
-          </button>
-        </div>
       </div>
+
 
       {/* Table with Remaining Columns */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -184,18 +210,16 @@ const Class = () => {
               <th className="p-3 text-left">AGE</th>
               <th className="p-3 text-left">BIRTHDAY</th>
               <th className="p-3 text-left">REMARKS</th>
+              <th className="p-1 text-left">ACTION</th> {/* New column for the icon */}
             </tr>
           </thead>
           <tbody>
             {filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
-                <tr key={student._id} className="border-b">
+                <tr key={student._id} className="border-b hover:bg-gray-100">
                   <td className="p-3">
                     <img
-                      src={
-                        student.studentData.photo ||
-                        "https://placehold.co/120x120"
-                      }
+                      src={student.studentData.photo || "https://placehold.co/120x120"}
                       alt="Student"
                       className="w-12 h-12 rounded-full"
                     />
@@ -207,16 +231,22 @@ const Class = () => {
                   <td className="p-3">{student.studentData.level}</td>
                   <td className="p-3">{student.studentData.age}</td>
                   <td className="p-3">
-                    {new Date(
-                      student.studentData.birthday
-                    ).toLocaleDateString()}
+                    {new Date(student.studentData.birthday).toLocaleDateString()}
                   </td>
                   <td className="p-3">{student.studentData.remarks}</td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleStudentClick(student)}
+                      className="text-[#9d16be] hover:text-purple-800"
+                    >
+                      <FaFileAlt className="w-5 h-5" /> {/* Report icon */}
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="p-3 text-center">
+                <td colSpan="10" className="p-3 text-center">
                   No result found.
                 </td>
               </tr>
@@ -225,10 +255,17 @@ const Class = () => {
         </table>
       </div>
 
+
       {/* ReportCard Form Pop-up */}
-      {showReportCard && <ReportCard onClose={handleCloseReportCard} />}
+      {showReportCard && selectedStudent && (
+        <ReportCard
+          onClose={handleCloseReportCard}
+          student={selectedStudent} // Pass the selected student to ReportCard
+        />
+      )}
     </div>
   );
 };
+
 
 export default Class;

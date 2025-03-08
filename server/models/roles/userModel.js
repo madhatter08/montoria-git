@@ -1,14 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const adminSchema = new mongoose.Schema({
-  photo: { type: String },
-  name: { type: String, required: true, trim: true },
-  contactNumber: { type: String, required: true, trim: true },
-}, { _id: false });
-
-const guideSchema = new mongoose.Schema({
+// Admin Schema
+const adminSchema = new mongoose.Schema(
+  {
     photo: { type: String },
-    guideType: { type: String, enum: ["General", "Preschool", "Lower Elementary"] },
+    name: { type: String, required: true, trim: true },
+    contactNumber: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+// Guide Schema
+const guideSchema = new mongoose.Schema(
+  {
+    photo: { type: String },
+    guideType: {
+      type: String,
+      enum: ["General", "Preschool", "Lower Elementary"],
+    },
     firstName: { type: String, required: true, trim: true },
     middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
@@ -16,15 +25,44 @@ const guideSchema = new mongoose.Schema({
     birthday: { type: Date, required: true },
     contactNumber: { type: String, required: true, trim: true },
     class: { type: String, ref: "class" },
-}, { _id: false });
+  },
+  { _id: false }
+);
 
-const parentSchema = new mongoose.Schema({
+// Parent Schema
+const parentSchema = new mongoose.Schema(
+  {
     name: { type: String, required: true, trim: true },
     relationship: { type: String, required: true, trim: true },
-    contactNumber: { type: String, required: true, trim: true }
-}, { _id: false });
+    contactNumber: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
 
-const studentSchema = new mongoose.Schema({
+// Feedback Schema
+const feedbackSchema = new mongoose.Schema(
+  {
+    week: { type: Number, required: true },
+    feedback_text: { type: String, required: true },
+    updatedBy: { type: String, required: true }, // Matches the schema
+    email: { type: String, required: true }, // Matches the schema
+    date: { type: Date, required: true },
+  },
+  { _id: false }
+);
+
+// Quarter Schema
+const quarterSchema = new mongoose.Schema(
+  {
+    quarter: { type: Number, required: true }, // Quarter number (1, 2, 3, 4)
+    feedback: [feedbackSchema], // Array of feedback for the quarter
+  },
+  { _id: false }
+);
+
+// Student Schema
+const studentSchema = new mongoose.Schema(
+  {
     photo: { type: String },
     lrn: { type: String, trim: true },
     firstName: { type: String, required: true, trim: true },
@@ -34,7 +72,6 @@ const studentSchema = new mongoose.Schema({
     gender: { type: String, enum: ["Male", "Female", "Others"], required: true },
     birthday: { type: Date, required: true },
     address: { type: String, required: true, trim: true },
-    //parent: parentSchema,
     parentName: { type: String, required: true },
     parentRel: { type: String, required: true, trim: true },
     parentPhone: { type: String, required: true },
@@ -42,25 +79,38 @@ const studentSchema = new mongoose.Schema({
     level: { type: String, ref: "level" },
     class: { type: String, ref: "class" },
     remarks: { type: String, trim: true },
-  }, { _id: false });
+    lessons: { type: Array, default: [] }, // Matches the schema
+    quarters: [quarterSchema], // Array of quarters with feedback
+  },
+  { _id: false }
+);
 
-const userSchema = new mongoose.Schema({
-  roleId: { type: Number, required: true },
-  role: { type: String, enum: ["admin", "guide", "student"] },
-  isActive: { type: Boolean, default: true },
-  schoolId: { type: String, required: true, unique: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
-  password: { type: String, required: true, minlength: 8 },
-  adminData: adminSchema,
-  guideData: guideSchema,
-  studentData: studentSchema,
-  resetOtp: { type: String, default: "" },
-  resetOtpExpiresAt: { type: Number, default: 0 },
-  //verifyOtp: { type: String, default: "" },
-  //verifyOtpExpiresAt: { type: Number, default: 0 },
-  //isVerified: { type: Boolean, default: false },
-}, { timestamps: true });
+// User Schema
+const userSchema = new mongoose.Schema(
+  {
+    roleId: { type: Number, required: true },
+    role: { type: String, enum: ["admin", "guide", "student"], required: true },
+    isActive: { type: Boolean, default: true },
+    schoolId: { type: String, required: true, unique: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    password: { type: String, required: true, minlength: 8 },
+    adminData: adminSchema,
+    guideData: guideSchema,
+    studentData: studentSchema,
+    resetOtp: { type: String, default: "" },
+    resetOtpExpiresAt: { type: Number, default: 0 },
+  },
+  { timestamps: true } // Automatically adds createdAt and updatedAt fields
+);
 
-const userModel = mongoose.models.user || mongoose.model('user', userSchema)
+// Create or retrieve the User model
+const userModel = mongoose.models.user || mongoose.model("user", userSchema);
 
 export default userModel;

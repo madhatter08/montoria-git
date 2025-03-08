@@ -6,79 +6,102 @@ import { toast } from "react-toastify";
 import styled from "styled-components";
 
 const GuideForm = ({ onClose, refreshData, editData }) => {
-  const [guideType, setType] = useState(editData?.guideData.guideType || "");
+  const [guideType, setType] = useState(editData?.guideData?.guideType || "");
   const [schoolId, setSchoolId] = useState(editData?.schoolId || "");
-  const [firstName, setFirstName] = useState(editData?.guideData.firstName || "");
-  const [middleName, setMiddleName] = useState(editData?.guideData.middleName || "");
-  const [lastName, setLastName] = useState(editData?.guideData.lastName || "");
-  const [address, setAddress] = useState(editData?.guideData.address || "");
-  //const [birthday, setBirthday] = useState(editData?.guideData.birthday || "");
+  const [firstName, setFirstName] = useState(editData?.guideData?.firstName || "");
+  const [middleName, setMiddleName] = useState(editData?.guideData?.middleName || "");
+  const [lastName, setLastName] = useState(editData?.guideData?.lastName || "");
+  const [address, setAddress] = useState(editData?.guideData?.address || "");
   const [birthday, setBirthday] = useState(
-    editData?.guideData.birthday
+    editData?.guideData?.birthday
       ? new Date(editData.guideData.birthday).toISOString().split("T")[0]
       : ""
   );
-  const [contactNumber, setContactNumber] = useState(editData?.guideData.contactNumber || "");
+  const [contactNumber, setContactNumber] = useState(editData?.guideData?.contactNumber || "");
   const [email, setEmail] = useState(editData?.email || "");
-  const [className, setClass] = useState(editData?.guideData.class || "");
-  const [photo, setPhoto] = useState(editData?.guideData.photo || "");
+  const [className, setClass] = useState(editData?.guideData?.class || "");
+  const [photo, setPhoto] = useState(editData?.guideData?.photo || "");
+  const [photoPreview, setPhotoPreview] = useState(null);
 
-  const [formData, setFormData] = useState({
-    guideType: "",
-    schoolId: "",
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    birthday: "",
-    class: "",
-    contactNumber: "",
-    email: "",
-    address: "",
-    photo: null,
-  });
-  
   // Update state when editData changes
   useEffect(() => {
     if (editData) {
-      setType(editData.guideType);
-      setSchoolId(editData.schoolId);
-      setFirstName(editData.firstName);
-      setMiddleName(editData.middleName);
-      setLastName(editData.lastName);
-      setAddress(editData.address);
-      setBirthday(editData.birthday);
-      setContactNumber(editData.contactNumber);
-      setEmail(editData.email);
-      setClass(editData.className);
-      setPhoto(editData.photo);
+      setType(editData.guideData?.guideType || "");
+      setSchoolId(editData.schoolId || "");
+      setFirstName(editData.guideData?.firstName || "");
+      setMiddleName(editData.guideData?.middleName || "");
+      setLastName(editData.guideData?.lastName || "");
+      setAddress(editData.guideData?.address || "");
+      setBirthday(
+        editData.guideData?.birthday
+          ? new Date(editData.guideData.birthday).toISOString().split("T")[0]
+          : ""
+      );
+      setContactNumber(editData.guideData?.contactNumber || "");
+      setEmail(editData.email || "");
+      setClass(editData.guideData?.class || "");
+      setPhoto(editData.guideData?.photo || "");
     }
   }, [editData]);
-  const [photoPreview, setPhotoPreview] = useState(null);
 
   const handleChange = (e) => {
     if (e.target.name === "photo") {
       const file = e.target.files[0];
-      setFormData({ ...formData, [e.target.name]: file });
-
       if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPhotoPreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPhotoPreview(null);
+        const validTypes = ["image/jpeg", "image/png"];
+        if (validTypes.includes(file.type)) {
+          setPhoto(file); // Update the photo state with the file object
+          setPhotoPreview(URL.createObjectURL(file)); // Generate a preview URL
+        } else {
+          toast.error("Please upload a valid image file (JPEG or PNG).", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          e.target.value = ""; // Clear the file input
+        }
       }
-
+    } else {
       const { name, value } = e.target;
       if (name === "birthday") {
         const isoDate = new Date(value).toISOString();
-        setFormData({ ...formData, [name]: isoDate });
+        setBirthday(isoDate.split("T")[0]);
       } else {
-        setFormData({ ...formData, [name]: value });
+        switch (name) {
+          case "guideType":
+            setType(value);
+            break;
+          case "schoolId":
+            setSchoolId(value);
+            break;
+          case "firstName":
+            setFirstName(value);
+            break;
+          case "middleName":
+            setMiddleName(value);
+            break;
+          case "lastName":
+            setLastName(value);
+            break;
+          case "address":
+            setAddress(value);
+            break;
+          case "contactNumber":
+            setContactNumber(value);
+            break;
+          case "email":
+            setEmail(value);
+            break;
+          case "class":
+            setClass(value);
+            break;
+          default:
+            break;
+        }
       }
-    } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
     }
   };
 
@@ -96,7 +119,7 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
       contactNumber: contactNumber,
       email: email,
       class: className,
-      photo: photo, 
+      photo: photo,
       roleId: 2,
       password: "montoria@1234",
     };
@@ -151,53 +174,43 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
                   className="title"
                   type="file"
                   name="photo"
-                  value={photo}
                   onChange={handleChange}
-                  accept="image/*"
+                  accept="image/jpeg, image/png"
                 />
-                Choose a file
+                Choose an Image
               </label>
             </div>
           </StyledWrapper>
 
-          {/* Photo Preview */}
+          {/* Image Preview */}
           {photoPreview && (
-            <div className="flex-shrink-0 border-2 border-gray-300 rounded p-2">
+            <div className="mt-4">
               <img
                 src={photoPreview}
-                alt="Uploaded Photo Preview"
-                className="w-32 h-32 object-cover rounded"
+                alt="Preview"
+                className="w-32 h-32 object-cover rounded-full"
               />
             </div>
           )}
         </div>
 
         {/* Teacher Type Dropdown */}
-        <div className="relative block">
+        <div className="relative">
           <label className="relative block">
             <select
               name="guideType"
               value={guideType}
-              //onChange={handleChange}
-              onChange={(e) => setType(e.target.value)}
+              onChange={handleChange}
               required
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
             >
               <option value="" disabled>
-                Select Teacher Type
+                Teacher Type
               </option>
               <option value="General">General</option>
               <option value="Preschool">Preschool</option>
               <option value="Lower Elementary">Lower Elementary</option>
             </select>
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Teacher Type
-            </span>
           </label>
         </div>
 
@@ -207,22 +220,17 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="schoolId"
               value={schoolId}
-              //onChange={handleChange}
-              onChange={(e) => setSchoolId(e.target.value)}
+              onChange={handleChange}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="School ID (Format: 0000-000000)"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              School ID
-            </span>
           </label>
+          {/* Display validation error if needed */}
+          {schoolId && !/^\d{4}-\d{6}$/.test(schoolId) && (
+            <p className="text-red-500 text-sm ml-3 mt-1">School ID must be in the format 0000-000000.</p>
+          )}
         </div>
 
         {/* First Name */}
@@ -231,21 +239,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="firstName"
               value={firstName}
-              //onChange={handleChange}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={handleChange}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="First Name"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              First Name
-            </span>
           </label>
         </div>
 
@@ -255,21 +254,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="birthday"
               value={birthday}
-              //onChange={handleChange}
-              onChange={(e) => setBirthday(e.target.value)}
+              onChange={handleChange}
               required
               type="date"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Birthday"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Birthday
-            </span>
           </label>
         </div>
 
@@ -279,21 +269,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="middleName"
               value={middleName}
-              //onChange={}
-              onChange={(e) => setMiddleName(e.target.value)}
+              onChange={handleChange}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Middle Name"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Middle Name
-            </span>
           </label>
         </div>
 
@@ -303,22 +284,17 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="contactNumber"
               value={contactNumber}
-              //onChange={}
-              onChange={(e) => setContactNumber(e.target.value)}
+              onChange={handleChange}
               required
-              type="string"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              type="text"
+              placeholder="Phone Number"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.mail_icon}
-              alt="phone icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Phone Number
-            </span>
           </label>
+          {/* Display validation error if needed */}
+          {contactNumber.length !== 11 && contactNumber.length > 0 && (
+            <p className="text-red-500 text-sm ml-3 mt-1">Phone number must be exactly 11 digits.</p>
+          )}
         </div>
 
         {/* Last Name */}
@@ -327,21 +303,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="lastName"
               value={lastName}
-              //onChange={}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={handleChange}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Last Name"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Last Name
-            </span>
           </label>
         </div>
 
@@ -351,21 +318,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="email"
               value={email}
-              //onChange={}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleChange}
               required
               type="email"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Email"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.mail_icon}
-              alt="email icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Email
-            </span>
           </label>
         </div>
 
@@ -375,21 +333,12 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <input
               name="address"
               value={address}
-              //onChange={}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={handleChange}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Address"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Address
-            </span>
           </label>
         </div>
 
@@ -399,9 +348,8 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
             <select
               name="class"
               value={className}
-              onChange={(e) => setClass(e.target.value)}
-              //onChange={}
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
+              onChange={handleChange}
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
             >
               <option value="" disabled>
                 Select Class Assigned
@@ -418,14 +366,6 @@ const GuideForm = ({ onClose, refreshData, editData }) => {
               <option value="Class C">Class C</option>
               <option value="Class D">Class D</option>
             </select>
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Class Assigned
-            </span>
           </label>
         </div>
 
@@ -455,6 +395,7 @@ GuideForm.propTypes = {
   refreshData: PropTypes.func.isRequired,
   editData: PropTypes.object,
 };
+
 
 const StyledWrapper = styled.div`
   .container {

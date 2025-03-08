@@ -10,18 +10,18 @@ import {
 import { motion } from "framer-motion";
 
 const salesData = [
-  { name: "Jul", sales: 4200 },
-  { name: "Aug", sales: 3800 },
-  { name: "Sep", sales: 5100 },
-  { name: "Oct", sales: 4600 },
-  { name: "Nov", sales: 5400 },
-  { name: "Dec", sales: 7200 },
-  { name: "Jan", sales: 6100 },
-  { name: "Feb", sales: 5900 },
-  { name: "Mar", sales: 6800 },
-  { name: "Apr", sales: 6300 },
-  { name: "May", sales: 7100 },
-  { name: "Jun", sales: 7500 },
+  { name: "Jul", sales: 72 },
+  { name: "Aug", sales: 98 },
+  { name: "Sep", sales: 88 },
+  { name: "Oct", sales: 102 },
+  { name: "Nov", sales: 76 },
+  { name: "Dec", sales: 77 },
+  { name: "Jan", sales: 89 },
+  { name: "Feb", sales: 76 },
+  { name: "Mar", sales: 68 },
+  { name: "Apr", sales: 63 },
+  { name: "May", sales: 98 },
+  { name: "Jun", sales: 128 },
 ];
 
 const LineChartSample = () => {

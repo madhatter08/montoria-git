@@ -12,9 +12,12 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isEmailSent, setIsEmailSet] = useState("");
   const [otp, setOtp] = useState(0);
   const [isOtpSubmitted, setIsOtpSubmitted] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   const inputRefs = React.useRef([]);
 
@@ -43,6 +46,32 @@ const ResetPassword = () => {
     });
   };
 
+  // Password validation logic
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (
+      password.length >= minLength &&
+      hasUpperCase &&
+      hasLowerCase &&
+      hasDigit &&
+      hasSpecialChar
+    ) {
+      return "strong";
+    } else if (
+      password.length >= minLength &&
+      (hasUpperCase || hasLowerCase || hasDigit || hasSpecialChar)
+    ) {
+      return "average";
+    } else {
+      return "weak";
+    }
+  };
+
   const onSubmitEmail = async (e) => {
     e.preventDefault();
     try {
@@ -66,6 +95,22 @@ const ResetPassword = () => {
 
   const onSubmitNewPassword = async (e) => {
     e.preventDefault();
+
+    // Check if passwords match
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match!");
+      return;
+    } else {
+      setConfirmPasswordError("");
+    }
+
+    // Check password strength
+    const strength = validatePassword(newPassword);
+    if (strength === "weak") {
+      toast.error("Password is too weak. Please follow the password requirements.");
+      return;
+    }
+
     try {
       const { data } = await axios.post(
         backendUrl + "/api/auth/reset-password",
@@ -76,6 +121,11 @@ const ResetPassword = () => {
     } catch (error) {
       toast.error(error.message);
     }
+  };
+
+  // Disable copy-paste functionality
+  const disableCopyPaste = (e) => {
+    e.preventDefault();
   };
 
   return (
@@ -91,15 +141,15 @@ const ResetPassword = () => {
       </div>
 
       <div className="relative bg-white shadow-5xl p-10 rounded-lg shadow-lg w-full max-w-md">
-  {/* Back Button - Positioned inside the modal */}
-  <div className="absolute top-4 left-4">
-    <img
-      onClick={() => navigate("/login")}
-      src={assets.back_icon} // Replace with your back icon asset
-      alt="back icon"
-      className="w-6 h-6 hover:scale-110 cursor-pointer transition-all"
-    />
-  </div>
+        {/* Back Button - Positioned inside the modal */}
+        <div className="absolute top-4 left-4">
+          <img
+            onClick={() => navigate("/login")}
+            src={assets.back_icon} // Replace with your back icon asset
+            alt="back icon"
+            className="w-6 h-6 hover:scale-110 cursor-pointer transition-all"
+          />
+        </div>
 
         {/* Enter Email Form */}
         {!isEmailSent && (
@@ -108,7 +158,7 @@ const ResetPassword = () => {
             className="bg-white p-8 rounded-lg w-96 text-sm relative"
           >
             <h1 className="text-[#9d16be] text-2xl font-bold text-center mb-4">
-             RESET PASSWORD
+              RESET PASSWORD
             </h1>
             <p className="text-center mb-6 text-[#9d16be]">
               Enter your registered email address.
@@ -178,11 +228,16 @@ const ResetPassword = () => {
             <p className="text-center mb-6 text-[#9d16be]">
               Enter your new password below.
             </p>
-            <label className="relative block">
+            <label className="relative block mb-4">
               <input
                 type="password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  setPasswordStrength(validatePassword(e.target.value));
+                }}
+                onCopy={disableCopyPaste}
+                onPaste={disableCopyPaste}
                 className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
                 required
               />
@@ -191,6 +246,56 @@ const ResetPassword = () => {
                 New Password
               </span>
             </label>
+
+            {/* Password Strength Indicator */}
+            {newPassword && (
+              <div className="mb-4">
+                <p className="text-sm">
+                  Password Strength:{" "}
+                  <span
+                    className={`font-semibold ${
+                      passwordStrength === "strong"
+                        ? "text-green-500"
+                        : passwordStrength === "average"
+                        ? "text-yellow-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {passwordStrength}
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {/* Confirm Password Field */}
+            <label className="relative block mb-6">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (newPassword !== e.target.value) {
+                    setConfirmPasswordError("Passwords do not match!");
+                  } else {
+                    setConfirmPasswordError("");
+                  }
+                }}
+                onCopy={disableCopyPaste}
+                onPaste={disableCopyPaste}
+                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                required
+              />
+              <img src={assets.lock_icon} alt="lock icon" className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1" />
+              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
+                Confirm Password
+              </span>
+            </label>
+
+            {/* Confirm Password Error Message */}
+            {confirmPasswordError && (
+              <p className="text-red-500 text-sm mb-4">{confirmPasswordError}</p>
+            )}
+
             <button className="w-full py-2.5 bg-gradient-to-r from-purple-400 to-[#9d16be] text-white rounded-full mt-6">
               Submit
             </button>

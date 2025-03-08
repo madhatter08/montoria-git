@@ -14,10 +14,10 @@ import {
 const COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B"];
 
 const SALES_CHANNEL_DATA = [
-  { name: "Advanced", value: 45600 },
-  { name: "Proficient", value: 38200 },
-  { name: "Slow Learner", value: 29800 },
-  { name: "Needs Attention", value: 10000 },
+  { name: "Advanced", value: 45 },
+  { name: "Proficient", value: 33 },
+  { name: "Developing", value: 12 },
+  { name: "Needs Attention", value: 8 },
 ];
 
 const BarChartSample = () => {
@@ -29,7 +29,7 @@ const BarChartSample = () => {
       transition={{ delay: 0.4 }}
     >
       <h2 className="text-lg font-semibold mb-4 text-gray-900">
-      ACADEMIC PROFICENCY
+      ACADEMIC PROFICIENCY
       </h2>
 
       <div className="h-80">

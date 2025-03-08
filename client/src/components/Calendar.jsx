@@ -4,19 +4,18 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Calendar = () => {
-  const [events, setEvents] = useState([]); // Store all events
-  const [title, setTitle] = useState(""); // Event title
-  const [start, setStart] = useState(""); // Event start date/time
-  const [end, setEnd] = useState(""); // Event end date/time
-  const [currentDate, setCurrentDate] = useState(new Date()); // Track the current month/year
-  const [editingEvent, setEditingEvent] = useState(null); // Track the event being edited
-  const [eventToDelete, setEventToDelete] = useState(null); // Track the event to delete
+  const [events, setEvents] = useState([]);
+  const [title, setTitle] = useState("");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false); 
 
-  // Add a new event
   const handleAddEvent = (e) => {
     e.preventDefault();
 
-    // Validate inputs
     if (!title || !start || !end) {
       toast.error("Please fill out all fields.");
       return;
@@ -27,7 +26,6 @@ const Calendar = () => {
       return;
     }
 
-    // Calculate all dates for multi-day events
     const startDate = new Date(start);
     const endDate = new Date(end);
     const newEvents = [];
@@ -39,7 +37,7 @@ const Calendar = () => {
     ) {
       const eventDate = new Date(date).toISOString().split("T")[0];
       newEvents.push({
-        id: Date.now() + Math.random(), // Unique ID for each day
+        id: Date.now() + Math.random(),
         title,
         start: new Date(date).toISOString(),
         end: new Date(date).toISOString(),
@@ -49,7 +47,6 @@ const Calendar = () => {
     setEvents([...events, ...newEvents]);
     toast.success("Event added successfully!");
 
-    // Clear the form
     setTitle("");
     setStart("");
     setEnd("");
@@ -58,7 +55,7 @@ const Calendar = () => {
   // Delete an event
   const handleDeleteEvent = (id) => {
     setEvents((prevEvents) => prevEvents.filter((e) => e.id !== id));
-    setEventToDelete(null); // Close the confirmation modal
+    setEventToDelete(null);
     toast.success("Event deleted successfully!");
   };
 
@@ -99,7 +96,6 @@ const Calendar = () => {
     setEditingEvent(null);
     toast.success("Event updated successfully!");
 
-    // Clear the form
     setTitle("");
     setStart("");
     setEnd("");
@@ -117,6 +113,12 @@ const Calendar = () => {
     setCurrentDate(
       new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
     );
+  };
+
+  // Change the month
+  const changeMonth = (monthIndex) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), monthIndex, 1));
+    setShowMonthPicker(false); // Close the month picker
   };
 
   // Get the days in the current month
@@ -139,12 +141,10 @@ const Calendar = () => {
     const weeks = [];
     let days = [];
 
-    // Fill the first week with empty cells if necessary
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push(<div key={`empty-${i}`} className="p-2"></div>);
     }
 
-    // Fill the calendar with days
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day).toISOString().split("T")[0];
       const dayEvents = events.filter(
@@ -175,7 +175,7 @@ const Calendar = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEventToDelete(event.id); // Open confirmation modal
+                  setEventToDelete(event.id);
                 }}
                 className="text-red-500 text-xs mt-1"
               >
@@ -186,7 +186,6 @@ const Calendar = () => {
         </div>
       );
 
-      // Start a new week after 7 days
       if (days.length === 7) {
         weeks.push(
           <div key={weeks.length} className="grid grid-cols-7 gap-1">
@@ -197,7 +196,6 @@ const Calendar = () => {
       }
     }
 
-    // Fill the last week with empty cells if necessary
     if (days.length > 0) {
       while (days.length < 7) {
         days.push(<div key={`empty-end-${days.length}`} className="p-2"></div>);
@@ -215,8 +213,6 @@ const Calendar = () => {
   return (
     <div className="p-4 mt-1 rounded-3xl bg-gray-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        
-
         {/* Add/Edit Event Form */}
         <form
           onSubmit={editingEvent ? handleSaveEdit : handleAddEvent}
@@ -278,10 +274,28 @@ const Calendar = () => {
           >
             Previous Month
           </button>
-          <h2 className="text-xl font-bold">
-            {currentDate.toLocaleString("default", { month: "long" })}{" "}
-            {currentDate.getFullYear()}
-          </h2>
+          <div className="relative">
+            <h2
+              onClick={() => setShowMonthPicker(!showMonthPicker)}
+              className="text-xl font-bold cursor-pointer"
+            >
+              {currentDate.toLocaleString("default", { month: "long" })}{" "}
+              {currentDate.getFullYear()}
+            </h2>
+            {showMonthPicker && (
+              <div className="absolute top-10 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <div
+                    key={i}
+                    onClick={() => changeMonth(i)}
+                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {new Date(0, i).toLocaleString("default", { month: "long" })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={goToNextMonth}
             className="p-2 bg-gray-200 rounded hover:bg-gray-300"
