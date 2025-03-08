@@ -1,128 +1,163 @@
 import React, { useState } from "react";
 import closeIcon from "../assets/close.png";
-import WorkProgressForm from "./WorkProgressForm";
+import axios from "axios";
 
-
-const ReportCard = ({ onClose }) => {
-  const classes = ["Class A", "Class B", "Class C"];
-  const students = ["John Doe", "Jane Smith", "Alice Johnson"];
-  const quarters = ["Q1", "Q2", "Q3", "Q4"];
-
-
-  // State for selected values
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState("");
+const ReportCard = ({ onClose, student }) => {
   const [selectedQuarter, setSelectedQuarter] = useState("");
-  const [showReport, setShowReport] = useState(false);
-
-
-  // Mock student data
-  const studentData = {
-    name: selectedStudent,
-    lrn: "1234567890",
-    level: selectedClass,
-    quarter: selectedQuarter,
-    masteredLessons: ["Counting to 100", "Letter Recognition", "Basic Addition"],
-    inProgressCount: 3,
-    completedCount: 5,
-    attendance: { present: 20, absent: 2, late: 1, excused: 1 },
-    feedbackSummary: "Good progress, needs improvement in language skills.",
-  };
-
+  const [feedbackResults, setFeedbackResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Handle Generate button click
-  const handleGenerate = () => {
-    if (selectedClass && selectedStudent && selectedQuarter) {
-      setShowReport(true);
-    } else {
-      alert("Please select all required fields.");
+  const handleGenerate = async () => {
+    if (!selectedQuarter) {
+      setError("Please select a quarter.");
+      return;
+    }
+
+    setIsLoading(true); // Set loading state to true
+    setError("");
+
+    try {
+      // Check if the student has quarters data
+      if (!student.studentData || !student.studentData.quarters) {
+        setError("No quarters data found for the student.");
+        return;
+      }
+
+      // Find the selected quarter's feedback
+      const quarterData = student.studentData.quarters.find(
+        (q) => q.quarter === parseInt(selectedQuarter)
+      );
+
+      if (!quarterData || !quarterData.feedback || quarterData.feedback.length === 0) {
+        setError("No feedback found for the selected quarter.");
+        return;
+      }
+
+      // Prepare feedback text for summarization
+      const feedbackText = quarterData.feedback
+        .map((fb) => fb.feedback_text)
+        .join(" ");
+
+      // Call the DeepSeek API to summarize feedback
+      const summaryResponse = await axios.post(
+        "http://localhost:4000/api/school/summarize-feedback",
+        {
+          feedback: feedbackText,
+          studentName: `${student.studentData.firstName} ${student.studentData.lastName}`, // Include student's name
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (!summaryResponse.data.success) {
+        throw new Error("Failed to summarize feedback.");
+      }
+
+      // Set the summarized feedback
+      setFeedbackResults(summaryResponse.data.summary);
+    } catch (error) {
+      console.error("Error generating feedback:", error);
+      setError(error.response?.data?.message || "Failed to generate feedback. Please try again.");
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
-
-  // Handle closing the report form
-  const handleCloseReport = () => {
-    setShowReport(false);
+  // Handle Quarter button click
+  const handleQuarterSelect = (quarter) => {
+    setSelectedQuarter(quarter);
+    setFeedbackResults(null); // Clear feedback results when a new quarter is selected
+    setError(""); // Clear any previous errors
   };
 
-
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-transparent bg-opacity-50 z-50">
-      {!showReport ? (
-        <div className="w-[416px] h-[434px] bg-white border shadow-lg rounded-lg relative">
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-gray-700 hover:text-gray-900"
-          >
-            <img className="w-5 h-5" src={closeIcon} alt="Close" />
-          </button>
+    <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
+      <div className="w-[1100px] h-[700px] bg-white border shadow-lg rounded-lg relative flex flex-col">
+        {/* Header Section */}
+        <div className="w-full h-16 bg-[#9d16be] flex items-center justify-center text-white text-2xl font-semibold rounded-t-lg">
+          WORK CYCLE PROGRESS
+        </div>
 
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white hover:text-gray-200"
+        >
+          <img className="w-5 h-5" src={closeIcon} alt="Close" />
+        </button>
 
-          <div className="text-center mt-6 text-gray-900 text-2xl font-semibold">
-            WORK CYCLE PROGRESS
+        {/* Main Content */}
+        <div className="flex flex-1 p-4">
+          {/* First Section: Quarter Buttons */}
+          <div className="w-1/3 p-4 border-r flex flex-col space-y-4">
+            <h3 className="text-lg font-semibold">Select Quarter</h3>
+            {["1", "2", "3", "4"].map((quarter) => (
+              <button
+                key={quarter}
+                className={`w-full h-12 bg-gray-200 rounded-lg shadow-md text-gray-700 font-semibold hover:bg-gray-300 ${
+                  selectedQuarter === quarter ? "bg-gray-500 text-white" : ""
+                }`}
+                onClick={() => handleQuarterSelect(quarter)}
+              >
+                Quarter {quarter}
+              </button>
+            ))}
           </div>
-          <div className="text-center mt-2 text-gray-700 text-sm font-light px-6">
-            Please fill in the required fields below to generate the student's report card.
-          </div>
 
+          {/* Second Section: Feedback Results and Generate Button */}
+          <div className="w-2/3 p-4 flex flex-col">
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-2 bg-red-100 text-red-600 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
-          {/* Selection Fields */}
-          <div className="flex flex-col items-center gap-4 mt-6">
-            {/* Class Selection */}
-            <select
-              className="w-[275px] h-[51px] bg-gray-200 rounded-[15px] shadow-md px-4 text-gray-700 text-[15px] font-semibold"
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-            >
-              <option value="">CLASS</option>
-              {classes.map((cls, index) => (
-                <option key={index} value={cls}>{cls}</option>
-              ))}
-            </select>
-
-
-            {/* Student Selection */}
-            <select
-              className="w-[275px] h-[52px] bg-gray-200 rounded-[15px] shadow-md px-4 text-gray-700 text-[15px] font-semibold"
-              value={selectedStudent}
-              onChange={(e) => setSelectedStudent(e.target.value)}
-            >
-              <option value="">STUDENT NAME</option>
-              {students.map((student, index) => (
-                <option key={index} value={student}>{student}</option>
-              ))}
-            </select>
-
-
-            {/* Quarter Selection */}
-            <select
-              className="w-[275px] h-[51px] bg-gray-200 rounded-[15px] shadow-md px-4 text-gray-700 text-[15px] font-semibold"
-              value={selectedQuarter}
-              onChange={(e) => setSelectedQuarter(e.target.value)}
-            >
-              <option value="">QUARTER</option>
-              {quarters.map((quarter, index) => (
-                <option key={index} value={quarter}>{quarter}</option>
-              ))}
-            </select>
-
+            {/* Feedback Results */}
+            <div className="flex-1 overflow-y-auto mb-4">
+              {feedbackResults ? (
+                <div className="p-4 bg-gray-100 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold mb-2">STUDENT NAME</h3>
+                  <div className="tex-sm h-[400px] overflow-y-auto whitespace-pre-wrap">
+                    {feedbackResults}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  {isLoading ? ( // Show loader when Generate button is clicked
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                      <p className="mt-2">Generating feedback...</p>
+                    </div>
+                  ) : (
+                    "No feedback generated yet."
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Generate Button */}
-            <button
-              className="w-[275px] h-[51px] bg-purple-600 rounded-[15px] text-white text-xl font-semibold shadow-md mt-4 hover:bg-purple-500"
-              onClick={handleGenerate}
-            >
-              GENERATE
-            </button>
+            <div className="flex justify-center">
+              <button
+                className="w-[200px] h-12 bg-[#9d16be] rounded-lg text-white text-lg font-semibold shadow-md hover:bg-purple-500 disabled:bg-purple-300"
+                onClick={handleGenerate}
+                disabled={isLoading || !selectedQuarter}
+              >
+                {isLoading ? "GENERATING..." : "GENERATE"}
+              </button>
+            </div>
           </div>
         </div>
-      ) : (
-        <WorkProgressForm studentData={studentData} onClose={handleCloseReport} />
-      )}
+      </div>
     </div>
   );
 };
-
 
 export default ReportCard;

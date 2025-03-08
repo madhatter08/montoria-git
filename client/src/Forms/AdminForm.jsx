@@ -6,49 +6,55 @@ import { toast } from "react-toastify";
 import styled from "styled-components";
 
 const AdminForm = ({ onClose, refreshData, editData }) => {
+  // Initialize state with default values
   const [schoolId, setSchoolId] = useState(editData?.schoolId || "");
   const [email, setEmail] = useState(editData?.email || "");
-  const [name, setName] = useState(editData?.adminData.name || "");
-  const [contactNumber, setContactNumber] = useState(editData?.adminData.contactNumber || "");
-  const [photo, setPhoto] = useState(editData?.adminData.photo || "");
-
-  const [formData, setFormData] = useState({
-    schoolId: "",
-    email: "",
-    name: "",
-    contactNumber: "",
-    photo: null,
-  });
+  const [name, setName] = useState(editData?.adminData?.name || ""); // Safely access nested properties
+  const [contactNumber, setContactNumber] = useState(
+    editData?.adminData?.contactNumber || ""
+  );
+  const [photo, setPhoto] = useState(editData?.adminData?.photo || "");
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   // Update state when editData changes
   useEffect(() => {
     if (editData) {
-      setSchoolId(editData.schoolId);
-      setEmail(editData.email);
-      setContactNumber(editData.contactNumber);
-      setName(editData.name);
-      setPhoto(editData.photo);
+      setSchoolId(editData.schoolId || "");
+      setEmail(editData.email || "");
+      setName(editData.adminData?.name || ""); // Safely access nested properties
+      setContactNumber(editData.adminData?.contactNumber || "");
+      setPhoto(editData.adminData?.photo || "");
     }
   }, [editData]);
-  const [photoPreview, setPhotoPreview] = useState(null);
 
   const handleChange = (e) => {
     if (e.target.name === "photo") {
       const file = e.target.files[0];
-      setFormData({ ...formData, [e.target.name]: file });
-
       if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPhotoPreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPhotoPreview(null);
+        const validTypes = ["image/jpeg", "image/png"];
+        if (validTypes.includes(file.type)) {
+          setPhoto(file); // Update the photo state with the file object
+          setPhotoPreview(URL.createObjectURL(file)); // Generate a preview URL
+        } else {
+          toast.error("Please upload a valid image file (JPEG or PNG).", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          e.target.value = ""; // Clear the file input
+        }
       }
-
     } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
+      const { name, value } = e.target;
+      if (name === "birthday") {
+        const isoDate = new Date(value).toISOString();
+        setFormData({ ...formData, [name]: isoDate });
+      } else {
+        setFormData({ ...formData, [name]: value });
+      }
     }
   };
 
@@ -82,14 +88,18 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
       }
 
       if (response.data.success) {
-        toast.success(editData ? "Admin updated successfully!" : "Admin added successfully!");
+        toast.success(
+          editData ? "Admin updated successfully!" : "Admin added successfully!"
+        );
         refreshData();
         onClose();
       } else {
         toast.error(response.data.message || "Failed to save admin data.");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "An error occurred. Please try again.");
+      toast.error(
+        error.response?.data?.message || "An error occurred. Please try again."
+      );
     }
   };
 
@@ -115,11 +125,10 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
                   className="title"
                   type="file"
                   name="photo"
-                  value={photo}
                   onChange={handleChange}
-                  accept="image/*"
+                  accept="image/jpeg, image/png"
                 />
-                Choose a file
+                Choose an Image
               </label>
             </div>
           </StyledWrapper>
@@ -142,22 +151,34 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
             <input
               name="schoolId"
               value={schoolId}
-              //onChange={handleChange}
-              onChange={(e) => setSchoolId(e.target.value)}
+              onChange={(e) => {
+                const input = e.target.value;
+                // Allow only digits and enforce the format "0000-000000"
+                if (/^\d{0,4}-?\d{0,6}$/.test(input)) {
+                  setSchoolId(input);
+                }
+              }}
+              onBlur={(e) => {
+                // Ensure the format is complete when the input loses focus
+                const input = e.target.value;
+                if (/^\d{4}-\d{6}$/.test(input)) {
+                  setSchoolId(input);
+                } else {
+                  setSchoolId(""); // Clear the input if the format is invalid
+                }
+              }}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="School ID (Format: 0000-000000)"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              School ID
-            </span>
           </label>
+          {/* Display validation error if needed */}
+          {schoolId && !/^\d{4}-\d{6}$/.test(schoolId) && (
+            <p className="text-red-500 text-sm ml-3 mt-1">
+              School ID must be in the format 0000-000000.
+            </p>
+          )}
         </div>
 
         {/* Name */}
@@ -166,21 +187,12 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
             <input
               name="name"
               value={name}
-              //onChange={handleChange}
               onChange={(e) => setName(e.target.value)}
               required
               type="text"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Name"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.person_icon}
-              alt="person icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Name
-            </span>
           </label>
         </div>
 
@@ -190,21 +202,12 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
             <input
               name="email"
               value={email}
-              //onChange={}
               onChange={(e) => setEmail(e.target.value)}
               required
               type="email"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              placeholder="Email"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.mail_icon}
-              alt="email icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Email
-            </span>
           </label>
         </div>
 
@@ -214,22 +217,25 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
             <input
               name="contactNumber"
               value={contactNumber}
-              //onChange={}
-              onChange={(e) => setContactNumber(e.target.value)}
+              onChange={(e) => {
+                const input = e.target.value;
+                // Allow only digits and limit to 11 characters
+                if (/^\d{0,11}$/.test(input)) {
+                  setContactNumber(input);
+                }
+              }}
               required
-              type="string"
-              placeholder=""
-              className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+              type="text" // Use type="text" to allow input handling
+              placeholder="Phone Number"
+              className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
             />
-            <img
-              src={assets.mail_icon}
-              alt="phone icon"
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-            />
-            <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-              Phone Number
-            </span>
           </label>
+          {/* Display validation error if needed */}
+          {contactNumber.length !== 11 && contactNumber.length > 0 && (
+            <p className="text-red-500 text-sm ml-3 mt-1">
+              Phone number must be exactly 11 digits.
+            </p>
+          )}
         </div>
 
         {/* Buttons */}
@@ -252,11 +258,13 @@ const AdminForm = ({ onClose, refreshData, editData }) => {
     </div>
   );
 };
+
 AdminForm.propTypes = {
   onClose: PropTypes.func.isRequired,
   refreshData: PropTypes.func.isRequired,
   editData: PropTypes.object,
 };
+
 
 const StyledWrapper = styled.div`
   .container {
