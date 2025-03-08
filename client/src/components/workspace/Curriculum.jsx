@@ -290,16 +290,16 @@ const Curriculum = () => {
       </div>
 
       {/* Form Modal */}
-      {showForm && (
-        <CurriculumForm
-          onClose={() => {
-            setShowForm(false);
-            setEditData(null);
-          }}
-          refreshData={refreshData}
-          editData={editData} 
-        />
-      )}
+{showForm && (
+  <CurriculumForm
+    onClose={() => {
+      setShowForm(false);
+      setEditData(null);
+    }}
+    refreshData={refreshData}
+    editData={editData} 
+  />
+)}
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal

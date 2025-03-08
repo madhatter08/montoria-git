@@ -7,17 +7,204 @@ import workModel from "../models/acads/workModel.js";
 import materialModel from "../models/acads/materialModel.js";
 import curriculumModel from "../models/acads/curriculumModel.js";
 import userModel from "../models/roles/userModel.js";
+import OpenAI from "openai";
 
+// Initialize OpenAI client with DeepSeek API
+const openai = new OpenAI({
+  baseURL: "https://api.deepseek.com/v1",
+  apiKey: process.env.SUMMARIZER_API_KEY, // Ensure this is set in your .env file
+});
 
-export const addCurriculum = async (req, res) => { 
+// Fetch student by schoolId
+export const getStudentById = async (req, res) => {
+  try {
+    const { schoolId } = req.params;
+
+    // Find the student by schoolId
+    const student = await userModel.findOne({ schoolId });
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
+
+    // Return the student data
+    res.status(200).json({ success: true, ...student.toObject() });
+  } catch (error) {
+    console.error("Error fetching student:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch student." });
+  }
+};
+
+// Preload student data
+const preloadStudentData = async () => {
+  try {
+    // Fetch all students
+    const studentData = await userModel.find({ role: "student" }).exec();
+    console.log("Student data preloaded successfully:", studentData.length, "documents found");
+  } catch (error) {
+    console.error("Error preloading student data:", error);
+  }
+};
+
+preloadStudentData();
+
+// Function to summarize feedback using DeepSeek API
+export const summarizeFeedback = async (req, res) => {
+  const { feedback, studentName } = req.body; // Feedback text and student name
+
+  if (!feedback || !studentName) {
+    return res.status(400).json({ success: false, message: "Feedback text and student name are required." });
+  }
+
+  try {
+    // Call the DeepSeek API for summarization
+    const response = await openai.chat.completions.create({
+      model: "deepseek-reasoner", // Use the appropriate DeepSeek model
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that summarizes feedback for student progress reports in a Montessori setting. " +
+            "Provide a concise summary of the feedback and include suggestions for improvement. " +
+            "Respond without using bold (**text**) or any other markdown formatting. " +
+            "Focus on Montessori principles such as independence, self-directed learning, and holistic development. " +
+            "Format the response as follows:\n\n" +
+            "Progress Report:\n[Summary of the feedback]\n\n" +
+            "Suggestions for Improvement:\n1. [First suggestion]\n2. [Second suggestion]\n3. [Third suggestion] (if applicable)\n\n" +
+            "Ensure that each suggestion is clear, actionable, and aligns with Montessori principles."
+          
+        },
+        {
+          role: "user",
+          content: `Summarize the following feedback for ${studentName} and provide suggestions for improvement based on Montessori principles:\n\n${feedback}`,
+        },
+      ],
+      max_tokens: 300, // Increase token limit for detailed feedback
+    });
+
+    // Extract the summarized feedback
+    const summary = response.choices[0].message.content;
+
+    res.status(200).json({ success: true, summary });
+  } catch (error) {
+    console.error("Error summarizing feedback:", error);
+    res.status(500).json({ success: false, message: "Failed to summarize feedback." });
+  }
+};
+
+// Get Feedback by Quarter
+export const getFeedbackByQuarter = async (req, res) => {
+  console.log("getFeedbackByQuarter called");
+  try {
+    const { studentId, quarter } = req.query;
+
+    // Log the incoming query parameters
+    console.log("studentId:", studentId);
+    console.log("quarter:", quarter);
+
+    if (!studentId || !quarter) {
+      console.log("Missing studentId or quarter"); // Log if parameters are missing
+      return res.status(400).json({ success: false, message: "studentId and quarter are required." });
+    }
+
+    // Find the student by ID
+    const student = await userModel.findById(studentId);
+    console.log("Student Document:", student); // Log the fetched student document
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
+
+    // Log the entire student document for debugging
+    console.log("Student Document:", JSON.stringify(student, null, 2));
+
+    // Check if the student has the `studentData` field
+    if (!student.studentData || !student.studentData.quarters) {
+      return res.status(404).json({ success: false, message: "No quarters data found for the student." });
+    }
+
+    // Log the quarters array for debugging
+    console.log("Quarters Array:", JSON.stringify(student.studentData.quarters, null, 2));
+
+    // Find the selected quarter's feedback
+    const quarterData = student.studentData.quarters.find(
+      (q) => q.quarter === parseInt(quarter)
+    );
+
+    // Log the found quarter data for debugging
+    console.log("Quarter Data:", JSON.stringify(quarterData, null, 2));
+    console.log("Quarter Data:", quarterData);
+
+    if (!quarterData || !quarterData.feedback || quarterData.feedback.length === 0) {
+      console.log("No feedback found for the selected quarter");
+      return res.status(404).json({ success: false, message: "No feedback found for the selected quarter." });
+    }
+
+    // Return the feedback for the selected quarter
+    console.log("quarterData", quarterData.feedback);
+    res.status(200).json({ success: true, feedback: quarterData.feedback });
+  } catch (error) {
+    console.error("Error fetching feedback by quarter:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch feedback by quarter." });
+  }
+};
+
+// Handle Generate button click
+export const handleGenerate = async (req, res) => {
+  const { studentId, quarter } = req.body;
+
+  if (!studentId || !quarter) {
+    return res.status(400).json({ success: false, message: "Student ID and quarter are required." });
+  }
+
+  try {
+    // Fetch the feedback for the selected quarter
+    const student = await userModel.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    const quarterData = student.quarters.find((q) => q.quarter === parseInt(quarter));
+    if (!quarterData) {
+      return res.status(404).json({ success: false, message: "No feedback found for the selected quarter." });
+    }
+
+    // Summarize the feedback
+    const feedbackText = quarterData.feedback;
+    const response = await openai.chat.completions.create({
+      model: "deepseek-reasoner",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that summarizes feedback for student progress reports. Provide a concise summary of the feedback and include suggestions for improvement.",
+        },
+        {
+          role: "user",
+          content: `Summarize the following feedback in one paragraph and provide suggestions for improvement: ${feedbackText}`,
+        },
+      ],
+      max_tokens: 200,
+    });
+
+    const summary = response.choices[0].message.content;
+
+    res.status(200).json({ success: true, summary });
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    res.status(500).json({ success: false, message: "Failed to generate summary." });
+  }
+};
+
+// Add Curriculum
+export const addCurriculum = async (req, res) => {
   const { Program, Level, Areas, Material, Lesson, Work } = req.body;
-  if ( !Program || !Level || !Areas || !Material || !Lesson || !Work ) {
+  if (!Program || !Level || !Areas || !Material || !Lesson || !Work) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
   const existing = await curriculumModel.findOne({ Program, Level, Areas, Material, Lesson, Work });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "Curriculum already exist." });
-    }
+  if (existing) {
+    return res.status(400).json({ success: false, message: "Curriculum already exists." });
+  }
 
   try {
     const newCurriculum = new curriculumModel({ Program, Level, Areas, Material, Lesson, Work });
@@ -28,6 +215,7 @@ export const addCurriculum = async (req, res) => {
   }
 };
 
+// Get All Curriculum
 export const getAllCurriculum = async (req, res) => {
   try {
     const data = await curriculumModel.find();
@@ -42,15 +230,14 @@ export const getAllCurriculum = async (req, res) => {
   }
 };
 
+// Delete Curriculum
 export const deleteCurriculum = async (req, res) => {
   try {
     const { id } = req.params;
 
     const curriculum = await curriculumModel.findById(id);
     if (!curriculum) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Curriculum not found" });
+      return res.status(404).json({ success: false, message: "Curriculum not found" });
     }
 
     await curriculumModel.findByIdAndDelete(id);
@@ -58,15 +245,11 @@ export const deleteCurriculum = async (req, res) => {
     res.json({ success: true, message: "Curriculum deleted successfully" });
   } catch (error) {
     console.error("Error deleting curriculum:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error while deleting curriculum",
-      });
+    res.status(500).json({ success: false, message: "Server error while deleting curriculum" });
   }
 };
 
+// Edit Curriculum
 export const editCurriculum = async (req, res) => {
   try {
     const { id } = req.params;
@@ -74,16 +257,10 @@ export const editCurriculum = async (req, res) => {
 
     const curriculum = await curriculumModel.findById(id);
     if (!curriculum) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Curriculum not found" });
+      return res.status(404).json({ success: false, message: "Curriculum not found" });
     }
 
-    const updatedCurriculum = await curriculumModel.findByIdAndUpdate(
-      id,
-      updatedData,
-      { new: true }
-    );
+    const updatedCurriculum = await curriculumModel.findByIdAndUpdate(id, updatedData, { new: true });
 
     res.json({
       success: true,
@@ -92,32 +269,21 @@ export const editCurriculum = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating curriculum:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error while updating curriculum",
-      });
+    res.status(500).json({ success: false, message: "Server error while updating curriculum" });
   }
 };
 
-
-
-
+// Get Class List
 export const getClassList = async (req, res) => {
   try {
     const userId = req.body.userId;
     if (!userId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
+      return res.status(400).json({ success: false, message: "User ID is required" });
     }
 
     const user = await userModel.findById(userId).exec();
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     let students;
@@ -126,9 +292,7 @@ export const getClassList = async (req, res) => {
     } else if (user.role === "guide") {
       const assignedClass = user.guideData?.class;
       if (!assignedClass) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Guide class not assigned" });
+        return res.status(400).json({ success: false, message: "Guide class not assigned" });
       }
       students = await userModel
         .find({
@@ -137,9 +301,7 @@ export const getClassList = async (req, res) => {
         })
         .exec();
     } else {
-      return res
-        .status(403)
-        .json({ success: false, message: "Unauthorized access" });
+      return res.status(403).json({ success: false, message: "Unauthorized access" });
     }
 
     res.status(200).json({ success: true, students });
@@ -473,14 +635,13 @@ export const addLevel = async (req, res) => {
 
     const newLevel = new levelModel({ levelName, progName });
     await newLevel.save();
-    //const savedLevel = await levelModel.findById(newLevel._id).populate('progId', 'progName');
     res.status(201).json({ success: true, message: "Level added successfully.", level: newLevel });
-    
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
+// Add Program
 export const addProgram = async (req, res) => {
   try {
     const { progName } = req.body;
@@ -492,12 +653,12 @@ export const addProgram = async (req, res) => {
     const newProgram = new programModel({ progName });
     await newProgram.save();
     res.status(201).json({ success: true, message: "Program added successfully.", program: newProgram });
-    
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
+// Add Class
 export const addClass = async (req, res) => {
   try {
     const { progName, className, guides, capacity, students, schedule } = req.body;
@@ -512,6 +673,7 @@ export const addClass = async (req, res) => {
     if (!existingProgram) {
       return res.status(404).json({ success: false, message: "Program not found." });
     }
+
     // Create the new class
     const newClass = new classModel({
       progName,
@@ -523,17 +685,17 @@ export const addClass = async (req, res) => {
         days: schedule?.days || [],
         startTime: schedule?.startTime,
         endTime: schedule?.endTime,
-      }
+      },
     });
 
     await newClass.save();
     res.status(201).json({ success: true, message: "Class added successfully.", class: newClass });
-
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
+// Add Area
 export const addArea = async (req, res) => {
   const { areaName, levelName } = req.body;
 
@@ -550,6 +712,7 @@ export const addArea = async (req, res) => {
   }
 };
 
+// Add Lesson
 export const addLesson = async (req, res) => {
   const { name, area } = req.body;
 
@@ -566,6 +729,7 @@ export const addLesson = async (req, res) => {
   }
 };
 
+// Add Work
 export const addWork = async (req, res) => {
   const { name, lesson, materials } = req.body;
 
@@ -582,6 +746,7 @@ export const addWork = async (req, res) => {
   }
 };
 
+// Add Material
 export const addMaterial = async (req, res) => {
   const { name, photo, works } = req.body;
 
@@ -597,6 +762,3 @@ export const addMaterial = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
-

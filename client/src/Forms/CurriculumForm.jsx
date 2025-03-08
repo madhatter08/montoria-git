@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { assets } from "../assets/assets";
 import PropTypes from "prop-types";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 const CurriculumForm = ({ onClose, refreshData, editData }) => {
-  // Initialize state with editData if provided
   const [program, setProgram] = useState(editData?.Program || "");
   const [level, setLevel] = useState(editData?.Level || "");
   const [area, setArea] = useState(editData?.Areas || "");
@@ -13,7 +11,6 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
   const [work, setWork] = useState(editData?.Work || "");
   const [lesson, setLesson] = useState(editData?.Lesson || "");
 
-  // Update state when editData changes
   useEffect(() => {
     if (editData) {
       setProgram(editData.Program);
@@ -40,13 +37,11 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
     try {
       let response;
       if (editData) {
-        // Edit existing curriculum
         response = await axios.put(
           `http://localhost:4000/api/school/edit-curriculum/${editData._id}`,
           curriculumData
         );
       } else {
-        // Add new curriculum
         response = await axios.post(
           "http://localhost:4000/api/school/add-curriculum",
           curriculumData
@@ -78,8 +73,8 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
   };
 
   return (
-    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-transparent bg-opacity-50 flex items-start justify-center mt-20">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+    <div className="fixed inset-0 bg-transparent bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white border p-8 rounded-lg shadow-lg w-96">
         <h2 className="text-xl font-bold mb-4">
           {editData ? "Edit Curriculum" : "Add New Curriculum"}
         </h2>
@@ -94,19 +89,13 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                   setProgram(e.target.value);
                   setLevel("");
                 }}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
               >
                 <option value="">Select Program</option>
                 <option value="Toddler">Toddler</option>
                 <option value="Preschool">Preschool</option>
                 <option value="Lower Elementary">Lower Elementary</option>
               </select>
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
             </label>
           </div>
 
@@ -117,7 +106,7 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 required
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
                 disabled={!program}
               >
                 <option value="">Select Level</option>
@@ -127,12 +116,6 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                   </option>
                 ))}
               </select>
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
             </label>
           </div>
 
@@ -143,7 +126,7 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 required
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
               >
                 <option value="">Select Learning Area</option>
                 <option value="Language">Language</option>
@@ -156,12 +139,6 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 <option value="Makabansa">Makabansa</option>
                 <option value="Filipino">Filipino</option>
               </select>
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8"></span>
             </label>
           </div>
 
@@ -173,16 +150,9 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 type="text"
                 value={materials}
                 onChange={(e) => setMaterials(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder="Materials"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
               />
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                Materials
-              </span>
             </label>
           </div>
 
@@ -194,16 +164,9 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 type="text"
                 value={work}
                 onChange={(e) => setWork(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder="Work"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
               />
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                Work
-              </span>
             </label>
           </div>
 
@@ -215,16 +178,9 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
                 type="text"
                 value={lesson}
                 onChange={(e) => setLesson(e.target.value)}
-                className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
+                placeholder="Lesson"
+                className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
               />
-              <img
-                src={assets.person_icon}
-                alt="person icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-              />
-              <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                Lesson
-              </span>
             </label>
           </div>
 

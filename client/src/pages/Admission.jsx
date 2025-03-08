@@ -11,6 +11,7 @@ import PropTypes from "prop-types";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { toast } from "react-toastify";
 import { AppContext } from "../context/AppContext";
+import Loader from "../components/style/Loader";
 
 export default function TabPanel() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,8 +128,19 @@ export default function TabPanel() {
     setIsFormOpen(true); // Open the form
   };
 
-  if (loading) return <p>Loading users...</p>;
+  if (loading) return (
+    <div style={{ 
+      display: "flex", 
+      justifyContent: "center", 
+      alignItems: "center", 
+      height: "100vh", 
+      width: "100vw" ,
+    }}>
+      <Loader />
+    </div>
+  );
   if (error) return <p>{error}</p>;
+  
 
   const tabs = [
     { name: "GUIDE", key: "guide", count: data.guide.length },
@@ -602,7 +614,6 @@ export default function TabPanel() {
     </div>
   );
 }
-
 const Button = ({ onClick }) => {
   return (
     <StyledWrapper>

@@ -147,74 +147,123 @@ const StudentAdmissionForm = ({ onClose, refreshData, editData }) => {
     const { name, value } = e.target;
 
     switch (name) {
-      case "schoolId":
-        setSchoolId(value);
-        break;
-      case "lrn":
-        setLrn(value);
-        break;
-      case "firstName":
-        setFirstName(value);
-        break;
-      case "middleName":
-        setMiddleName(value);
-        break;
-      case "lastName":
-        setLastName(value);
-        break;
-      case "gender":
-        setGender(value);
-        break;
-      case "age":
-        setAge(value);
-        break;
-      case "birthday":
-        setBirthday(value);
-        break;
-      case "address":
-        setAddress(value);
-        break;
-      case "program":
-        setProgram(value);
-        break;
-      case "level":
-        setLevel(value);
-        break;
-      case "class":
-        setClass(value);
-        break;
-      case "parentName":
-        setParentName(value);
-        break;
-      case "parentRel":
-        setParentRel(value);
-        break;
-      case "parentPhone":
-        setParentPhone(value);
-        break;
-      case "email":
-        setEmail(value);
-        break;
-      case "remarks":
-        setRemarks(value);
-        break;
-      case "photo":
-        const file = e.target.files[0];
-        setPhoto(file);
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setPhotoPreview(reader.result);
-          };
-          reader.readAsDataURL(file);
-        } else {
-          setPhotoPreview(null);
-        }
-        break;
-      default:
-        break;
+        case "schoolId":
+            // Validate school ID format (0000-000000)
+            const schoolIdPattern = /^\d{4}-\d{6}$/;
+            if (schoolIdPattern.test(value) || value === "") {
+                setSchoolId(value);
+            } else {
+                toast.error("School ID must be in the format 0000-000000.", {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            }
+            break;
+
+        case "parentPhone":
+            // Validate phone number (exactly 11 digits)
+            const phonePattern = /^\d{11}$/;
+            if (phonePattern.test(value) || value === "") {
+                setParentPhone(value);
+            } else {
+                toast.error("Phone number must be exactly 11 digits.", {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            }
+            break;
+
+        case "lrn":
+            setLrn(value);
+            break;
+        case "firstName":
+            setFirstName(value);
+            break;
+        case "middleName":
+            setMiddleName(value);
+            break;
+        case "lastName":
+            setLastName(value);
+            break;
+        case "gender":
+            setGender(value);
+            break;
+        case "age":
+            setAge(value);
+            break;
+        case "birthday":
+            setBirthday(value);
+            break;
+        case "address":
+            setAddress(value);
+            break;
+        case "program":
+            setProgram(value);
+            break;
+        case "level":
+            setLevel(value);
+            break;
+        case "class":
+            setClass(value);
+            break;
+        case "parentName":
+            setParentName(value);
+            break;
+        case "parentRel":
+            setParentRel(value);
+            break;
+        case "email":
+            setEmail(value);
+            break;
+        case "remarks":
+            setRemarks(value);
+            break;
+        case "photo":
+            const file = e.target.files[0];
+            if (file) {
+                const validTypes = ["image/jpeg", "image/png"];
+                if (validTypes.includes(file.type)) {
+                    setPhoto(file);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setPhotoPreview(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    toast.error("Please upload a valid image file (JPEG or PNG).", {
+                        position: "top-right",
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+                    e.target.value = ""; // Clear the input field
+                    setPhoto(null);
+                    setPhotoPreview(null);
+                }
+            } else {
+                setPhotoPreview(null);
+            }
+            break;
+        default:
+            break;
     }
-  };
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -366,15 +415,15 @@ const StudentAdmissionForm = ({ onClose, refreshData, editData }) => {
                   <div className="back-side cover" />
                 </div>
                 <label className="custom-file-upload">
-                  <input
-                    className="title"
-                    type="file"
-                    name="photo"
-                    onChange={handleChange}
-                    accept="image/*"
-                  />
-                  Choose a file
-                </label>
+        <input
+          className="title"
+          type="file"
+          name="photo"
+          onChange={handleChange}
+          accept="image/jpeg, image/png"
+        />
+        Choose an Image
+      </label>
               </div>
             </StyledWrapper>
 
@@ -392,451 +441,335 @@ const StudentAdmissionForm = ({ onClose, refreshData, editData }) => {
         )}
 
         {/* Page 2: Student Information */}
-        {currentPage === 1 && (
-          <>
-            <h3 className="col-span-2 text-xl font-semibold ">
-              Student Information
-            </h3>
-            {/* Column 1 */}
-            <div className="space-y-4">
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="schoolId"
-                    value={schoolId}
-                    //onChange={handleChange}
-                    onChange={(e) => setSchoolId(e.target.value)}
-                    required
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    School ID
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="firstName"
-                    value={firstName}
-                    //onChange={handleChange}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    First Name
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="middleName"
-                    value={middleName}
-                    //onChange={}
-                    onChange={(e) => setMiddleName(e.target.value)}
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Middle Name
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="lastName"
-                    value={lastName}
-                    //onChange={}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Last Name
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="age"
-                    value={age}
-                    //onChange={(e) => setAge(e.target.value)}
-                    type="number"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Age
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="birthday"
-                    value={birthday}
-                    required
-                    //onChange={handleChange}
-                    //onChange={(e) => setBirthday(e.target.value)}
-                    onChange={handleBirthdayChange}
-                    type="date"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Birthday
-                  </span>
-                </label>
-              </div>
-            </div>
+{currentPage === 1 && (
+  <>
+    <h3 className="col-span-2 text-xl font-semibold">
+      Student Information
+    </h3>
+    {/* Column 1 */}
+    <div className="space-y-4">
+      {/* School ID */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="schoolId"
+            value={schoolId}
+            onChange={(e) => setSchoolId(e.target.value)}
+            required
+            type="text"
+            placeholder="School ID"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
 
-            {/* Column 2 */}
-            <div className="space-y-4">
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="lrn"
-                    value={lrn}
-                    //onChange={handleChange}
-                    onChange={(e) => setLrn(e.target.value)}
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    LRN
-                  </span>
-                </label>
-              </div>
+      {/* First Name */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+            type="text"
+            placeholder="First Name"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
 
-              <div className="relative">
-                <label className="relative block">
-                  <select
-                    name="gender"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    required
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
-                  >
-                    <option value="" disabled>
-                      Select Gender
-                    </option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Gender
-                  </span>
-                </label>
-              </div>
+      {/* Middle Name */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="middleName"
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+            type="text"
+            placeholder="Middle Name"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
 
-              <div className="relative">
-                <label className="relative block">
-                  <input
-                    name="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    required
-                    type="text"
-                    placeholder=""
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                  />
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Address
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <select
-                    name="program"
-                    value={program}
-                    //onChange={(e) => setProgram(e.target.value)}
-                    onChange={handleProgramChange}
-                    required
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
-                  >
-                    <option value="" disabled>
-                      Select Program
-                    </option>
-                    <option value="Toddler">Toddler</option>
-                    <option value="Preschool">Preschool</option>
-                    <option value="Lower Elementary">Lower Elementary</option>
-                  </select>
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Program
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <select
-                    name="level"
-                    value={level}
-                    //onChange={handleLevelChange}
-                    onChange={(e) => setLevel(e.target.value)}
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
-                  >
-                    <option value="" disabled>
-                      Select Level
-                    </option>
-                    {program === "Toddler" && (
-                      <option value="Toddler">Toddler</option>
-                    )}
-                    {program === "Preschool" && (
-                      <>
-                        <option value="Junior Casa">Junior Casa</option>
-                        <option value="Junior Advanced Casa">
-                          Junior Advanced Casa
-                        </option>
-                        <option value="Advanced Casa">Advanced Casa</option>
-                      </>
-                    )}
-                    {program === "Lower Elementary" && (
-                      <>
-                        <option value="Grade 1">Grade 1</option>
-                        <option value="Grade 2">Grade 2</option>
-                        <option value="Grade 3">Grade 3</option>
-                      </>
-                    )}
-                  </select>
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Level
-                  </span>
-                </label>
-              </div>
-              <div className="relative">
-                <label className="relative block">
-                  <select
-                    name="class"
-                    value={className}
-                    //onChange={handleClassChange}
-                    onChange={(e) => setClass(e.target.value)}
-                    className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full appearance-none bg-white"
-                  >
-                    <option value="" disabled>
-                      Select Class Section
-                    </option>
-                    {program === "Toddler" && (
-                      <>
-                        <option value="Playgroup 1">Playgroup 1</option>
-                        <option value="Playgroup 2">Playgroup 2</option>
-                        <option value="Playgroup 3">Playgroup 3</option>
-                      </>
-                    )}
-                    {program === "Preschool" && (
-                      <>
-                        <option value="Casa 1">Casa 1</option>
-                        <option value="Casa 2">Casa 2</option>
-                        <option value="Casa 3">Casa 3</option>
-                        <option value="Casa 4">Casa 4</option>
-                        <option value="Casa 5">Casa 5</option>
-                      </>
-                    )}
-                    {program === "Lower Elementary" && (
-                      <>
-                        <option value="Class A">Class A</option>
-                        <option value="Class B">Class B</option>
-                        <option value="Class C">Class C</option>
-                        <option value="Class D">Class D</option>
-                        <option value="Class E">Class E</option>
-                        <option value="Class F">Class F</option>
-                      </>
-                    )}
-                  </select>
-                  <img
-                    src={assets.person_icon}
-                    alt="person icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                  />
-                  <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                    Class Section
-                  </span>
-                </label>
-              </div>
-            </div>
-          </>
-        )}
+      {/* Last Name */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            required
+            type="text"
+            placeholder="Last Name"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
 
-        {/* Page 3: Parent Information */}
-        {currentPage === 2 && (
-          <div className="space-y-4 col-span-2">
-            <h3 className="text-xl font-semibold mb-4">
-              Parent / Guardian Information
-            </h3>
-            <div className="relative">
-              <label className="relative block">
-                <input
-                  name="parentName"
-                  value={parentName}
-                  onChange={(e) => setParentName(e.target.value)}
-                  required
-                  type="text"
-                  placeholder=""
-                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                />
-                <img
-                  src={assets.person_icon}
-                  alt="person icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                  Full Name
-                </span>
-              </label>
-            </div>
-            <div className="relative">
-              <label className="relative block">
-                <input
-                  name="parentRel"
-                  value={parentRel}
-                  onChange={(e) => setParentRel(e.target.value)}
-                  required
-                  type="text"
-                  placeholder=""
-                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                />
-                <img
-                  src={assets.person_icon}
-                  alt="person icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                  Relationship
-                </span>
-              </label>
-            </div>
-            <div className="relative">
-              <label className="relative block">
-                <input
-                  name="parentPhone"
-                  value={parentPhone}
-                  onChange={(e) => setParentPhone(e.target.value)}
-                  required
-                  type="string"
-                  placeholder=""
-                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                />
-                <img
-                  src={assets.mail_icon}
-                  alt="phone icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                  Phone Number
-                </span>
-              </label>
-            </div>
-            <div className="relative">
-              <label className="relative block">
-                <input
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  type="email"
-                  placeholder=""
-                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                />
-                <img
-                  src={assets.mail_icon}
-                  alt="email icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                  Email
-                </span>
-              </label>
-            </div>
-            <div className="relative">
-              <label className="relative block">
-                <input
-                  name="remarks"
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  type="text"
-                  placeholder="Medical conditions, special needs, allergies"
-                  className="px-14 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 peer focus:border-green-400 w-full"
-                />
-                <img
-                  src={assets.person_icon}
-                  alt="person icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
-                />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 pointer-events-none duration-200 peer-focus:text-sm bg-white peer-focus:-translate-y-8 ml-2 transition-all peer-valid:text-sm peer-valid:-translate-y-8">
-                  Remarks
-                </span>
-              </label>
-            </div>
-          </div>
-        )}
+      {/* Age */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="age"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            type="number"
+            placeholder="Age"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
+
+      {/* Birthday */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="birthday"
+            value={birthday}
+            onChange={handleBirthdayChange}
+            required
+            type="date"
+            placeholder="Birthday"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
+    </div>
+
+    {/* Column 2 */}
+    <div className="space-y-4">
+      {/* LRN */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="lrn"
+            value={lrn}
+            onChange={(e) => setLrn(e.target.value)}
+            type="text"
+            placeholder="LRN"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
+
+      {/* Gender */}
+      <div className="relative">
+        <label className="relative block">
+          <select
+            name="gender"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            required
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
+          >
+            <option value="" disabled>
+              Select Gender
+            </option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+      </div>
+
+      {/* Address */}
+      <div className="relative">
+        <label className="relative block">
+          <input
+            name="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+            type="text"
+            placeholder="Address"
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+          />
+        </label>
+      </div>
+
+      {/* Program */}
+      <div className="relative">
+        <label className="relative block">
+          <select
+            name="program"
+            value={program}
+            onChange={handleProgramChange}
+            required
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
+          >
+            <option value="" disabled>
+              Select Program
+            </option>
+            <option value="Toddler">Toddler</option>
+            <option value="Preschool">Preschool</option>
+            <option value="Lower Elementary">Lower Elementary</option>
+          </select>
+        </label>
+      </div>
+
+      {/* Level */}
+      <div className="relative">
+        <label className="relative block">
+          <select
+            name="level"
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
+          >
+            <option value="" disabled>
+              Select Level
+            </option>
+            {program === "Toddler" && (
+              <option value="Toddler">Toddler</option>
+            )}
+            {program === "Preschool" && (
+              <>
+                <option value="Junior Casa">Junior Casa</option>
+                <option value="Junior Advanced Casa">
+                  Junior Advanced Casa
+                </option>
+                <option value="Advanced Casa">Advanced Casa</option>
+              </>
+            )}
+            {program === "Lower Elementary" && (
+              <>
+                <option value="Grade 1">Grade 1</option>
+                <option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option>
+              </>
+            )}
+          </select>
+        </label>
+      </div>
+
+      {/* Class Section */}
+      <div className="relative">
+        <label className="relative block">
+          <select
+            name="class"
+            value={className}
+            onChange={(e) => setClass(e.target.value)}
+            className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full appearance-none bg-white"
+          >
+            <option value="" disabled>
+              Select Class Section
+            </option>
+            {program === "Toddler" && (
+              <>
+                <option value="Playgroup 1">Playgroup 1</option>
+                <option value="Playgroup 2">Playgroup 2</option>
+                <option value="Playgroup 3">Playgroup 3</option>
+              </>
+            )}
+            {program === "Preschool" && (
+              <>
+                <option value="Casa 1">Casa 1</option>
+                <option value="Casa 2">Casa 2</option>
+                <option value="Casa 3">Casa 3</option>
+                <option value="Casa 4">Casa 4</option>
+                <option value="Casa 5">Casa 5</option>
+              </>
+            )}
+            {program === "Lower Elementary" && (
+              <>
+                <option value="Class A">Class A</option>
+                <option value="Class B">Class B</option>
+                <option value="Class C">Class C</option>
+                <option value="Class D">Class D</option>
+                <option value="Class E">Class E</option>
+                <option value="Class F">Class F</option>
+              </>
+            )}
+          </select>
+        </label>
+      </div>
+    </div>
+  </>
+)}
+
+       {/* Page 3: Parent Information */}
+{currentPage === 2 && (
+  <div className="space-y-4 col-span-2">
+    <h3 className="text-xl font-semibold mb-4">
+      Parent / Guardian Information
+    </h3>
+
+    {/* Full Name */}
+    <div className="relative">
+      <label className="relative block">
+        <input
+          name="parentName"
+          value={parentName}
+          onChange={(e) => setParentName(e.target.value)}
+          required
+          type="text"
+          placeholder="Full Name"
+          className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+        />
+      </label>
+    </div>
+
+    {/* Relationship */}
+    <div className="relative">
+      <label className="relative block">
+        <input
+          name="parentRel"
+          value={parentRel}
+          onChange={(e) => setParentRel(e.target.value)}
+          required
+          type="text"
+          placeholder="Relationship"
+          className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+        />
+      </label>
+    </div>
+
+    {/* Phone Number */}
+    <div className="relative">
+      <label className="relative block">
+        <input
+          name="parentPhone"
+          value={parentPhone}
+          onChange={(e) => setParentPhone(e.target.value)}
+          required
+          type="string"
+          placeholder="Phone Number"
+          className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+        />
+      </label>
+    </div>
+
+    {/* Email */}
+    <div className="relative">
+      <label className="relative block">
+        <input
+          name="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          type="email"
+          placeholder="Email"
+          className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+        />
+      </label>
+    </div>
+
+    {/* Remarks */}
+    <div className="relative">
+      <label className="relative block">
+        <input
+          name="remarks"
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          type="text"
+          placeholder="Medical conditions, special needs, allergies"
+          className="px-4 py-3 text-sm outline-none border-2 rounded-full hover:border-green-400 duration-200 focus:border-green-400 w-full"
+        />
+      </label>
+    </div>
+  </div>
+)}
 
         {/* Buttons */}
         <div className="col-span-2 flex justify-end space-x-4 mt-6">
