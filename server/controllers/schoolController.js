@@ -311,7 +311,18 @@ export const getClassList = async (req, res) => {
   }
 };
 
-
+// Get Students by Class
+export const getStudentsByClass = async (req, res) => {
+  try {
+    const { class: className } = req.query;
+    const students = await userModel
+      .find({ "studentData.class": className, role: "student" })
+      .select("studentData.firstName studentData.lastName studentData.class quarters");
+    res.status(200).json({ success: true, students });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 /*--------------LESSON PLAN PAGE---------------------- */
 
