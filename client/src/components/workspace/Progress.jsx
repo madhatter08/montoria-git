@@ -220,11 +220,11 @@ const handleAddSubRow = (index) => {
           <div className="text-black font-bold text-2xl lg:text-4xl whitespace-nowrap">
             {selectedStudent}
           </div>
-          <select className="w-full lg:w-48 h-12 bg-[#d9d9d9] rounded-[15px] px-4">
+          <select className="w-full lg:w-60 h-12 bg-[#d9d9d9] rounded-[15px] px-4">
             <option>CLASS</option>
           </select>
           <select
-            className="w-full lg:w-48 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+            className="w-full lg:w-60 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
             onChange={(e) => setSelectedStudent(e.target.value)}
           >
             <option value="STUDENT NAME">STUDENTS</option>
@@ -232,10 +232,10 @@ const handleAddSubRow = (index) => {
             <option value="Leah Manalo">Leah Manalo</option>
             <option value="Ashley Avecilla">Ashley Avecilla</option>
           </select>
-          <select className="w-full lg:w-48 h-12 bg-[#d9d9d9] rounded-[15px] px-4">
+          <select className="w-full lg:w-60 h-12 bg-[#d9d9d9] rounded-[15px] px-4">
             <option>LEARNING AREA</option>
           </select>
-          <div className="relative w-full lg:w-64">
+          <div className="relative w-full lg:w-96">
             <input
               type="text"
               placeholder="Search..."

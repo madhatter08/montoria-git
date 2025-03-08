@@ -151,7 +151,7 @@ const Class = () => {
             <select
               value={selectedClass}
               onChange={handleClassChange}
-              className="w-48 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Class</option>
               {classes.map((cls, index) => (
@@ -169,7 +169,7 @@ const Class = () => {
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
-              className="w-48 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
             >
               <option value="">Select Level</option>
               {levels.map((level, index) => (
@@ -183,7 +183,7 @@ const Class = () => {
 
 
         {/* Search Bar in the Middle */}
-        <div className="flex-1 lg:flex-none lg:w-96 mb-8 mt-12">
+        <div className="flex-1 lg:flex-none lg:w-110 mb-8 mt-12">
           <label className="block text-sm font-medium text-gray-700"></label>
           <input
             type="text"

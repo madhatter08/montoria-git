@@ -79,11 +79,12 @@ const studentSchema = new mongoose.Schema(
     level: { type: String, ref: "level" },
     class: { type: String, ref: "class" },
     remarks: { type: String, trim: true },
-    lessons: { type: Array, default: [] }, // Matches the schema
+    lessons: [{ type: String }],
     quarters: [quarterSchema], // Array of quarters with feedback
   },
   { _id: false }
 );
+
 
 // User Schema
 const userSchema = new mongoose.Schema(

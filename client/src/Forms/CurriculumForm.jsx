@@ -130,9 +130,14 @@ const CurriculumForm = ({ onClose, refreshData, editData }) => {
               >
                 <option value="">Select Learning Area</option>
                 <option value="Language">Language</option>
+                <option value="Language Arts">Language Arts</option>
                 <option value="Math">Math</option>
+                <option value="Geometry">Geometry</option>
                 <option value="Science">Science</option>
                 <option value="Literature">Literature</option>
+                <option value="The Great Lesson">The Great Lesson</option>
+                <option value="Makabansa">Makabansa</option>
+                <option value="Filipino">Filipino</option>
               </select>
             </label>
           </div>
