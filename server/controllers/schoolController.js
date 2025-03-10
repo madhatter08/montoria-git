@@ -65,7 +65,7 @@ export const summarizeFeedback = async (req, res) => {
           content:
             "You are a helpful assistant that summarizes feedback for student progress reports in a Montessori setting. " +
             "Provide a concise summary of the feedback and include suggestions for improvement. " +
-            "Respond without using bold (**text**) or any other markdown formatting. " +
+            "Respond without using bold (*text*) or any other markdown formatting. " +
             "Focus on Montessori principles such as independence, self-directed learning, and holistic development. " +
             "Format the response as follows:\n\n" +
             "Progress Report:\n[Summary of the feedback]\n\n" +
@@ -117,7 +117,7 @@ export const getFeedbackByQuarter = async (req, res) => {
     // Log the entire student document for debugging
     console.log("Student Document:", JSON.stringify(student, null, 2));
 
-    // Check if the student has the `studentData` field
+    // Check if the student has the studentData field
     if (!student.studentData || !student.studentData.quarters) {
       return res.status(404).json({ success: false, message: "No quarters data found for the student." });
     }
@@ -310,20 +310,6 @@ export const getClassList = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// Get Students by Class
-export const getStudentsByClass = async (req, res) => {
-  try {
-    const { class: className } = req.query;
-    const students = await userModel
-      .find({ "studentData.class": className, role: "student" })
-      .select("studentData.firstName studentData.lastName studentData.class quarters");
-    res.status(200).json({ success: true, students });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 /*--------------LESSON PLAN PAGE---------------------- */
 
 
@@ -773,4 +759,3 @@ export const addMaterial = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-

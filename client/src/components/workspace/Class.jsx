@@ -74,7 +74,7 @@ const Class = () => {
     try {
       // Fetch the student data using the schoolId
       const response = await axios.get(
-        `${backendUrl}/api/school/${student.schoolId}`,
+        `${backendUrl}/api/school/student/${student.schoolId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -247,7 +247,7 @@ const Class = () => {
             ) : (
               <tr>
                 <td colSpan="10" className="p-3 text-center">
-                  No result found.
+                  Loading...
                 </td>
               </tr>
             )}
