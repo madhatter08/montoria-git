@@ -14,7 +14,7 @@ import {
 const COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B"];
 
 const SALES_CHANNEL_DATA = [
-  { name: "Advanced", value: 45 },
+  { name: "Advanced", value: 55 },
   { name: "Proficient", value: 33 },
   { name: "Developing", value: 12 },
   { name: "Needs Attention", value: 8 },
