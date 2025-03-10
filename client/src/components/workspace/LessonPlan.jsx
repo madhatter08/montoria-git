@@ -363,26 +363,24 @@ const LessonPlan = () => {
       </div>
 
       {/* Display Student Lessons */}
-      <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}
-      >
+        {/* Student Cards Grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredStudents.length > 0 ? (
           filteredStudents.map((student) => (
             <div
               key={student._id}
               className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer"
               onClick={() => {
-                setSelectedStudent(student); // Set the selected student
-                setIsModalOpen(true); // Open the modal
+                setSelectedStudent(student);
+                setIsModalOpen(true);
               }}
             >
               <h3 className="text-xl font-semibold text-center bg-[#9d16be] text-white p-2 rounded-t-lg">
                 {formatStudentName(student)}
               </h3>
 
-              <div className="flex-grow p-3 overflow-hidden">
-                <ol className="list-decimal pl-5 text-gray-700 text-base truncate">
+              <div className="flex-grow p-3 overflow-y-auto">
+                <ol className="list-decimal pl-5 text-gray-700 text-base">
                   {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
                     <li key={i} className="py-1">
                       {lesson.lesson_work}
@@ -396,11 +394,11 @@ const LessonPlan = () => {
 
               <div className="mt-auto flex items-center gap-2">
                 <select
-                  className="w-full lg:w-58 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+                  className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
                   onChange={(e) => {
                     setSelectedLessons((prev) => ({
                       ...prev,
-                      [student._id]: e.target.value, // Save the selected lesson for this student
+                      [student._id]: e.target.value,
                     }));
                   }}
                   onClick={(e) => e.stopPropagation()}
