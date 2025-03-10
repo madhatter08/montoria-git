@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import closeIcon from "../assets/close.png";
 import axios from "axios";
+import PropTypes from "prop-types";
 
 const ReportCard = ({ onClose, student }) => {
   const [selectedQuarter, setSelectedQuarter] = useState("");
@@ -158,6 +159,11 @@ const ReportCard = ({ onClose, student }) => {
       </div>
     </div>
   );
+};
+
+ReportCard.propTypes = {
+    onClose: PropTypes.func.isRequired,
+    student: PropTypes.func.isRequired,
 };
 
 export default ReportCard;
