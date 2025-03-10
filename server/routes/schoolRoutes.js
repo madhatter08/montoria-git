@@ -49,8 +49,6 @@ schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", saveLesson);
 schoolRouter.delete("/delete-lesson", deleteLesson);
 
-// Define getStudentById with a unique path
-
 
 schoolRouter.get("/get-subwork", userToken, getSubwork);
 schoolRouter.post("/add-subwork", userToken, addSubwork);

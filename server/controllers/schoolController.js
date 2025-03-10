@@ -312,7 +312,6 @@ export const getClassList = async (req, res) => {
 };
 /*--------------LESSON PLAN PAGE---------------------- */
 
-
 export const lessonPlan = async (req, res) => {
   try {
     const userId = req.body.userId;
@@ -498,6 +497,88 @@ export const getSubwork = async (req, res) => {
 
     // Get the subwork for the specified lesson
     const subwork = student.studentData.lessons[lessonIndex].subwork;
+
+    res.status(200).json({ success: true, subwork });
+  } catch (error) {
+    console.error("Error in fetching subwork:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const addSubwork = async (req, res) => {
+  try {
+    const { studentId, lessonIndex, subwork } = req.body;
+
+    // Log the request payload for debugging
+    console.log("Request Payload:", { studentId, lessonIndex, subwork });
+
+    // Validate required fields
+    if (!studentId || lessonIndex === undefined || !subwork) {
+      return res.status(400).json({
+        success: false,
+        message: "studentId, lessonIndex, and subwork are required.",
+      });
+    }
+
+    // Find the student by ID
+    const student = await userModel.findById(studentId);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    }
+
+    // Check if the lesson exists
+    if (!student.studentData.lessons[lessonIndex]) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Lesson not found." });
+    }
+
+    // Create a new subwork entry
+    const newSubwork = {
+      subwork_name: subwork.subwork_name,
+      status: subwork.status,
+      status_date: subwork.status_date || new Date(), // Automatically set the current date
+      subwork_remarks: subwork.subwork_remarks || "", // Optional field
+      updatedBy: subwork.updatedBy,
+    };
+
+export const getSubwork = async (req, res) => {
+  const { studentId, lessonIndex } = req.query;
+
+  if (!studentId || !lessonIndex) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Student ID and Lesson Index are required.",
+      });
+  }
+
+  try {
+    // Find the student by their ID
+    const student = await userModel.findOne({
+      "studentData.schoolId": studentId,
+    });
+
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    }
+
+    // Check if the lesson index is valid
+    if (lessonIndex < 0 || lessonIndex >= student.studentData.lessons.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid lesson index." });
+    }
+
+    // Get the subwork for the specified lesson
+    const subwork = student.studentData.lessons[lessonIndex].subwork;
+
 
     res.status(200).json({ success: true, subwork });
   } catch (error) {
