@@ -17,7 +17,7 @@ const LessonPlan = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const { backendUrl } = useContext(AppContext);
+  const { backendUrl, userData } = useContext(AppContext);
 
   // Fetch student data from the backend
   useEffect(() => {
@@ -134,7 +134,11 @@ const LessonPlan = () => {
     try {
       // Check if the lesson already exists for the student
       const student = students.find((student) => student._id === studentId);
-      if (student.studentData.lessons.includes(selectedLesson)) {
+      const lessonExists = student.studentData.lessons.some(
+        (lesson) => lesson.lesson_work === selectedLesson
+      );
+
+      if (lessonExists) {
         toast.warning("This lesson is already saved for the student.");
         return;
       }
@@ -143,7 +147,10 @@ const LessonPlan = () => {
         `${backendUrl}/api/school/save-lesson`,
         {
           studentId,
-          lesson: selectedLesson,
+          lesson_work: selectedLesson,
+          addedBy: userData.email, // Use the email from userData
+          remarks: "", // Default remarks
+          start_date: new Date(), // Current date
         },
         { withCredentials: true }
       );
@@ -157,12 +164,22 @@ const LessonPlan = () => {
                   ...student,
                   studentData: {
                     ...student.studentData,
-                    lessons: [...student.studentData.lessons, selectedLesson],
+                    lessons: [
+                      ...student.studentData.lessons,
+                      {
+                        lesson_work: selectedLesson,
+                        addedBy: userData.email,
+                        remarks: "",
+                        start_date: new Date(),
+                        subwork: [], // Initialize subwork as an empty array
+                      },
+                    ],
                   },
                 }
               : student
           )
         );
+        console.log("Student lesson: ", student.studentData.lessons);
         toast.success("Lesson saved successfully!");
       } else {
         throw new Error("Failed to save lesson");
@@ -173,24 +190,27 @@ const LessonPlan = () => {
     }
   };
 
-  const openDeleteModal = (lessonId) => {
-    setItemToDelete(lessonId);
+  const openDeleteModal = (lesson_work) => {
+    setItemToDelete(lesson_work);
     setDeleteModalOpen(true);
   };
 
   // Handle delete confirmation
   const handleDeleteConfirm = async () => {
-    if (!itemToDelete) return;
+    // Ensure both itemToDelete and selectedStudent are available
+    if (!itemToDelete || !selectedStudent) {
+      toast.error("No lesson or student selected for deletion.");
+      return;
+    }
 
     try {
+      // Send DELETE request with query parameters
       const res = await axios.delete(
-        `${backendUrl}/api/school/delete-lesson/${itemToDelete}`,
-        {
-          data: { studentId: selectedStudent._id }, // Pass the student ID in the request body
-          withCredentials: true,
-        }
+        `${backendUrl}/api/school/delete-lesson?studentId=${selectedStudent._id}&lesson_work=${itemToDelete}`,
+        { withCredentials: true }
       );
 
+      // Check if the deletion was successful
       if (res.data.success) {
         // Update the local state to remove the deleted lesson
         setStudents((prevStudents) =>
@@ -201,7 +221,7 @@ const LessonPlan = () => {
                   studentData: {
                     ...student.studentData,
                     lessons: student.studentData.lessons.filter(
-                      (lesson) => lesson !== itemToDelete
+                      (lesson) => lesson.lesson_work !== itemToDelete
                     ),
                   },
                 }
@@ -209,25 +229,34 @@ const LessonPlan = () => {
           )
         );
 
-        toast.success("Lesson deleted successfully!"); // Success toast
+        // Update the selectedStudent state (if it's being used elsewhere)
         setSelectedStudent((prevStudent) => ({
           ...prevStudent,
           studentData: {
             ...prevStudent.studentData,
             lessons: prevStudent.studentData.lessons.filter(
-              (lesson) => lesson !== itemToDelete
+              (lesson) => lesson.lesson_work !== itemToDelete
             ),
           },
         }));
+
+        // Show success message
+        toast.success("Lesson deleted successfully!");
       } else {
-        toast.error("Failed to delete lesson."); // Error toast
+        // Handle backend response indicating failure
+        toast.error("Failed to delete lesson.");
       }
     } catch (err) {
+      // Log the error and show a user-friendly message
       console.error("Error deleting lesson:", err);
-      toast.error("An error occurred while deleting the lesson."); // Error toast
+      toast.error(
+        err.response?.data?.message ||
+          "An error occurred while deleting the lesson."
+      );
     } finally {
-      setDeleteModalOpen(false); // Close the modal
-      setItemToDelete(null); // Reset the item to delete
+      // Close the modal and reset the itemToDelete state
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
     }
   };
 
@@ -243,14 +272,14 @@ const LessonPlan = () => {
           <ol className="list-decimal pl-5 text-gray-700 text-lg">
             {student.studentData.lessons.map((lesson, i) => (
               <li key={i} className="py-1 flex justify-between items-center">
-                <span>{lesson}</span>
+                <span>{lesson.lesson_work}</span>
                 <img
                   src={assets.delete_icon}
                   alt="Delete"
                   className="w-5 h-5 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent the modal from closing
-                    openDeleteModal(lesson); // Pass the lesson to delete
+                    openDeleteModal(lesson.lesson_work); // Pass the lesson_work to delete
                   }}
                 />
               </li>
@@ -268,7 +297,7 @@ const LessonPlan = () => {
   };
 
   LessonPlanModal.propTypes = {
-    student: PropTypes.bool.isRequired,
+    student: PropTypes.object.isRequired,
     onClose: PropTypes.func.isRequired,
   };
 
@@ -334,29 +363,27 @@ const LessonPlan = () => {
       </div>
 
       {/* Display Student Lessons */}
-      <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}
-      >
+        {/* Student Cards Grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredStudents.length > 0 ? (
           filteredStudents.map((student) => (
             <div
               key={student._id}
               className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer"
               onClick={() => {
-                setSelectedStudent(student); // Set the selected student
-                setIsModalOpen(true); // Open the modal
+                setSelectedStudent(student);
+                setIsModalOpen(true);
               }}
             >
               <h3 className="text-xl font-semibold text-center bg-[#9d16be] text-white p-2 rounded-t-lg">
                 {formatStudentName(student)}
               </h3>
 
-              <div className="flex-grow p-3 overflow-hidden">
-                <ol className="list-decimal pl-5 text-gray-700 text-base truncate">
+              <div className="flex-grow p-3 overflow-y-auto">
+                <ol className="list-decimal pl-5 text-gray-700 text-base">
                   {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
                     <li key={i} className="py-1">
-                      {lesson}
+                      {lesson.lesson_work}
                     </li>
                   ))}
                   {student.studentData.lessons.length > 4 && (
@@ -367,11 +394,11 @@ const LessonPlan = () => {
 
               <div className="mt-auto flex items-center gap-2">
                 <select
-                  className="w-full lg:w-58 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+                  className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
                   onChange={(e) => {
                     setSelectedLessons((prev) => ({
                       ...prev,
-                      [student._id]: e.target.value, // Save the selected lesson for this student
+                      [student._id]: e.target.value,
                     }));
                   }}
                   onClick={(e) => e.stopPropagation()}
@@ -414,7 +441,7 @@ const LessonPlan = () => {
             </div>
           ))
         ) : (
-          <div className="col-span-full text-center">No result found.</div>
+          <div className="col-span-full text-center">Loading students...</div>
         )}
       </div>
 
