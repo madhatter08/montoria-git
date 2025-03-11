@@ -29,18 +29,19 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
 
   const displayRole = userData?.role ? userData.role.toUpperCase() : "UNKNOWN";
   const displaySchoolId = userData?.schoolId ? userData.schoolId : "???";
+
   return (
     <div className="relative">
       {/* Sidebar positioned below the navigation bar */}
       <div
-        className={`fixed top-28 left-0 z-30 h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col items-center ${
-          isOpen ? "w-60 bg-[#9d16be] p-5" : "w-16 bg-purple-200 p-3"
+        className={`fixed top-28 left-0 z-30  h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col shadow-5xl items-center ${
+          isOpen ? "w-60 bg-white]  p-5" : "w-16 bg-purple-300 p-3"
         }`}
       >
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="absolute top-4 -right-6 bg-white p-2 rounded-full shadow-md hover:bg-gray-200 transition-all"
+          className="absolute top-4 -right-6 bg-white p-2 rounded-full shadow-xl hover:bg-gray-200 transition-all"
         >
           <img
             src={isOpen ? assets.sidebar_close : assets.sidebar_open}
@@ -53,32 +54,34 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
         {isOpen ? (
           <div className="flex flex-col items-center w-full">
             {/* Profile Image */}
-            <div className="w-20 h-20 bg-white rounded-full mt-4" />
+            <div className="w-20 h-20 bg-[#bababa] rounded-full mt-4" />
 
             {/* Greeting */}
-            <div className="text-white text-2xl font-extrabold text-center mt-4">
+            <div className="text-black text-2xl font-bold text-center mt-4">
               HELLO, <br /> {displayName}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-6 w-47 flex flex-col gap-3">
+            <div className="mt-6 w-47 flex flex-col  gap-3">
               {menuItems.map((item, index) => (
-                <button
+                <div
                   key={index}
-                  onClick={() => navigate(item.path)} // Navigate to the corresponding route
+                  onClick={() => navigate(item.path)}
                   className={`w-full flex items-center ${
                     currentRoute === item.path
-                      ? "bg-purple-200 text-purple-900" // Active button style
-                      : "bg-white hover:bg-gray-300 text-gray-900" // Default button style
-                  } rounded-lg px-3 py-2 text-left text-base font-semibold shadow-md transition-all`}
+                      ? "bg-purple-200 text-[#4A154B]" // Active button style
+                      : "text-gray-700 hover:bg-purple-100" // Default button style
+                  } rounded-lg px-3 py-2 text-left text-base font-semibold cursor-pointer transition-all`}
                 >
                   <img
-                    className="w-5 h-5 mr-3"
+                    className={`w-5 h-5 mr-3 ${
+                      currentRoute === item.path ? "text-purple-900" : "text-gray-700"
+                    } hover:text-[#4A154B]`}
                     src={item.icon}
                     alt={`${item.label} Icon`}
                   />
-                  {item.label}
-                </button>
+                  <span className="hover:text-black">{item.label}</span>
+                </div>
               ))}
             </div>
 
@@ -102,10 +105,10 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
             {menuItems.map((item, index) => (
               <img
                 key={index}
-                className="w-6 h-6 cursor-pointer"
+                className="w-6 h-6 cursor-pointer text-gray-700 hover:text-[#4A154B]"
                 src={item.icon}
                 alt={item.label}
-                onClick={() => navigate(item.path)} // Navigate to the corresponding route
+                onClick={() => navigate(item.path)}
               />
             ))}
           </div>

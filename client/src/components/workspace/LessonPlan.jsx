@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import PropTypes from "prop-types";
 import { assets } from "../../assets/assets";
 import ConfirmationModal from "../ConfirmationModal";
+import SaveModal from "../SaveModal";
 
 const LessonPlan = () => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -17,9 +18,12 @@ const LessonPlan = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [assignLessonModalOpen, setAssignLessonModalOpen] = useState(false);
+  const [lessonToAssign, setLessonToAssign] = useState("");
   const { backendUrl, userData } = useContext(AppContext);
 
-  // Fetch student data from the backend
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -38,13 +42,11 @@ const LessonPlan = () => {
         setStudents(data.students);
         setCurriculum(data.curriculumData);
 
-        // Extract all Levels and Lessons from curriculumData
         const levelsAndLessons = data.curriculumData.map((item) => ({
           Level: item.Level,
           Lesson: item.Lesson,
         }));
 
-        // Log the extracted Levels and Lessons
         console.log("Fetched students:", data.students);
         console.log(
           "Fetched curriculum (Levels and Lessons):",
@@ -58,7 +60,6 @@ const LessonPlan = () => {
     fetchStudents();
   }, [backendUrl]);
 
-  // Extract unique classes and levels from student data
   const classes = [
     ...new Set(students.map((student) => student.studentData.class)),
   ];
@@ -66,10 +67,9 @@ const LessonPlan = () => {
     ...new Set(students.map((student) => student.studentData.level)),
   ];
 
-  // Format student name as [lastName, firstName middleName (initial + period)]
   const formatStudentName = (student) => {
     const { lastName, firstName, middleName } = student.studentData;
-    const middleInitial = middleName ? `${middleName.charAt(0)}.` : ""; // Get the first letter of middleName
+    const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
     return `${lastName}, ${firstName} ${middleInitial}`;
   };
 
@@ -85,7 +85,6 @@ const LessonPlan = () => {
     setSearchQuery(e.target.value);
   };
 
-  // Filter students based on selected class, level, and search query
   const filteredStudents = students.filter((student) => {
     const matchesClass = selectedClass
       ? student.studentData.class === selectedClass
@@ -94,7 +93,6 @@ const LessonPlan = () => {
       ? student.studentData.level === selectedLevel
       : true;
 
-    // Convert all searchable fields to lowercase for case-insensitive comparison
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
     const schoolId = student.schoolId.toLowerCase();
@@ -105,7 +103,6 @@ const LessonPlan = () => {
     ).toLocaleDateString();
     const remarks = student.studentData.remarks.toLowerCase();
 
-    // Check if the search query matches any of the fields
     const matchesSearch =
       studentName.includes(searchLower) ||
       schoolId.includes(searchLower) ||
@@ -117,11 +114,10 @@ const LessonPlan = () => {
     return matchesClass && matchesLevel && matchesSearch;
   });
 
-  // Get lessons for a specific student level
   const getLessonsForStudentLevel = (studentLevel) => {
     return curriculumData
-      .filter((item) => item.Level === studentLevel) // Filter by student's level
-      .map((item) => `${item.Lesson} - ${item.Work}`); // Extract only the Lesson field
+      .filter((item) => item.Level === studentLevel)
+      .map((item) => `${item.Lesson} - ${item.Work}`);
   };
 
   const handleBookmarkClick = async (studentId) => {
@@ -132,7 +128,6 @@ const LessonPlan = () => {
     }
 
     try {
-      // Check if the lesson already exists for the student
       const student = students.find((student) => student._id === studentId);
       const lessonExists = student.studentData.lessons.some(
         (lesson) => lesson.lesson_work === selectedLesson
@@ -148,15 +143,14 @@ const LessonPlan = () => {
         {
           studentId,
           lesson_work: selectedLesson,
-          addedBy: userData.email, // Use the email from userData
-          remarks: "", // Default remarks
-          start_date: new Date(), // Current date
+          addedBy: userData.email,
+          remarks: "",
+          start_date: new Date(),
         },
         { withCredentials: true }
       );
 
       if (response.status === 200) {
-        // Update the student's lessons in the local state
         setStudents((prevStudents) =>
           prevStudents.map((student) =>
             student._id === studentId
@@ -171,7 +165,7 @@ const LessonPlan = () => {
                         addedBy: userData.email,
                         remarks: "",
                         start_date: new Date(),
-                        subwork: [], // Initialize subwork as an empty array
+                        subwork: [],
                       },
                     ],
                   },
@@ -195,24 +189,19 @@ const LessonPlan = () => {
     setDeleteModalOpen(true);
   };
 
-  // Handle delete confirmation
   const handleDeleteConfirm = async () => {
-    // Ensure both itemToDelete and selectedStudent are available
     if (!itemToDelete || !selectedStudent) {
       toast.error("No lesson or student selected for deletion.");
       return;
     }
 
     try {
-      // Send DELETE request with query parameters
       const res = await axios.delete(
         `${backendUrl}/api/school/delete-lesson?studentId=${selectedStudent._id}&lesson_work=${itemToDelete}`,
         { withCredentials: true }
       );
 
-      // Check if the deletion was successful
       if (res.data.success) {
-        // Update the local state to remove the deleted lesson
         setStudents((prevStudents) =>
           prevStudents.map((student) =>
             student._id === selectedStudent._id
@@ -229,7 +218,6 @@ const LessonPlan = () => {
           )
         );
 
-        // Update the selectedStudent state (if it's being used elsewhere)
         setSelectedStudent((prevStudent) => ({
           ...prevStudent,
           studentData: {
@@ -240,23 +228,100 @@ const LessonPlan = () => {
           },
         }));
 
-        // Show success message
         toast.success("Lesson deleted successfully!");
       } else {
-        // Handle backend response indicating failure
         toast.error("Failed to delete lesson.");
       }
     } catch (err) {
-      // Log the error and show a user-friendly message
       console.error("Error deleting lesson:", err);
       toast.error(
         err.response?.data?.message ||
           "An error occurred while deleting the lesson."
       );
     } finally {
-      // Close the modal and reset the itemToDelete state
       setDeleteModalOpen(false);
       setItemToDelete(null);
+    }
+  };
+
+  const handleStudentSelect = (studentId) => {
+    setSelectedStudents((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map((student) => student._id));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleAssignLessonToSelected = async (lesson) => {
+    if (!lesson) {
+      toast.warning("Please select a lesson to assign.");
+      return;
+    }
+
+    setLessonToAssign(lesson);
+    setAssignLessonModalOpen(true);
+  };
+
+  const handleAssignConfirm = async () => {
+    try {
+      const promises = selectedStudents.map((studentId) =>
+        axios.post(
+          `${backendUrl}/api/school/save-lesson-to-multple`,
+          {
+            studentId,
+            lesson_work: lessonToAssign,
+            addedBy: userData.email,
+            remarks: "",
+            start_date: new Date(),
+          },
+          { withCredentials: true }
+        )
+      );
+
+      const results = await Promise.all(promises);
+
+      if (results.every((res) => res.status === 200)) {
+        setStudents((prevStudents) =>
+          prevStudents.map((student) =>
+            selectedStudents.includes(student._id)
+              ? {
+                  ...student,
+                  studentData: {
+                    ...student.studentData,
+                    lessons: [
+                      ...student.studentData.lessons,
+                      {
+                        lesson_work: lessonToAssign,
+                        addedBy: userData.email,
+                        remarks: "",
+                        start_date: new Date(),
+                        subwork: [],
+                      },
+                    ],
+                  },
+                }
+              : student
+          )
+        );
+        toast.success("Lesson assigned to selected students successfully!");
+      } else {
+        throw new Error("Failed to assign lesson to some students");
+      }
+    } catch (error) {
+      console.error("Error assigning lesson:", error);
+      toast.error("Failed to assign lesson.");
+    } finally {
+      setAssignLessonModalOpen(false);
+      setLessonToAssign("");
     }
   };
 
@@ -278,8 +343,8 @@ const LessonPlan = () => {
                   alt="Delete"
                   className="w-5 h-5 cursor-pointer"
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent the modal from closing
-                    openDeleteModal(lesson.lesson_work); // Pass the lesson_work to delete
+                    e.stopPropagation();
+                    openDeleteModal(lesson.lesson_work);
                   }}
                 />
               </li>
@@ -302,25 +367,27 @@ const LessonPlan = () => {
   };
 
   const handleDeleteCancel = () => {
-    setDeleteModalOpen(false); // Close the modal
-    setItemToDelete(null); // Reset the item to delete
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleAssignCancel = () => {
+    setAssignLessonModalOpen(false);
+    setLessonToAssign("");
   };
 
   return (
-    <div className="p-8 bg-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Lesson Plan Page</h1>
+    <div className="pt-24 bg-[#4A154B] min-h-screen">
+   
 
-      {/* Dropdowns and Search Bar */}
-      <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
-        {/* Dropdowns on the Left */}
+      {/* Filters Section */}
+      <div className="p-10 flex flex-col lg:flex-row items-start space-y-4 lg:space-y-0 lg:space-x-4 mb-1">
         <div className="flex space-x-4">
-          {/* Class Dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700"></label>
+        <div>
             <select
               value={selectedClass}
               onChange={handleClassChange}
-              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
             >
               <option value="">Select Class</option>
               {classes.map((cls, index) => (
@@ -331,13 +398,11 @@ const LessonPlan = () => {
             </select>
           </div>
 
-          {/* Level Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700"></label>
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
-              className="w-80 h-12 mb-8 mt-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              className="w-80 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
             >
               <option value="">Select Level</option>
               {levels.map((level, index) => (
@@ -349,103 +414,146 @@ const LessonPlan = () => {
           </div>
         </div>
 
-        {/* Search Bar in the Middle */}
-        <div className="flex-1 lg:flex-none lg:w-110 mb-8 mt-12">
-          <label className="block text-sm font-medium text-gray-700"></label>
+        <div className="flex-1 lg:flex-none lg:w-110">
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+            className="w-full h-12 bg-[#e6e6e6] rounded-[15px] px-4"
           />
         </div>
       </div>
 
-      {/* Display Student Lessons */}
-        {/* Student Cards Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {filteredStudents.length > 0 ? (
-          filteredStudents.map((student) => (
-            <div
-              key={student._id}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer"
-              onClick={() => {
-                setSelectedStudent(student);
-                setIsModalOpen(true);
-              }}
-            >
-              <h3 className="text-xl font-semibold text-center bg-[#9d16be] text-white p-2 rounded-t-lg">
-                {formatStudentName(student)}
-              </h3>
+          
 
-              <div className="flex-grow p-3 overflow-y-auto">
-                <ol className="list-decimal pl-5 text-gray-700 text-base">
-                  {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
-                    <li key={i} className="py-1">
-                      {lesson.lesson_work}
-                    </li>
-                  ))}
-                  {student.studentData.lessons.length > 4 && (
-                    <li className="text-gray-500">...</li>
-                  )}
-                </ol>
-              </div>
-
-              <div className="mt-auto flex items-center gap-2">
-                <select
-                  className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
-                  onChange={(e) => {
-                    setSelectedLessons((prev) => ({
-                      ...prev,
-                      [student._id]: e.target.value,
-                    }));
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="">Select Lesson</option>
-                  {getLessonsForStudentLevel(student.studentData.level).map(
-                    (lesson, i) => (
-                      <option key={i} value={lesson}>
-                        {lesson}
-                      </option>
-                    )
-                  )}
-                </select>
-                <label
-                  htmlFor={`checkboxInput-${student._id}`}
-                  className="bookmark cursor-pointer bg-teal-500 w-10 h-10 flex items-center justify-center rounded-lg"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    id={`checkboxInput-${student._id}`}
-                    className="hidden"
-                    onClick={() => handleBookmarkClick(student._id)}
-                  />
-                  <svg
-                    width={15}
-                    viewBox="0 0 50 70"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="svgIcon"
-                  >
-                    <path
-                      d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
-                      stroke="white"
-                      strokeWidth={7}
-                    />
-                  </svg>
-                </label>
-              </div>
+      {/* Actions and Cards Section */}
+      <div className="bg-[#f3f3f3] 0 p-6 shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={handleSelectAll}
+            className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
+          >
+            {selectAll ? "Deselect All" : "Select All"}
+          </button>
+          {selectedStudents.length > 0 && (
+            <div className="flex items-center gap-2">
+              <select
+                className="w-60 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
+                onChange={(e) => handleAssignLessonToSelected(e.target.value)}
+              >
+                <option value="">Select Lesson</option>
+                {levels.map((level) =>
+                  getLessonsForStudentLevel(level).map((lesson, i) => (
+                    <option key={i} value={lesson}>
+                      {lesson}
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
-          ))
-        ) : (
-          <div className="col-span-full text-center">Loading students...</div>
-        )}
+          )}
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {filteredStudents.length > 0 ? (
+            filteredStudents.map((student) => (
+              <div
+                key={student._id}
+                className={`bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer ${
+                  selectedStudents.includes(student._id) ? "border-[#4A154B]" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <h3
+                    className="text-xl font-semibold text-center bg-[#4A154B] text-white p-2 rounded-t-lg cursor-pointer"
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    {formatStudentName(student)}
+                  </h3>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.includes(student._id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleStudentSelect(student._id);
+                      }}
+                      className="form-radio h-5 w-5 text-[#4A154B] rounded-full border-2 border-[#4A154B] focus:ring-[#4A154B]"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex-grow p-3 overflow-y-auto">
+                  <ol className="list-decimal pl-5 text-gray-700 text-base">
+                    {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
+                      <li key={i} className="py-1">
+                        {lesson.lesson_work}
+                      </li>
+                    ))}
+                    {student.studentData.lessons.length > 4 && (
+                      <li className="text-gray-500">...</li>
+                    )}
+                  </ol>
+                </div>
+
+                <div className="mt-auto flex items-center gap-2">
+                  <select
+                    className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+                    onChange={(e) => {
+                      setSelectedLessons((prev) => ({
+                        ...prev,
+                        [student._id]: e.target.value,
+                      }));
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">Select Lesson</option>
+                    {getLessonsForStudentLevel(student.studentData.level).map(
+                      (lesson, i) => (
+                        <option key={i} value={lesson}>
+                          {lesson}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <label
+                    htmlFor={`checkboxInput-${student._id}`}
+                    className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`checkboxInput-${student._id}`}
+                      className="hidden"
+                      onClick={() => handleBookmarkClick(student._id)}
+                    />
+                    <svg
+                      width={15}
+                      viewBox="0 0 50 70"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="svgIcon"
+                    >
+                      <path
+                        d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
+                        stroke="white"
+                        strokeWidth={7}
+                      />
+                    </svg>
+                  </label>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center">Loading students...</div>
+          )}
+        </div>
       </div>
 
-      {/* Render the Modal */}
       {isModalOpen && (
         <LessonPlanModal
           student={selectedStudent}
@@ -453,12 +561,18 @@ const LessonPlan = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModalOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         message="Are you sure you want to delete this lesson?"
+      />
+
+      <SaveModal
+        isOpen={assignLessonModalOpen}
+        onClose={handleAssignCancel}
+        onConfirm={handleAssignConfirm}
+        message="Are you sure you want to assign this lesson to the selected students?"
       />
     </div>
   );

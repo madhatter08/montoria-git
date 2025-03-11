@@ -199,7 +199,7 @@ const Class = () => {
       {/* Table with Remaining Columns */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
-          <thead className="bg-[#9d16be] text-white">
+          <thead className="bg-[#4A154B] text-white">
             <tr>
               <th className="p-3 text-left">PHOTO</th>
               <th className="p-3 text-left">SCHOOL ID</th>
@@ -237,7 +237,7 @@ const Class = () => {
                   <td className="p-3">
                     <button
                       onClick={() => handleStudentClick(student)}
-                      className="text-[#9d16be] hover:text-purple-800"
+                      className="text-[#4A154B] hover:text-purple-900"
                     >
                       <FaFileAlt className="w-5 h-5" /> {/* Report icon */}
                     </button>
