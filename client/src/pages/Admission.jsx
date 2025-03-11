@@ -299,14 +299,14 @@ export default function TabPanel() {
 
   const closeRemarksModal = () => {
     setSelectedRemarks(null);
-  };
+  }; 
 
   return (
     <div
       className="h-screen w-full bg-cover bg-center overflow-hidden overflow-y-auto"
       style={{
         background:
-          "radial-gradient(circle at top center, #A78BFA 10%, #ffb3dd 70%, #fff 95%)",
+          "radial-gradient(circle at top center, #6f4685 10%, #4A154B 70%, #4A154B 95%)",
       }}
     >
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
@@ -320,7 +320,7 @@ export default function TabPanel() {
               key={tab.key}
               className={`py-2 px-6 font-medium transition-all relative ${
                 activeTab === tab.key
-                  ? "border-b-4 border-[#9d16be] text-black"
+                  ? "border-b-4 border-[#4A154B] text-black"
                   : "text-gray-500"
               }`}
               onClick={() => setActiveTab(tab.key)}
@@ -368,7 +368,7 @@ export default function TabPanel() {
 
           <div className="bg-white rounded-lg mt-4 shadow overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-[#9d16be] text-white">
+              <thead className="bg-[#4A154B] text-white">
                 <tr>
                   {activeTab === "students" && (
                     <>

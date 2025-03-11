@@ -1,13 +1,22 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import closeIcon from "../assets/close.png";
 import axios from "axios";
-import PropTypes from "prop-types";
 
 const ReportCard = ({ onClose, student }) => {
   const [selectedQuarter, setSelectedQuarter] = useState("");
   const [feedbackResults, setFeedbackResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Dummy data for the bar graph
+  const learningAreas = ["Math", "Nature", "Language", "Science", "Arts"];
+  const barData = {
+    Math: [80, 60, 40], // [Presented, Practiced, Mastered]
+    Nature: [70, 50, 30],
+    Language: [90, 70, 50],
+    Science: [85, 65, 45],
+    Arts: [75, 55, 35],
+  };
 
   // Handle Generate button click
   const handleGenerate = async () => {
@@ -82,7 +91,7 @@ const ReportCard = ({ onClose, student }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
       <div className="w-[1100px] h-[700px] bg-white border shadow-lg rounded-lg relative flex flex-col">
         {/* Header Section */}
-        <div className="w-full h-16 bg-[#9d16be] flex items-center justify-center text-white text-2xl font-semibold rounded-t-lg">
+        <div className="w-full h-16 bg-[#4A154B] flex items-center justify-center text-white text-xl font-semibold rounded-t-lg">
           WORK CYCLE PROGRESS
         </div>
 
@@ -96,24 +105,76 @@ const ReportCard = ({ onClose, student }) => {
 
         {/* Main Content */}
         <div className="flex flex-1 p-4">
-          {/* First Section: Quarter Buttons */}
-          <div className="w-1/3 p-4 border-r flex flex-col space-y-4">
-            <h3 className="text-lg font-semibold">Select Quarter</h3>
-            {["1", "2", "3", "4"].map((quarter) => (
-              <button
-                key={quarter}
-                className={`w-full h-12 bg-gray-200 rounded-lg shadow-md text-gray-700 font-semibold hover:bg-gray-300 ${
-                  selectedQuarter === quarter ? "bg-gray-500 text-white" : ""
-                }`}
-                onClick={() => handleQuarterSelect(quarter)}
-              >
-                Quarter {quarter}
-              </button>
+          {/* First Section: Learning Areas and Progress Bars */}
+          <div className="w-1/3 p-4 border-r flex flex-col space-y-6">
+            {/* Legend at the top */}
+            <div className="flex space-x-4 text-sm text-gray-600 mb-4">
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-[#5bb381] rounded-full"></div>
+                <span>Presented</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-[#e3b34c] rounded-full"></div>
+                <span>Practiced</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-[#4A154B] rounded-full"></div>
+                <span>Mastered</span>
+              </div>
+            </div>
+
+            {/* Progress Bars */}
+            {learningAreas.map((area) => (
+              <div key={area} className="space-y-2">
+                <h4 className="text-md font-medium">{area}</h4>
+                <div className="w-full h-7 bg-gray-200 rounded-xl overflow-hidden relative">
+                  <div
+                    className="h-full flex"
+                    style={{
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      className="bg-[#5bb381]"
+                      style={{ width: `${barData[area][0]}%` }}
+                    >
+                      <span className="text-xs text-white pl-2">{barData[area][0]}%</span>
+                    </div>
+                    <div
+                      className="bg-[#e3b34c]"
+                      style={{ width: `${barData[area][1]}%` }}
+                    >
+                      <span className="text-xs text-white pl-2">{barData[area][1]}%</span>
+                    </div>
+                    <div
+                      className="bg-[#4A154B]"
+                      style={{ width: `${barData[area][2]}%` }}
+                    >
+                      <span className="text-xs text-white pl-2">{barData[area][2]}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
 
-          {/* Second Section: Feedback Results and Generate Button */}
-          <div className="w-2/3 p-4 flex flex-col">
+          {/* Second Section: Quarters and Feedback Summary */}
+          <div className="w-2/3 p-2 flex flex-col">
+            {/* Quarter Buttons */}
+            <div className="flex space-x-4 mb-4">
+              {["1", "2", "3", "4"].map((quarter) => (
+                <button
+                  key={quarter}
+                  className={`w-24 h-12 bg-gray-200 rounded-lg shadow-md text-gray-700 font-semibold hover:bg-gray-300 ${
+                    selectedQuarter === quarter ? "bg-gray-300 text-[#4A154B]" : ""
+                  }`}
+                  onClick={() => handleQuarterSelect(quarter)}
+                >
+                  Quarter {quarter}
+                </button>
+              ))}
+            </div>
+
             {/* Error Message */}
             {error && (
               <div className="mb-4 p-2 bg-red-100 text-red-600 rounded-lg text-sm">
@@ -147,7 +208,7 @@ const ReportCard = ({ onClose, student }) => {
             {/* Generate Button */}
             <div className="flex justify-center">
               <button
-                className="w-[200px] h-12 bg-[#9d16be] rounded-lg text-white text-lg font-semibold shadow-md hover:bg-purple-500 disabled:bg-purple-300"
+                className="w-[200px] h-12 bg-[#4A154B] rounded-lg text-white text-lg font-semibold shadow-md hover:bg-purple-900 disabled:bg-purple-300"
                 onClick={handleGenerate}
                 disabled={isLoading || !selectedQuarter}
               >
@@ -159,11 +220,6 @@ const ReportCard = ({ onClose, student }) => {
       </div>
     </div>
   );
-};
-
-ReportCard.propTypes = {
-    onClose: PropTypes.func.isRequired,
-    student: PropTypes.func.isRequired,
 };
 
 export default ReportCard;

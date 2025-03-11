@@ -94,10 +94,10 @@ const NavbarUser = () => {
           {menuItems.map((item) => (
             <li
               key={item.name}
-              className={`p-3 text-3xl hover:text-purple-600 hover:text-4xl rounded-md transition-all cursor-pointer relative ${
+              className={`p-3 text-3xl hover:text-[#4A154B] hover:text-4xl rounded-md transition-all cursor-pointer relative ${
                 isActive(item.path) ||
                 (item.submenu && item.submenu.some((sub) => isActive(sub.path)))
-                  ? "text-purple-600"
+                  ? "text-purple-900"
                   : "text-gray-900"
               }`}
               onMouseEnter={() => item.submenu && setIsWorkspaceOpen(true)}
@@ -110,7 +110,7 @@ const NavbarUser = () => {
                   {item.submenu.map((sub) => (
                     <li
                       key={sub.name}
-                      className={`p-2 hover:bg-purple-100 rounded-md transition-all text-base text-xl ${
+                      className={`p-2 hover:bg-purple-100 rounded-md transition-all text-xl ${
                         isActive(sub.path) ? "text-purple-600" : "text-gray-900"
                       }`}
                     >

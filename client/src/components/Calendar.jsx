@@ -211,7 +211,7 @@ const Calendar = () => {
   };
 
   return (
-    <div className="p-4 mt-1 rounded-3xl bg-gray-100 min-h-screen">
+    <div className="p-4 mt-1 rounded-3xl bg-gray-100 h-80">
       <div className="max-w-7xl mx-auto">
         {/* Add/Edit Event Form */}
         <form
@@ -245,7 +245,7 @@ const Calendar = () => {
             />
             <button
               type="submit"
-              className="p-2 bg-[#9d16be] text-white rounded hover:bg-[#9568af]"
+              className="p-2 bg-[#4A154B] text-white rounded hover:bg-[#9568af]"
             >
               {editingEvent ? "Save Changes" : "Add Event"}
             </button>

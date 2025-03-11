@@ -422,15 +422,15 @@ const Progress = () => {
 
       {/* Count Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#3cd416] p-4 rounded-lg shadow text-center">
+        <div className="bg-[#5BB381] p-4 rounded-lg shadow text-center">
           <p className="text-lg font-bold">{countPresented}</p>
           <p className="text-sm text-black">Presented</p>
         </div>
-        <div className="bg-[#e5a91b] p-4 rounded-lg shadow text-center">
+        <div className="bg-[#E3B34C] p-4 rounded-lg shadow text-center">
           <p className="text-lg font-bold">{countPracticed}</p>
           <p className="text-sm text-black">Practiced</p>
         </div>
-        <div className="bg-purple-400 p-4 rounded-lg shadow text-center">
+        <div className="bg-[#ac61ae] p-4 rounded-lg shadow text-center">
           <p className="text-lg font-bold">{countMastered}</p>
           <p className="text-sm text-black">Mastered</p>
         </div>
@@ -443,7 +443,7 @@ const Progress = () => {
       {/* Table Section */}
       <div className="overflow-x-auto">
         <table className="w-full table-fixed bg-white rounded-lg shadow overflow-hidden">
-          <thead className="bg-[#9d16be] text-white">
+          <thead className="bg-[#4A154B] text-white">
             <tr>
               <th className="p-3 text-center w-1/4">WORK</th>
               <th className="p-3 text-center w-1/16">PRESENTED</th>
@@ -554,7 +554,7 @@ const Progress = () => {
                       <td className="p-3 text-center">
                         <button
                           onClick={() => handleAddSubwork(index, student)}
-                          className="bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+                          className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
                         >
                           Add
                         </button>
@@ -652,7 +652,7 @@ const Progress = () => {
 
       {/* Quarters Section */}
       <div className="mt-8">
-        <div className="bg-[#9d16be] text-white p-4 rounded-t-lg">
+        <div className="bg-[#4A154B] text-white p-4 rounded-t-lg">
           <h2 className="text-2xl font-bold">Feedback</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
@@ -698,7 +698,7 @@ const Progress = () => {
                         selectedWeek[quarterIndex]
                       )
                     }
-                    className="mt-2 bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+                    className="mt-2 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
                   >
                     Save
                   </button>

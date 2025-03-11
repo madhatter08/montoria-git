@@ -30,14 +30,14 @@ const StyledWrapper = styled.div`
     top: 0;
     padding: 0;
     margin: 0;
-    color: #C8B6FF;
+    color: #4A154B;
     animation: text_713 3.5s ease both infinite;
     font-size: 1.2rem; /* Increased font size */
     letter-spacing: 2px; /* Increased letter spacing */
   }
 
   .load {
-    background-color: #9A79FF;
+    background-color: #4A154B;
     border-radius: 50px;
     display: block;
     height: 24px; /* Increased height */

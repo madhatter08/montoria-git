@@ -42,6 +42,7 @@ import heroBg2 from './heroBg2.png'
 import heroBg3 from './heroBg3.png'
 import sidebar_icon from './sidebar_icon.png'
 import archive_icon from './archive_icon.png'
+import view_list from './view_list.png'
 
 
 export const assets = {
@@ -88,5 +89,6 @@ export const assets = {
     heroBg2,
     heroBg3,
     sidebar_icon,
-    archive_icon
+    archive_icon,
+    view_list,
 }

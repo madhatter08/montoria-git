@@ -239,7 +239,7 @@ const Curriculum = () => {
             }}
             className={`py-2 px-6 font-medium transition-all relative ${
               activeTab === tab
-                ? "border-b-4 border-[#9d16be] text-black"
+                ? "border-b-4 border-[#4A154B]] text-black"
                 : "text-gray-500"
             }`}
           >
@@ -251,7 +251,7 @@ const Curriculum = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full table-fixed">
-          <thead className="bg-[#9d16be] text-white">
+          <thead className="bg-[#4A154B] text-white">
             <tr>
               <th className="p-3 text-left w-1/5">LEVEL</th>
               <th className="p-3 text-left w-1/5">LEARNING AREA</th>
