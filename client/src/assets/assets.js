@@ -43,7 +43,9 @@ import heroBg3 from './heroBg3.png'
 import sidebar_icon from './sidebar_icon.png'
 import archive_icon from './archive_icon.png'
 import view_list from './view_list.png'
-
+import restore_icon from './restore_icon.png'
+import bell_icon from './bell_icon.png'
+import filter_icon from './filter_icon.png'
 
 export const assets = {
     arrow_icon,
@@ -91,4 +93,7 @@ export const assets = {
     sidebar_icon,
     archive_icon,
     view_list,
+    restore_icon,
+    bell_icon,
+    filter_icon,
 }

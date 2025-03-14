@@ -19,7 +19,8 @@ import {
   deleteLesson,
   getSubwork,
   addSubwork,
-  getStudentById, // Include this route
+  getStudentById,
+  saveLessonToMultiple // Include this route
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -51,5 +52,6 @@ schoolRouter.delete("/delete-lesson", deleteLesson);
 
 schoolRouter.get("/get-subwork", userToken, getSubwork);
 schoolRouter.post("/add-subwork", userToken, addSubwork);
+schoolRouter.post("/save-lesson-to-multiple", saveLessonToMultiple);
 
 export default schoolRouter;

@@ -18,7 +18,7 @@ const SaveModal = ({ isOpen, onClose, onConfirm, message }) => {
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-[#9d16be] text-white rounded"
+            className="px-4 py-2 bg-[#4A154B] text-white rounded"
           >
             Save
           </button>

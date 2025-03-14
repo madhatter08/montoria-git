@@ -31,7 +31,7 @@ const Remarksform = ({ onSave, onCancel }) => {
           </button>
           <button
             type="submit"
-            className="bg-[#9d16be] text-white text-2xl font-medium py-3 px-6 rounded-[15px]"
+            className="bg-[#4A154B] text-white text-2xl font-medium py-3 px-6 rounded-[15px]"
           >
             SAVE
           </button>

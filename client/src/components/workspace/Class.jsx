@@ -3,7 +3,7 @@ import ReportCard from "../../Forms/ReportCard"; // Adjust the path as needed
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
 import { FaFileAlt } from "react-icons/fa"; // Import an icon library (e.g., react-icons)
-
+import Loader from "../style/Loader"; // Import Loader (adjusted path)
 
 const Class = () => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -13,39 +13,40 @@ const Class = () => {
   const [selectedStudent, setSelectedStudent] = useState(null); // Track the selected student
   const [students, setStudents] = useState([]); // State to store student data
   const { backendUrl } = useContext(AppContext);
-
+  const [loading, setLoading] = useState(false); // Added loading state
+  const [error, setError] = useState(null); // Added error state
 
   // Fetch student data from the backend
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true); // Start loading
+      setError(null); // Reset error
       try {
         const response = await axios.get(`${backendUrl}/api/school/class-list`, {
           withCredentials: true,
         });
 
-
         if (response.status !== 200) {
           throw new Error("Failed to fetch students");
         }
-
 
         const data = response.data;
         setStudents(data.students); // Set the fetched student data
         console.log("Fetched students:", data.students);
       } catch (error) {
         console.error("Error fetching students:", error);
+        setError("Failed to load student data."); // Set error message
+      } finally {
+        setLoading(false); // Stop loading
       }
     };
-
 
     fetchStudents();
   }, [backendUrl]);
 
-
   // Extract unique classes and levels from student data
   const classes = [...new Set(students.map((student) => student.studentData.class))];
   const levels = [...new Set(students.map((student) => student.studentData.level))];
-
 
   // Format student name as [lastName, firstName middleName (initial + period)]
   const formatStudentName = (student) => {
@@ -54,21 +55,17 @@ const Class = () => {
     return `${lastName}, ${firstName} ${middleInitial}`;
   };
 
-
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
   };
-
 
   const handleLevelChange = (e) => {
     setSelectedLevel(e.target.value);
   };
 
-
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
-
 
   const handleStudentClick = async (student) => {
     try {
@@ -82,11 +79,11 @@ const Class = () => {
           withCredentials: true,
         }
       );
-  
+
       if (response.status !== 200) {
         throw new Error("Failed to fetch student data");
       }
-  
+
       // Set the fetched student data
       setSelectedStudent(response.data);
       setShowReportCard(true); // Open the ReportCard form
@@ -95,12 +92,10 @@ const Class = () => {
     }
   };
 
-
   const handleCloseReportCard = () => {
     setShowReportCard(false); // Close the ReportCard form
     setSelectedStudent(null); // Reset the selected student
   };
-
 
   // Filter students based on selected class, level, and search query
   const filteredStudents = students.filter((student) => {
@@ -111,7 +106,6 @@ const Class = () => {
       ? student.studentData.level === selectedLevel
       : true;
 
-
     // Convert all searchable fields to lowercase for case-insensitive comparison
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
@@ -120,7 +114,6 @@ const Class = () => {
     const age = student.studentData.age.toString();
     const birthday = new Date(student.studentData.birthday).toLocaleDateString();
     const remarks = student.studentData.remarks.toLowerCase();
-
 
     // Check if the search query matches any of the fields
     const matchesSearch =
@@ -131,15 +124,33 @@ const Class = () => {
       birthday.includes(searchLower) ||
       remarks.includes(searchLower);
 
-
     return matchesClass && matchesLevel && matchesSearch;
   });
 
+  // Conditional rendering for loading and error states
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p>{error}</p>;
+  }
 
   return (
     <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Class Page</h1>
-
 
       {/* Dropdowns and Search Bar */}
       <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
@@ -162,7 +173,6 @@ const Class = () => {
             </select>
           </div>
 
-
           {/* Level Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700"></label>
@@ -181,7 +191,6 @@ const Class = () => {
           </div>
         </div>
 
-
         {/* Search Bar in the Middle */}
         <div className="flex-1 lg:flex-none lg:w-110 mb-8 mt-12">
           <label className="block text-sm font-medium text-gray-700"></label>
@@ -194,7 +203,6 @@ const Class = () => {
           />
         </div>
       </div>
-
 
       {/* Table with Remaining Columns */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -247,14 +255,13 @@ const Class = () => {
             ) : (
               <tr>
                 <td colSpan="10" className="p-3 text-center">
-                  Loading...
+                  No students found
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
 
       {/* ReportCard Form Pop-up */}
       {showReportCard && selectedStudent && (
@@ -266,6 +273,5 @@ const Class = () => {
     </div>
   );
 };
-
 
 export default Class;

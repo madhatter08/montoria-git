@@ -9,15 +9,15 @@ import { assets } from "../assets/assets";
 import styled from "styled-components";
 import PropTypes from "prop-types";
 import ConfirmationModal from "../components/ConfirmationModal";
+import ArchiveModal from "../components/ArchiveModal";
+import RestoreModal from "../components/RestoreModal";
 import { toast } from "react-toastify";
 import { AppContext } from "../context/AppContext";
 import Loader from "../components/style/Loader";
 
 export default function TabPanel() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState(
-    localStorage.getItem("activeTab") || "students"
-  );
+  const [activeTab, setActiveTab] = useState(localStorage.getItem("activeTab") || "students");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRemarks, setSelectedRemarks] = useState(null);
   const [data, setData] = useState({
@@ -25,19 +25,27 @@ export default function TabPanel() {
     admin: [],
     guide: [],
     admission: [],
+    inactive: [],
   });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [itemToArchive, setItemToArchive] = useState(null);
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [itemToRestore, setItemToRestore] = useState(null);
   const [editData, setEditData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const { backendUrl } = useContext(AppContext);
+  
+  const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
+    setCurrentPage(1); // Reset to page 1 when tab changes
   }, [activeTab]);
 
-  // Fetch data dynamically from the backend
   const fetchUsers = async () => {
     try {
       const res = await axios.get(`${backendUrl}/api/user/all`, {
@@ -47,12 +55,11 @@ export default function TabPanel() {
       if (res.data.success) {
         const users = res.data.users;
 
-        // Separate users by role
-        const students = users.filter((user) => user.role === "student");
-        const admin = users.filter((user) => user.role === "admin");
-        const guide = users.filter((user) => user.role === "guide");
+        const students = users.filter((user) => user.role === "student" && user.isActive);
+        const admin = users.filter((user) => user.role === "admin" && user.isActive);
+        const guide = users.filter((user) => user.role === "guide" && user.isActive);
+        const inactive = users.filter((user) => !user.isActive);
 
-        // Fetch admissions separately
         const admissionRes = await axios.get(`${backendUrl}/api/user/all`, {
           withCredentials: true,
         });
@@ -62,6 +69,7 @@ export default function TabPanel() {
           admin,
           guide,
           admission: admissionRes.data.admissions || [],
+          inactive,
         });
       } else {
         setError("Failed to fetch users.");
@@ -72,6 +80,7 @@ export default function TabPanel() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -85,74 +94,159 @@ export default function TabPanel() {
     setDeleteModalOpen(true);
   };
 
-  // Handle delete confirmation
+  const openArchiveModal = (id) => {
+    setItemToArchive(id);
+    setArchiveModalOpen(true);
+  };
+
+  const openRestoreModal = (id) => {
+    setItemToRestore(id);
+    setRestoreModalOpen(true);
+  };
+
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
 
     try {
-      const res = await axios.delete(
-        `${backendUrl}/api/user/delete-user/${itemToDelete}`
-      );
+      const res = await axios.delete(`${backendUrl}/api/user/delete-user/${itemToDelete}`);
       if (res.data.success) {
-        // Update local state
         const updatedUserData = {
           ...data,
-          [activeTab]: data[activeTab].filter(
-            (item) => item._id !== itemToDelete
-          ),
+          [activeTab]: data[activeTab].filter((item) => item._id !== itemToDelete),
         };
         setData(updatedUserData);
-        toast.success("User deleted successfully!"); // Success toast
+        toast.success("User deleted successfully!");
       } else {
-        toast.error("Failed to delete user."); // Error toast
+        toast.error("Failed to delete user.");
       }
     } catch (err) {
-      console.error("Error deleting curriculum:", err);
-      toast.error("An error occurred while deleting the curriculum."); // Error toast
+      console.error("Error deleting user:", err);
+      toast.error("An error occurred while deleting the user.");
     } finally {
-      setDeleteModalOpen(false); // Close the modal
-      setItemToDelete(null); // Reset the item to delete
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!itemToArchive) return;
+
+    try {
+      const res = await axios.put(
+        `${backendUrl}/api/user/update/${itemToArchive}`,
+        { isActive: false },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        const userToArchive = data[activeTab].find((item) => item._id === itemToArchive);
+        if (!userToArchive) {
+          throw new Error("User not found in current tab");
+        }
+        const updatedUserData = {
+          ...data,
+          [activeTab]: data[activeTab].filter((item) => item._id !== itemToArchive),
+          inactive: [...data.inactive, { ...userToArchive, isActive: false }],
+        };
+        setData(updatedUserData);
+        toast.success("User archived successfully!");
+      } else {
+        toast.error("Failed to archive user: " + (res.data.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Error archiving user:", err);
+      toast.error("An error occurred while archiving the user: " + err.message);
+    } finally {
+      setArchiveModalOpen(false);
+      setItemToArchive(null);
+    }
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!itemToRestore) return;
+
+    try {
+      const res = await axios.put(
+        `${backendUrl}/api/user/update/${itemToRestore}`,
+        { isActive: true },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        const userToRestore = data.inactive.find((item) => item._id === itemToRestore);
+        if (!userToRestore) {
+          throw new Error("User not found in inactive tab");
+        }
+        const originalTab = userToRestore.role;
+        const updatedUserData = {
+          ...data,
+          inactive: data.inactive.filter((item) => item._id !== itemToRestore),
+          [originalTab]: [...data[originalTab], { ...userToRestore, isActive: true }],
+        };
+        setData(updatedUserData);
+        toast.success("User restored successfully!");
+      } else {
+        toast.error("Failed to restore user: " + (res.data.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Error restoring user:", err);
+      toast.error("An error occurred while restoring the user: " + err.message);
+    } finally {
+      setRestoreModalOpen(false);
+      setItemToRestore(null);
     }
   };
 
   const handleDeleteCancel = () => {
-    setDeleteModalOpen(false); // Close the modal
-    setItemToDelete(null); // Reset the item to delete
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleArchiveCancel = () => {
+    setArchiveModalOpen(false);
+    setItemToArchive(null);
+  };
+
+  const handleRestoreCancel = () => {
+    setRestoreModalOpen(false);
+    setItemToRestore(null);
   };
 
   const handleEditData = (id) => {
-    const itemToEdit = data[activeTab].find(
-      (item) => item._id === id
-    );
-    setEditData(itemToEdit); // Set the item to edit
-    setIsFormOpen(true); // Open the form
+    const itemToEdit = data[activeTab].find((item) => item._id === id);
+    setEditData(itemToEdit);
+    setIsFormOpen(true);
   };
 
-  if (loading) return (
-    <div style={{ 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center", 
-      height: "100vh", 
-      width: "100vw" ,
-    }}>
-      <Loader />
-    </div>
-  );
+  if (loading)
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
+      </div>
+    );
   if (error) return <p>{error}</p>;
-  
 
   const tabs = [
     { name: "GUIDE", key: "guide", count: data.guide.length },
     { name: "ADMIN", key: "admin", count: data.admin.length },
     { name: "STUDENTS", key: "students", count: data.students.length },
     { name: "ADMISSION", key: "admission", count: data.admission.length },
+    { name: "INACTIVE", key: "inactive", count: data.inactive.length },
   ];
 
   const renderForm = () => {
     switch (activeTab) {
       case "students":
-        return (<StudentAdmissionForm
+        return (
+          <StudentAdmissionForm
             onClose={() => {
               setIsFormOpen(false);
               setEditData(null);
@@ -162,24 +256,27 @@ export default function TabPanel() {
           />
         );
       case "admin":
-        return (<AdminForm
+        return (
+          <AdminForm
             onClose={() => {
               setIsFormOpen(false);
               setEditData(null);
             }}
             refreshData={refreshData}
             editData={editData}
-          />);
+          />
+        );
       case "guide":
-        return (<GuideForm
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditData(null);
-          }}
-          refreshData={refreshData}
-          editData={editData} 
-        />);
-
+        return (
+          <GuideForm
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditData(null);
+            }}
+            refreshData={refreshData}
+            editData={editData}
+          />
+        );
       case "admission":
         return <AdmissionForm onClose={() => setIsFormOpen(false)} />;
       default:
@@ -187,27 +284,8 @@ export default function TabPanel() {
     }
   };
 
-  const handleDelete = (index) => {
-    const newData = { ...data };
-    newData[activeTab] = newData[activeTab].filter((_, i) => i !== index);
-    setData(newData);
-  };
-
-  const handleEdit = (index) => {
-    setEditData({ ...data[activeTab][index], index });
-    setIsFormOpen(true);
-  };
-
-  const handleSave = (updatedItem) => {
-    const newData = { ...data };
-    newData[activeTab][updatedItem.index] = updatedItem;
-    setData(newData);
-    setEditData(null);
-    setIsFormOpen(false);
-  };
-
   const filterData = (data, activeTab, searchQuery) => {
-    if (!searchQuery) return data; // Return all data if search query is empty
+    if (!searchQuery) return data;
 
     const searchLower = searchQuery.toLowerCase();
 
@@ -227,7 +305,6 @@ export default function TabPanel() {
             item.schoolId.toLowerCase().includes(searchLower)
           );
         });
-
       case "admin":
         return data.filter((item) => {
           const adminData = item.adminData;
@@ -238,24 +315,22 @@ export default function TabPanel() {
             adminData.contactNumber.toLowerCase().includes(searchLower)
           );
         });
-
       case "students":
+      case "inactive":
         return data.filter((item) => {
-          const studentData = item.studentData;
+          const studentData = item.studentData || item.guideData || item.adminData;
           return (
             item.email.toLowerCase().includes(searchLower) ||
             item.schoolId.toLowerCase().includes(searchLower) ||
-            studentData.firstName.toLowerCase().includes(searchLower) ||
-            studentData.lastName.toLowerCase().includes(searchLower) ||
-            studentData.level.toLowerCase().includes(searchLower) ||
-            studentData.address.toLowerCase().includes(searchLower) ||
-            studentData.parentName.toLowerCase().includes(searchLower) ||
-            studentData.parentPhone.toLowerCase().includes(searchLower) ||
-            studentData.address.toLowerCase().includes(searchLower) ||
-            studentData.class.toLowerCase().includes(searchLower)
+            (studentData?.firstName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.lastName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.level?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.address?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.parentName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.parentPhone?.toLowerCase().includes(searchLower) || false) ||
+            (studentData?.class?.toLowerCase().includes(searchLower) || false)
           );
         });
-
       case "admission":
         return data.filter((item) => {
           return (
@@ -264,12 +339,26 @@ export default function TabPanel() {
             item.learningArea.toLowerCase().includes(searchLower)
           );
         });
-
       default:
         return data;
     }
   };
+
   const filteredData = filterData(data[activeTab], activeTab, searchQuery);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+  const endIndex = startIndex + ROWS_PER_PAGE;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
 
   const exportToExcel = () => {
     const table = document.querySelector("table");
@@ -299,7 +388,7 @@ export default function TabPanel() {
 
   const closeRemarksModal = () => {
     setSelectedRemarks(null);
-  }; 
+  };
 
   return (
     <div
@@ -356,7 +445,6 @@ export default function TabPanel() {
               >
                 Export to Excel
               </button>
-
               {(activeTab === "students" ||
                 activeTab === "admin" ||
                 activeTab === "guide" ||
@@ -366,9 +454,9 @@ export default function TabPanel() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg mt-4 shadow overflow-x-auto">
+          <div className="bg-white rounded-lg mt-4 shadow overflow-x-auto max-h-[60vh]">
             <table className="w-full">
-              <thead className="bg-[#4A154B] text-white">
+              <thead className="bg-[#4A154B] text-white sticky top-0 z-10">
                 <tr>
                   {activeTab === "students" && (
                     <>
@@ -414,19 +502,31 @@ export default function TabPanel() {
                       <th className="p-3 text-left">Learning Area</th>
                     </>
                   )}
-                  <th className="p-3 text-left min-w-[100px]">ACTION</th>
+                  {activeTab === "inactive" && (
+                    <>
+                      <th className="p-3 text-left">Photo</th>
+                      <th className="p-3 text-left">School ID</th>
+                      <th className="p-3 text-left">Role</th>
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Email</th>
+                    </>
+                  )}
+                  <th className="p-3 text-left min-w-[120px]">ACTION</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredData.length === 0 ? (
+                {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="p-3 text-center">
+                    <td colSpan="10" className="p-3 text-center">
                       No results found.
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item, index) => (
-                    <tr key={index} className="border-b">
+                  paginatedData.map((item, index) => (
+                    <tr 
+                      key={index} 
+                      className="border-b hover:bg-gray-100 transition-colors duration-200"
+                    >
                       {activeTab === "students" && (
                         <>
                           <td className="p-3">
@@ -445,33 +545,13 @@ export default function TabPanel() {
                             )}
                           </td>
                           <td className="p-3">{item.schoolId}</td>
-                          <td className="p-3">
-                            {`${item.studentData.lastName}, ${
-                              item.studentData.firstName
-                            } ${
-                              item.studentData.middleName
-                                ? `${item.studentData.middleName.charAt(0)}.`
-                                : ""
-                            }`}
-                          </td>
+                          <td className="p-3">{`${item.studentData.lastName}, ${item.studentData.firstName} ${item.studentData.middleName ? `${item.studentData.middleName.charAt(0)}.` : ""}`}</td>
                           <td className="p-3">{item.studentData.level}</td>
                           <td className="p-3">{item.studentData.lrn}</td>
-                          <td className="p-3">
-                            {
-                              new Date(item.studentData.birthday)
-                                .toISOString()
-                                .split("T")[0]
-                            }
-                          </td>
+                          <td className="p-3">{new Date(item.studentData.birthday).toISOString().split("T")[0]}</td>
                           <td className="p-3">{item.studentData.address}</td>
-                          <td className="p-3">
-                            {`${item.studentData.parentName} (${item.studentData.parentRel})`}
-                          </td>
-
-                          {/* Parent Contact Number */}
-                          <td className="p-3">
-                            {item.studentData.parentPhone}
-                          </td>
+                          <td className="p-3">{`${item.studentData.parentName} (${item.studentData.parentRel})`}</td>
+                          <td className="p-3">{item.studentData.parentPhone}</td>
                           <td className="p-3">{item.email}</td>
                           <td className="p-3">{item.studentData.class}</td>
                         </>
@@ -496,9 +576,7 @@ export default function TabPanel() {
                           <td className="p-3">{item.schoolId}</td>
                           <td className="p-3">{item.adminData.name}</td>
                           <td className="p-3">{item.email}</td>
-                          <td className="p-3">
-                            {item.adminData.contactNumber}
-                          </td>
+                          <td className="p-3">{item.adminData.contactNumber}</td>
                         </>
                       )}
                       {activeTab === "guide" && (
@@ -520,27 +598,11 @@ export default function TabPanel() {
                           </td>
                           <td className="p-3">{item.schoolId}</td>
                           <td className="p-3">{item.guideData.guideType}</td>
-                          <td className="p-3">
-                            {`${item.guideData.lastName}, ${
-                              item.guideData.firstName
-                            } ${
-                              item.guideData.middleName
-                                ? `${item.guideData.middleName.charAt(0)}.`
-                                : ""
-                            }`}
-                          </td>
-                          <td className="p-3">
-                            {
-                              new Date(item.guideData.birthday)
-                                .toISOString()
-                                .split("T")[0]
-                            }
-                          </td>
+                          <td className="p-3">{`${item.guideData.lastName}, ${item.guideData.firstName} ${item.guideData.middleName ? `${item.guideData.middleName.charAt(0)}.` : ""}`}</td>
+                          <td className="p-3">{new Date(item.guideData.birthday).toISOString().split("T")[0]}</td>
                           <td className="p-3">{item.guideData.address}</td>
                           <td className="p-3">{item.email}</td>
-                          <td className="p-3">
-                            {item.guideData.contactNumber}
-                          </td>
+                          <td className="p-3">{item.guideData.contactNumber}</td>
                           <td className="p-3">{item.guideData.class}</td>
                         </>
                       )}
@@ -551,20 +613,67 @@ export default function TabPanel() {
                           <td className="p-3">{item.learningArea}</td>
                         </>
                       )}
-                      <td className="p-3 min-w-[100px]">
+                      {activeTab === "inactive" && (
+                        <>
+                          <td className="p-3">
+                            {(item.studentData?.photo || item.guideData?.photo || item.adminData?.photo) ? (
+                              <img
+                                src={item.studentData?.photo || item.guideData?.photo || item.adminData?.photo}
+                                alt="User image"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <img
+                                src={assets.no_pfp}
+                                alt="Placeholder"
+                                className="w-10 h-10 rounded-full"
+                              />
+                            )}
+                          </td>
+                          <td className="p-3">{item.schoolId}</td>
+                          <td className="p-3">{item.role}</td>
+                          <td className="p-3">
+                            {item.studentData
+                              ? `${item.studentData.lastName}, ${item.studentData.firstName}`
+                              : item.guideData
+                              ? `${item.guideData.lastName}, ${item.guideData.firstName}`
+                              : item.adminData?.name}
+                          </td>
+                          <td className="p-3">{item.email}</td>
+                        </>
+                      )}
+                      <td className="p-3 min-w-[120px]">
                         <div className="flex justify-start space-x-2">
-                          <img
-                            src={assets.edit_profile}
-                            alt="Edit"
-                            className="w-5 h-5 cursor-pointer"
-                            onClick={() => handleEditData(item._id, item)}
-                          />
+                          {activeTab !== "inactive" && activeTab !== "admission" && (
+                            <img
+                              src={assets.edit_profile}
+                              alt="Edit"
+                              className="w-5 h-5 cursor-pointer"
+                              onClick={() => handleEditData(item._id)}
+                            />
+                          )}
                           <img
                             src={assets.delete_icon}
                             alt="Delete"
                             className="w-5 h-5 cursor-pointer"
                             onClick={() => openDeleteModal(item._id)}
                           />
+                          {activeTab !== "admission" && activeTab !== "inactive" && (
+                            <img
+                              src={assets.archive_icon}
+                              alt="Archive"
+                              className="w-5 h-5 cursor-pointer"
+                              onClick={() => openArchiveModal(item._id)}
+                            />
+                          )}
+                          {activeTab === "inactive" && (
+                            <img
+                              src={assets.restore_icon}
+                              alt="Restore"
+                              className="w-5 h-5 cursor-pointer"
+                              onClick={() => openRestoreModal(item._id)}
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -574,10 +683,25 @@ export default function TabPanel() {
             </table>
           </div>
 
-          <div className="flex justify-between mt-6">
-            <button className="border p-2 rounded-xl">&lt; Previous</button>
-            <button className="border p-2 rounded-xl">Next &gt;</button>
-          </div>
+          <div className="flex justify-between items-center mt-6">
+  <button 
+    className="border p-2 rounded-xl disabled:opacity-50" 
+    onClick={handlePreviousPage}
+    disabled={currentPage === 1}
+  >
+    &lt; Previous
+  </button>
+  <span>
+    Page {currentPage} of {totalPages}
+  </span>
+  <button 
+    className="border p-2 rounded-xl disabled:opacity-50" 
+    onClick={handleNextPage}
+    disabled={currentPage === totalPages}
+  >
+    Next &gt;
+  </button>
+</div>
         </div>
       </div>
 
@@ -590,7 +714,7 @@ export default function TabPanel() {
       )}
 
       {selectedRemarks && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-2xl w-[90%] max-w-2xl">
             <h2 className="text-xl font-bold mb-4">Remarks</h2>
             <p>{selectedRemarks}</p>
@@ -604,16 +728,30 @@ export default function TabPanel() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModalOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         message="Are you sure you want to delete this user?"
       />
+
+      <ArchiveModal
+        isOpen={archiveModalOpen}
+        onClose={handleArchiveCancel}
+        onConfirm={handleArchiveConfirm}
+        message="Are you sure you want to deactivate this user?"
+      />
+
+      <RestoreModal
+        isOpen={restoreModalOpen}
+        onClose={handleRestoreCancel}
+        onConfirm={handleRestoreConfirm}
+        message="Are you sure you want to restore this user?"
+      />
     </div>
   );
 }
+
 const Button = ({ onClick }) => {
   return (
     <StyledWrapper>

@@ -6,6 +6,7 @@ import PropTypes from "prop-types";
 import { assets } from "../../assets/assets";
 import ConfirmationModal from "../ConfirmationModal";
 import SaveModal from "../SaveModal";
+import Loader from "../../components/style/Loader"; // Added Loader import
 
 const LessonPlan = () => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -23,16 +24,17 @@ const LessonPlan = () => {
   const [assignLessonModalOpen, setAssignLessonModalOpen] = useState(false);
   const [lessonToAssign, setLessonToAssign] = useState("");
   const { backendUrl, userData } = useContext(AppContext);
+  const [loading, setLoading] = useState(false); // Added loading state
+  const [error, setError] = useState(null); // Added error state
 
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true); // Set loading to true before fetch
+      setError(null); // Reset error state
       try {
-        const response = await axios.get(
-          `${backendUrl}/api/school/lesson-plan`,
-          {
-            withCredentials: true,
-          }
-        );
+        const response = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
+          withCredentials: true,
+        });
 
         if (response.status !== 200) {
           throw new Error("Failed to fetch students");
@@ -41,31 +43,20 @@ const LessonPlan = () => {
         const data = response.data;
         setStudents(data.students);
         setCurriculum(data.curriculumData);
-
-        const levelsAndLessons = data.curriculumData.map((item) => ({
-          Level: item.Level,
-          Lesson: item.Lesson,
-        }));
-
-        console.log("Fetched students:", data.students);
-        console.log(
-          "Fetched curriculum (Levels and Lessons):",
-          levelsAndLessons
-        );
       } catch (error) {
         console.error("Error fetching students:", error);
+        setError("Failed to load student data."); // Set error message
+        toast.error("Failed to load student data.");
+      } finally {
+        setLoading(false); // Set loading to false after fetch completes
       }
     };
 
     fetchStudents();
   }, [backendUrl]);
 
-  const classes = [
-    ...new Set(students.map((student) => student.studentData.class)),
-  ];
-  const levels = [
-    ...new Set(students.map((student) => student.studentData.level)),
-  ];
+  const classes = [...new Set(students.map((student) => student.studentData.class))];
+  const levels = [...new Set(students.map((student) => student.studentData.level))];
 
   const formatStudentName = (student) => {
     const { lastName, firstName, middleName } = student.studentData;
@@ -73,45 +64,32 @@ const LessonPlan = () => {
     return `${lastName}, ${firstName} ${middleInitial}`;
   };
 
-  const handleClassChange = (e) => {
-    setSelectedClass(e.target.value);
-  };
-
-  const handleLevelChange = (e) => {
-    setSelectedLevel(e.target.value);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
+  const handleClassChange = (e) => setSelectedClass(e.target.value);
+  const handleLevelChange = (e) => setSelectedLevel(e.target.value);
+  const handleSearchChange = (e) => setSearchQuery(e.target.value);
 
   const filteredStudents = students.filter((student) => {
-    const matchesClass = selectedClass
-      ? student.studentData.class === selectedClass
-      : true;
-    const matchesLevel = selectedLevel
-      ? student.studentData.level === selectedLevel
-      : true;
+    const matchesClass = selectedClass ? student.studentData.class === selectedClass : true;
+    const matchesLevel = selectedLevel ? student.studentData.level === selectedLevel : true;
 
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
     const schoolId = student.schoolId.toLowerCase();
     const gender = student.studentData.gender.toLowerCase();
     const age = student.studentData.age.toString();
-    const birthday = new Date(
-      student.studentData.birthday
-    ).toLocaleDateString();
+    const birthday = new Date(student.studentData.birthday).toLocaleDateString();
     const remarks = student.studentData.remarks.toLowerCase();
 
-    const matchesSearch =
-      studentName.includes(searchLower) ||
-      schoolId.includes(searchLower) ||
-      gender.includes(searchLower) ||
-      age.includes(searchLower) ||
-      birthday.includes(searchLower) ||
-      remarks.includes(searchLower);
-
-    return matchesClass && matchesLevel && matchesSearch;
+    return (
+      matchesClass &&
+      matchesLevel &&
+      (studentName.includes(searchLower) ||
+        schoolId.includes(searchLower) ||
+        gender.includes(searchLower) ||
+        age.includes(searchLower) ||
+        birthday.includes(searchLower) ||
+        remarks.includes(searchLower))
+    );
   });
 
   const getLessonsForStudentLevel = (studentLevel) => {
@@ -128,13 +106,13 @@ const LessonPlan = () => {
     }
 
     try {
-      const student = students.find((student) => student._id === studentId);
+      const student = students.find((s) => s._id === studentId);
       const lessonExists = student.studentData.lessons.some(
         (lesson) => lesson.lesson_work === selectedLesson
       );
 
       if (lessonExists) {
-        toast.warning("This lesson is already saved for the student.");
+        toast.warning("This lesson is already assigned to the student.");
         return;
       }
 
@@ -152,14 +130,14 @@ const LessonPlan = () => {
 
       if (response.status === 200) {
         setStudents((prevStudents) =>
-          prevStudents.map((student) =>
-            student._id === studentId
+          prevStudents.map((s) =>
+            s._id === studentId
               ? {
-                  ...student,
+                  ...s,
                   studentData: {
-                    ...student.studentData,
+                    ...s.studentData,
                     lessons: [
-                      ...student.studentData.lessons,
+                      ...s.studentData.lessons,
                       {
                         lesson_work: selectedLesson,
                         addedBy: userData.email,
@@ -170,13 +148,10 @@ const LessonPlan = () => {
                     ],
                   },
                 }
-              : student
+              : s
           )
         );
-        console.log("Student lesson: ", student.studentData.lessons);
         toast.success("Lesson saved successfully!");
-      } else {
-        throw new Error("Failed to save lesson");
       }
     } catch (error) {
       console.error("Error saving lesson:", error);
@@ -217,27 +192,20 @@ const LessonPlan = () => {
               : student
           )
         );
-
-        setSelectedStudent((prevStudent) => ({
-          ...prevStudent,
+        setSelectedStudent((prev) => ({
+          ...prev,
           studentData: {
-            ...prevStudent.studentData,
-            lessons: prevStudent.studentData.lessons.filter(
+            ...prev.studentData,
+            lessons: prev.studentData.lessons.filter(
               (lesson) => lesson.lesson_work !== itemToDelete
             ),
           },
         }));
-
         toast.success("Lesson deleted successfully!");
-      } else {
-        toast.error("Failed to delete lesson.");
       }
-    } catch (err) {
-      console.error("Error deleting lesson:", err);
-      toast.error(
-        err.response?.data?.message ||
-          "An error occurred while deleting the lesson."
-      );
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      toast.error("Failed to delete lesson.");
     } finally {
       setDeleteModalOpen(false);
       setItemToDelete(null);
@@ -253,17 +221,19 @@ const LessonPlan = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(filteredStudents.map((student) => student._id));
-    }
+    setSelectedStudents(
+      selectAll ? [] : filteredStudents.map((student) => student._id)
+    );
     setSelectAll(!selectAll);
   };
 
-  const handleAssignLessonToSelected = async (lesson) => {
+  const handleAssignLessonToSelected = (lesson) => {
     if (!lesson) {
       toast.warning("Please select a lesson to assign.");
+      return;
+    }
+    if (selectedStudents.length === 0) {
+      toast.warning("Please select at least one student.");
       return;
     }
 
@@ -273,23 +243,19 @@ const LessonPlan = () => {
 
   const handleAssignConfirm = async () => {
     try {
-      const promises = selectedStudents.map((studentId) =>
-        axios.post(
-          `${backendUrl}/api/school/save-lesson-to-multple`,
-          {
-            studentId,
-            lesson_work: lessonToAssign,
-            addedBy: userData.email,
-            remarks: "",
-            start_date: new Date(),
-          },
-          { withCredentials: true }
-        )
+      const response = await axios.post(
+        `${backendUrl}/api/school/save-lesson-to-multiple`,
+        {
+          studentIds: selectedStudents,
+          lesson_work: lessonToAssign,
+          addedBy: userData.email,
+          remarks: "",
+          start_date: new Date(),
+        },
+        { withCredentials: true }
       );
 
-      const results = await Promise.all(promises);
-
-      if (results.every((res) => res.status === 200)) {
+      if (response.status === 200 && response.data.success) {
         setStudents((prevStudents) =>
           prevStudents.map((student) =>
             selectedStudents.includes(student._id)
@@ -297,28 +263,35 @@ const LessonPlan = () => {
                   ...student,
                   studentData: {
                     ...student.studentData,
-                    lessons: [
-                      ...student.studentData.lessons,
-                      {
-                        lesson_work: lessonToAssign,
-                        addedBy: userData.email,
-                        remarks: "",
-                        start_date: new Date(),
-                        subwork: [],
-                      },
-                    ],
+                    lessons: student.studentData.lessons.some(
+                      (lesson) => lesson.lesson_work === lessonToAssign
+                    )
+                      ? student.studentData.lessons
+                      : [
+                          ...student.studentData.lessons,
+                          {
+                            lesson_work: lessonToAssign,
+                            addedBy: userData.email,
+                            remarks: "",
+                            start_date: new Date(),
+                            subwork: [],
+                          },
+                        ],
                   },
                 }
               : student
           )
         );
+        // Reset selections after successful assignment
+        setSelectedStudents([]);
+        setSelectAll(false);
         toast.success("Lesson assigned to selected students successfully!");
       } else {
-        throw new Error("Failed to assign lesson to some students");
+        throw new Error("Failed to assign lesson");
       }
     } catch (error) {
       console.error("Error assigning lesson:", error);
-      toast.error("Failed to assign lesson.");
+      toast.error("Failed to assign lesson to some students.");
     } finally {
       setAssignLessonModalOpen(false);
       setLessonToAssign("");
@@ -329,7 +302,7 @@ const LessonPlan = () => {
     if (!student) return null;
 
     return (
-      <div className="fixed inset-0 bg-[rgba(0,0,0,0.3)] bg-opacity-50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-[rgba(0,0,0,0.3)] flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded-lg w-11/12 max-w-2xl">
           <h2 className="text-2xl font-bold mb-4">
             Lessons for {formatStudentName(student)}
@@ -376,14 +349,32 @@ const LessonPlan = () => {
     setLessonToAssign("");
   };
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p>{error}</p>;
+  }
+
   return (
     <div className="pt-24 bg-[#4A154B] min-h-screen">
-   
-
       {/* Filters Section */}
       <div className="p-10 flex flex-col lg:flex-row items-start space-y-4 lg:space-y-0 lg:space-x-4 mb-1">
         <div className="flex space-x-4">
-        <div>
+          <div>
             <select
               value={selectedClass}
               onChange={handleClassChange}
@@ -397,7 +388,6 @@ const LessonPlan = () => {
               ))}
             </select>
           </div>
-
           <div>
             <select
               value={selectedLevel}
@@ -413,7 +403,6 @@ const LessonPlan = () => {
             </select>
           </div>
         </div>
-
         <div className="flex-1 lg:flex-none lg:w-110">
           <input
             type="text"
@@ -425,10 +414,8 @@ const LessonPlan = () => {
         </div>
       </div>
 
-          
-
       {/* Actions and Cards Section */}
-      <div className="bg-[#f3f3f3] 0 p-6 shadow-md">
+      <div className="bg-[#f3f3f3] p-6 shadow-md">
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={handleSelectAll}
@@ -442,7 +429,7 @@ const LessonPlan = () => {
                 className="w-60 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
                 onChange={(e) => handleAssignLessonToSelected(e.target.value)}
               >
-                <option value="">Select Lesson</option>
+                <option value="">Assign Lesson to Selected</option>
                 {levels.map((level) =>
                   getLessonsForStudentLevel(level).map((lesson, i) => (
                     <option key={i} value={lesson}>
@@ -482,7 +469,7 @@ const LessonPlan = () => {
                         e.stopPropagation();
                         handleStudentSelect(student._id);
                       }}
-                      className="form-radio h-5 w-5 text-[#4A154B] rounded-full border-2 border-[#4A154B] focus:ring-[#4A154B]"
+                      className="form-checkbox h-5 w-5 text-[#4A154B]"
                     />
                   </label>
                 </div>
@@ -503,12 +490,12 @@ const LessonPlan = () => {
                 <div className="mt-auto flex items-center gap-2">
                   <select
                     className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
-                    onChange={(e) => {
+                    onChange={(e) =>
                       setSelectedLessons((prev) => ({
                         ...prev,
                         [student._id]: e.target.value,
-                      }));
-                    }}
+                      }))
+                    }
                     onClick={(e) => e.stopPropagation()}
                   >
                     <option value="">Select Lesson</option>
@@ -521,13 +508,13 @@ const LessonPlan = () => {
                     )}
                   </select>
                   <label
-                    htmlFor={`checkboxInput-${student._id}`}
+                    htmlFor={`bookmark-${student._id}`}
                     className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
                       type="checkbox"
-                      id={`checkboxInput-${student._id}`}
+                      id={`bookmark-${student._id}`}
                       className="hidden"
                       onClick={() => handleBookmarkClick(student._id)}
                     />
@@ -536,7 +523,6 @@ const LessonPlan = () => {
                       viewBox="0 0 50 70"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      className="svgIcon"
                     >
                       <path
                         d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
@@ -549,7 +535,7 @@ const LessonPlan = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center">Loading students...</div>
+            <div className="col-span-full text-center"></div>
           )}
         </div>
       </div>
@@ -572,7 +558,7 @@ const LessonPlan = () => {
         isOpen={assignLessonModalOpen}
         onClose={handleAssignCancel}
         onConfirm={handleAssignConfirm}
-        message="Are you sure you want to assign this lesson to the selected students?"
+        message={`Assign "${lessonToAssign}" to ${selectedStudents.length} selected student(s)?`}
       />
     </div>
   );
