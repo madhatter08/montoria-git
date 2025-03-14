@@ -1,28 +1,57 @@
 import { useState, useContext } from "react";
 import { assets } from "../assets/assets";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext"; // Assuming you are using context for user data
+import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+
 const NavbarUser = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const location = useLocation();
-  const { userData, backendUrl, setUserData, setIsLoggedIn } = useContext(AppContext);
-  const role = userData ? userData.role : "admin";
+  const navigate = useNavigate();
+  const { userData, backendUrl, setUserData, setIsLoggedIn, loading } = useContext(AppContext);
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <div className="fixed top-0 left-0 w-full z-50 bg-white drop-shadow-md py-4 px-4 md:px-16">
+        <span>Loading...</span>
+      </div>
+    );
+  }
+
+  // Handle no userData (not logged in)
+  if (!userData) {
+    return (
+      <div className="fixed top-0 left-0 w-full z-50 bg-white drop-shadow-md py-4 px-4 md:px-16">
+        <a href="/">
+          <img
+            className="h-20 hover:scale-105 transition-all"
+            src={assets.montoria_home}
+            alt="Logo"
+          />
+        </a>
+      </div>
+    );
+  }
+
+  // Safe to access userData now
+  const role = userData.role || "admin"; // Fallback to "admin" if role is missing
   const displayName =
-    userData.role === "admin"
+    role === "admin"
       ? userData.roleData?.name?.[0]?.toUpperCase() || "?"
       : userData.roleData?.firstName?.[0]?.toUpperCase() || "?";
-  const navigate = useNavigate();
 
   const logout = async () => {
     try {
       axios.defaults.withCredentials = true;
-      const { data } = await axios.post(backendUrl + "/api/auth/logout");
-      data.success && setIsLoggedIn(false);
-      data.success && setUserData(false);
-      navigate("/");
+      const { data } = await axios.post(`${backendUrl}/api/auth/logout`);
+      if (data.success) {
+        setIsLoggedIn(false);
+        setUserData(null); // Changed to null for consistency
+        navigate("/");
+      }
     } catch (error) {
       toast.error(error.message);
     }
@@ -30,8 +59,7 @@ const NavbarUser = () => {
 
   // Function to check if the current path is active
   const isActive = (path) => {
-    //return location.pathname === path ? "text-purple-600" : "text-gray-900";
-     return location.pathname.startsWith(path);
+    return location.pathname.startsWith(path);
   };
 
   // Define menu items for different roles

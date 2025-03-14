@@ -18,7 +18,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, message }) => {
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded"
+            className="px-4 py-2 bg-red-600 text-white rounded"
           >
             Delete
           </button>

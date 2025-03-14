@@ -21,21 +21,76 @@ const menuItems = [
 
 const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
   const navigate = useNavigate();
-  const { userData } = useContext(AppContext);
+  const { userData, loading } = useContext(AppContext);
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <div className="relative">
+        <div
+          className={`fixed top-28 left-0 z-30 h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col shadow-5xl items-center ${
+            isOpen ? "w-60 bg-white p-5" : "w-16 bg-purple-300 p-3"
+          }`}
+        >
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="absolute top-4 -right-6 bg-white p-2 rounded-full shadow-xl hover:bg-gray-200 transition-all"
+          >
+            <img
+              src={isOpen ? assets.sidebar_close : assets.sidebar_open}
+              alt="Toggle Sidebar"
+              className="w-6 h-6"
+            />
+          </button>
+          <p className="mt-20 text-gray-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle no userData (not logged in)
+  if (!userData) {
+    return (
+      <div className="relative">
+        <div
+          className={`fixed top-28 left-0 z-30 h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col shadow-5xl items-center ${
+            isOpen ? "w-60 bg-white p-5" : "w-16 bg-purple-300 p-3"
+          }`}
+        >
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="absolute top-4 -right-6 bg-white p-2 rounded-full shadow-xl hover:bg-gray-200 transition-all"
+          >
+            <img
+              src={isOpen ? assets.sidebar_close : assets.sidebar_open}
+              alt="Toggle Sidebar"
+              className="w-6 h-6"
+            />
+          </button>
+          {isOpen && (
+            <p className="mt-20 text-gray-700">
+              Please log in to access the workspace.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Safe to access userData now
   const displayName =
-    userData?.role === "admin"
+    userData.role === "admin"
       ? userData.roleData?.name || "Admin"
       : userData.roleData?.firstName || "Guide";
-
-  const displayRole = userData?.role ? userData.role.toUpperCase() : "UNKNOWN";
-  const displaySchoolId = userData?.schoolId ? userData.schoolId : "???";
+  const displayRole = userData.role ? userData.role.toUpperCase() : "UNKNOWN";
+  const displaySchoolId = userData.schoolid ? userData.schoolid : "???"; // Updated to schoolid
 
   return (
     <div className="relative">
       {/* Sidebar positioned below the navigation bar */}
       <div
-        className={`fixed top-28 left-0 z-30  h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col shadow-5xl items-center ${
-          isOpen ? "w-60 bg-white]  p-5" : "w-16 bg-purple-300 p-3"
+        className={`fixed top-28 left-0 z-30 h-[calc(100vh-4rem)] transition-all duration-300 flex flex-col shadow-5xl items-center ${
+          isOpen ? "w-60 bg-white p-5" : "w-16 bg-purple-300 p-3"
         }`}
       >
         {/* Sidebar Toggle Button */}
@@ -62,7 +117,7 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-6 w-47 flex flex-col  gap-3">
+            <div className="mt-6 w-47 flex flex-col gap-3">
               {menuItems.map((item, index) => (
                 <div
                   key={index}
@@ -75,7 +130,9 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
                 >
                   <img
                     className={`w-5 h-5 mr-3 ${
-                      currentRoute === item.path ? "text-purple-900" : "text-gray-700"
+                      currentRoute === item.path
+                        ? "text-purple-900"
+                        : "text-gray-700"
                     } hover:text-[#4A154B]`}
                     src={item.icon}
                     alt={`${item.label} Icon`}
@@ -119,9 +176,9 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
 };
 
 SidebarWs.propTypes = {
-  isOpen: PropTypes.bool.isRequired, // Ensure isOpen is a boolean and is required
-  setIsOpen: PropTypes.func.isRequired, // Ensure setIsOpen is a function and is required
-  currentRoute: PropTypes.string.isRequired, // Ensure currentRoute is a string and is required
+  isOpen: PropTypes.bool.isRequired,
+  setIsOpen: PropTypes.func.isRequired,
+  currentRoute: PropTypes.string.isRequired,
 };
 
 export default SidebarWs;

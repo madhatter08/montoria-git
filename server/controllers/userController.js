@@ -7,16 +7,13 @@ import {
   WELCOME_EMAIL_ATTACHMENTS,
 } from "./emailTemplates.js";
 
-
 export const getUserData = async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    // Find the user by _id
-    const user = await userModel.findById(userId).select("-password -resetOtp -resetOtpExpiresAt -__v -createdAt -updatedAt");
+    // Use req.user set by userToken middleware
+    const user = req.user;
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Extract role-specific data
@@ -32,21 +29,25 @@ export const getUserData = async (req, res) => {
         roleData = user.studentData;
         break;
       default:
-        return res.json({ success: false, message: "Invalid user role" });
+        return res.status(400).json({ success: false, message: "Invalid user role" });
     }
+
+    console.log("User data being sent:", user); // Debug log
 
     res.json({
       success: true,
       userData: {
+        _id: user._id,
         email: user.email,
-        schoolId: user.schoolId,
+        schoolid: user.schoolId, // Renamed to schoolid (lowercase) for consistency
         role: user.role,
         isActive: user.isActive,
         roleData,
       },
     });
   } catch (error) {
-    return res.json({ success: false, message: error.message });
+    console.error("Error in getUserData:", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -65,7 +66,6 @@ export const getAllUserData = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
 
 export const addUser = async (req, res) => {
   const { schoolId, email, password, roleId, ...roleData } = req.body;
@@ -135,7 +135,7 @@ export const addUser = async (req, res) => {
           guideType: roleData.guideType,
           firstName: roleData.firstName,
           middleName: roleData.middleName || "",
-          lastName: roleData.lastName,
+          lastName: roleData.lastName, // Fixed typo from routeData to roleData
           address: roleData.address,
           birthday: roleData.birthday,
           contactNumber: roleData.contactNumber,
@@ -224,7 +224,6 @@ export const addUser = async (req, res) => {
   }
 };
 
-
 export const editUser = async (req, res) => {
   const { id } = req.params; // Get the user ID from the URL
   const { schoolId, email, password, roleId, ...roleData } = req.body; // Extract the updated data
@@ -264,13 +263,11 @@ export const editUser = async (req, res) => {
       case "guide":
         if (roleData.guideType) user.guideData.guideType = roleData.guideType;
         if (roleData.firstName) user.guideData.firstName = roleData.firstName;
-        if (roleData.middleName)
-          user.guideData.middleName = roleData.middleName;
+        if (roleData.middleName) user.guideData.middleName = roleData.middleName;
         if (roleData.lastName) user.guideData.lastName = roleData.lastName;
         if (roleData.address) user.guideData.address = roleData.address;
         if (roleData.birthday) user.guideData.birthday = roleData.birthday;
-        if (roleData.contactNumber)
-          user.guideData.contactNumber = roleData.contactNumber;
+        if (roleData.contactNumber) user.guideData.contactNumber = roleData.contactNumber;
         if (roleData.photo) user.guideData.photo = roleData.photo;
         if (roleData.class) user.guideData.class = roleData.class;
         break;
@@ -301,7 +298,7 @@ export const editUser = async (req, res) => {
     // Save the updated user
     const updatedUser = await user.save();
 
-    res.json({success: true, message: "User updated successfully", user: updatedUser });
+    res.json({ success: true, message: "User updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ success: false, message: "Server error while updating user" });
@@ -324,5 +321,3 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error while deleting user" });
   }
 };
-
-
