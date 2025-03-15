@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { AppContext } from "../../context/AppContext";
 
-// Mock RemarksForm component (replace with your actual form component)
+// Mock RemarksForm component
 const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
   const [remarks, setRemarks] = useState(initialRemarks || "");
 
@@ -43,38 +43,32 @@ const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
 };
 
 const Progress = () => {
-  const [progress, setProgress] = useState(
-    Array(15).fill({
-      presented: false,
-      practiced: false,
-      mastered: false,
-      remarks: "",
-      expanded: false,
-      subRows: [],
-      date: "",
-    })
-  );
-
+  const [progress, setProgress] = useState({});
   const [selectedStudent, setSelectedStudent] = useState("STUDENT NAME");
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editIndex, setEditIndex] = useState(null);
-  const [feedback, setFeedback] = useState(Array(4).fill(Array(3).fill("")));
-  const [selectedWeek, setSelectedWeek] = useState(Array(4).fill(null));
-
+  const [selectedQuarter, setSelectedQuarter] = useState("Quarter 1");
+  const [feedback, setFeedback] = useState({});
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { backendUrl, userData } = useContext(AppContext);
 
-  // Fetch classes and students based on user role
+  const quarterWeeks = {
+    "Quarter 1": ["Week 1", "Week 2", "Week 3"],
+    "Quarter 2": ["Week 4", "Week 5", "Week 6"],
+    "Quarter 3": ["Week 7", "Week 8", "Week 9"],
+    "Quarter 4": ["Week 10", "Week 11", "Week 12"]
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
           `${backendUrl}/api/school/class-list`,
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
 
         if (response.status !== 200) {
@@ -87,6 +81,31 @@ const Progress = () => {
         ];
         setClasses(uniqueClasses);
         setStudents(data.students);
+
+        const initialProgress = {};
+        const initialFeedback = {};
+        data.students.forEach(student => {
+          initialProgress[student._id] = {};
+          initialFeedback[student._id] = {
+            "Quarter 1": ["", "", ""],
+            "Quarter 2": ["", "", ""],
+            "Quarter 3": ["", "", ""],
+            "Quarter 4": ["", "", ""]
+          };
+          student.studentData.lessons.forEach((_, index) => {
+            initialProgress[student._id][index] = {
+              presented: false,
+              practiced: false,
+              mastered: false,
+              remarks: "",
+              expanded: false,
+              subRows: [],
+              date: ""
+            };
+          });
+        });
+        setProgress(initialProgress);
+        setFeedback(initialFeedback);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -95,11 +114,10 @@ const Progress = () => {
     fetchData();
   }, [backendUrl]);
 
-  // Filter students based on selected class
   const filteredStudents = selectedClass
     ? students.filter((student) => student.studentData.class === selectedClass)
     : [];
-  
+
   const fetchSubwork = async (studentId, lessonIndex) => {
     try {
       const response = await axios.get(`${backendUrl}/api/school/get-subwork`, {
@@ -108,10 +126,9 @@ const Progress = () => {
       });
 
       if (response.data.success) {
-        // Update the state with the fetched subwork data
         setProgress((prev) => {
-          const newProgress = [...prev];
-          newProgress[lessonIndex].subRows = response.data.subwork.map(
+          const newProgress = { ...prev };
+          newProgress[studentId][lessonIndex].subRows = response.data.subwork.map(
             (sub) => ({
               presented: sub.status === "presented",
               practiced: sub.status === "practiced",
@@ -121,10 +138,13 @@ const Progress = () => {
                 : "",
             })
           );
+          const latestSubRow = newProgress[studentId][lessonIndex].subRows.slice(-1)[0] || {};
+          newProgress[studentId][lessonIndex] = {
+            ...newProgress[studentId][lessonIndex],
+            ...latestSubRow
+          };
           return newProgress;
         });
-      } else {
-        toast.error("Failed to fetch subwork data.");
       }
     } catch (error) {
       console.error("Error fetching subwork:", error);
@@ -132,45 +152,55 @@ const Progress = () => {
     }
   };
 
-  // Handle class selection
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
-    setSelectedStudent("STUDENT NAME"); // Reset student selection
+    setSelectedStudent("STUDENT NAME");
   };
 
-  // Handle student selection
   const handleStudentChange = (e) => {
     setSelectedStudent(e.target.value);
   };
 
-  // Calculate counts for Presented, Practiced, Mastered, and Total
-  const countPresented = progress.filter((row) => row.presented).length;
-  const countPracticed = progress.reduce(
-    (total, row) =>
-      total + row.subRows.filter((subRow) => subRow.practiced).length,
-    0
-  );
-  const countMastered = progress.filter((row) => row.mastered).length;
-  const totalWorks = progress.length;
+  const getStudentProgress = (studentId) => {
+    return progress[studentId] || {};
+  };
 
-  // Toggle dropdown for a row
+  const countStatus = (studentId) => {
+    const studentProgress = getStudentProgress(studentId);
+    const lessons = Object.values(studentProgress);
+    return {
+      presented: lessons.filter((row) => row.presented).length,
+      practiced: lessons.reduce(
+        (total, row) =>
+          total + row.subRows.filter((subRow) => subRow.practiced).length,
+        0
+      ),
+      mastered: lessons.filter((row) => row.mastered).length,
+      total: lessons.length,
+      needsAttention: lessons.reduce(
+        (total, row) =>
+          total + (row.subRows.filter((subRow) => subRow.practiced).length >= 8 ? 1 : 0),
+        0
+      )
+    };
+  };
+
   const toggleDropdown = async (index, student) => {
     setProgress((prev) => {
-      const newProgress = [...prev];
-      newProgress[index].expanded = !newProgress[index].expanded;
+      const newProgress = { ...prev };
+      newProgress[student._id][index].expanded = !newProgress[student._id][index].expanded;
       return newProgress;
     });
 
-    if (!progress[index].expanded) {
+    if (!progress[student._id][index].expanded) {
       await fetchSubwork(student._id, index);
     }
   };
 
-  // Handle checkbox change for progress table
-  const handleCheckboxChange = (index, field) => {
+  const handleCheckboxChange = (studentId, index, field) => {
     setProgress((prev) => {
-      const newProgress = [...prev];
-      const row = { ...newProgress[index] };
+      const newProgress = { ...prev };
+      const row = { ...newProgress[studentId][index] };
 
       if (field === "presented") {
         row.presented = !row.presented;
@@ -181,24 +211,22 @@ const Progress = () => {
         row.date = row.presented ? new Date().toLocaleDateString() : "";
       } else if (field === "practiced" && row.presented) {
         row.practiced = !row.practiced;
-        if (!row.practiced) {
-          row.mastered = false;
-        }
+        if (!row.practiced) row.mastered = false;
       } else if (field === "mastered" && row.presented && row.practiced) {
         row.mastered = !row.mastered;
         row.date = row.mastered ? new Date().toLocaleDateString() : row.date;
       }
 
-      newProgress[index] = row;
+      newProgress[studentId][index] = row;
+      saveProgressToMongo(studentId, index, row);
       return newProgress;
     });
   };
 
-  // Handle checkbox change for sub-rows
-  const handleSubRowCheckboxChange = (index, subIndex, field) => {
+  const handleSubRowCheckboxChange = (studentId, index, subIndex, field) => {
     setProgress((prev) => {
-      const newProgress = [...prev];
-      const row = { ...newProgress[index] };
+      const newProgress = { ...prev };
+      const row = { ...newProgress[studentId][index] };
       const subRow = { ...row.subRows[subIndex] };
 
       if (field === "presented") {
@@ -210,23 +238,43 @@ const Progress = () => {
         subRow.date = subRow.presented ? new Date().toLocaleDateString() : "";
       } else if (field === "practiced" && subRow.presented) {
         subRow.practiced = !subRow.practiced;
-        if (!subRow.practiced) {
-          subRow.mastered = false;
-        }
+        if (!subRow.practiced) subRow.mastered = false;
       } else if (field === "mastered" && subRow.presented && subRow.practiced) {
         subRow.mastered = !subRow.mastered;
-        subRow.date = subRow.mastered
-          ? new Date().toLocaleDateString()
-          : subRow.date;
+        subRow.date = subRow.mastered ? new Date().toLocaleDateString() : subRow.date;
       }
 
       row.subRows[subIndex] = subRow;
-      newProgress[index] = row;
+      newProgress[studentId][index] = { ...row, ...subRow };
+      saveProgressToMongo(studentId, index, newProgress[studentId][index]);
       return newProgress;
     });
   };
 
-  // Handle adding a new sub-row
+  const saveProgressToMongo = async (studentId, lessonIndex, progressData) => {
+    try {
+      await axios.post(
+        `${backendUrl}/api/school/save-progress`,
+        {
+          studentId,
+          lessonIndex,
+          progress: {
+            presented: progressData.presented,
+            practiced: progressData.practiced,
+            mastered: progressData.mastered,
+            remarks: progressData.remarks,
+            subRows: progressData.subRows,
+            date: progressData.date
+          }
+        },
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error("Error saving progress:", error);
+      toast.error("Failed to save progress.");
+    }
+  };
+
   const handleAddSubwork = async (index, student) => {
     const lesson = student.studentData.lessons[index];
     const newSubwork = {
@@ -236,14 +284,8 @@ const Progress = () => {
       status_date: new Date(),
       updatedBy: userData.email,
     };
-    console.log("Payload being sent to backend:", {
-      studentId: student.schoolId,
-      lessonIndex: index,
-      subwork: newSubwork,
-    });
 
     try {
-      // Send a request to the backend to add the subwork
       const response = await axios.post(
         `${backendUrl}/api/school/add-subwork`,
         {
@@ -255,53 +297,22 @@ const Progress = () => {
       );
 
       if (response.status === 200) {
-        // Update the local state
-        setStudents((prevStudents) =>
-          prevStudents.map((student) =>
-            student._id === student._id
-              ? {
-                  ...student,
-                  studentData: {
-                    ...student.studentData,
-                    lessons: student.studentData.lessons.map((lesson, i) =>
-                      i === index
-                        ? {
-                            ...lesson,
-                            subwork: [...lesson.subwork, newSubwork],
-                          }
-                        : lesson
-                    ),
-                  },
-                }
-              : student
-          )
-        );
-
-        // Update the progress state
-        setProgress((prev) =>
-          prev.map((row, i) => {
-            if (i === index) {
-              return {
-                ...row,
-                expanded: true,
-                subRows: [
-                  ...(row.subRows || []),
-                  {
-                    presented: true,
-                    practiced: false,
-                    mastered: false,
-                    date: new Date().toLocaleDateString(),
-                  },
-                ],
-              };
-            }
-            return row;
-          })
-        );
-
+        setProgress((prev) => {
+          const newProgress = { ...prev };
+          newProgress[student._id][index].subRows.push({
+            presented: true,
+            practiced: false,
+            mastered: false,
+            date: new Date().toLocaleDateString(),
+          });
+          newProgress[student._id][index].expanded = true;
+          newProgress[student._id][index] = {
+            ...newProgress[student._id][index],
+            ...newProgress[student._id][index].subRows.slice(-1)[0]
+          };
+          return newProgress;
+        });
         toast.success("Subwork added successfully!");
-      } else {
-        throw new Error("Failed to add subwork");
       }
     } catch (error) {
       console.error("Error adding subwork:", error);
@@ -309,45 +320,68 @@ const Progress = () => {
     }
   };
 
-  // Handle edit remarks for progress table
   const handleEditRemarks = (index) => {
     setEditIndex(index);
   };
 
-  // Handle save remarks for progress table
   const handleSaveRemarks = (index, remarks) => {
+    const student = students.find((s) => s.studentData.firstName === selectedStudent);
     setProgress((prev) => {
-      const newProgress = [...prev];
-      newProgress[index].remarks = remarks;
+      const newProgress = { ...prev };
+      newProgress[student._id][index].remarks = remarks;
+      saveProgressToMongo(student._id, index, newProgress[student._id][index]);
       return newProgress;
     });
     setEditIndex(null);
   };
 
-  // Handle feedback change for quarters
-  const handleFeedbackChange = (quarterIndex, weekIndex, value) => {
+  const handleFeedbackChange = (studentId, weekIndex, value) => {
     setFeedback((prev) => {
-      const newFeedback = [...prev];
-      newFeedback[quarterIndex] = [...newFeedback[quarterIndex]];
-      newFeedback[quarterIndex][weekIndex] = value;
+      const newFeedback = { ...prev };
+      newFeedback[studentId][selectedQuarter][weekIndex] = value;
+      saveFeedbackToMongo(studentId, selectedQuarter, newFeedback[studentId][selectedQuarter]);
       return newFeedback;
     });
   };
 
-  // Handle save feedback for quarters
-  const handleSaveFeedback = (quarterIndex, weekIndex) => {
-    toast(
-      `Feedback for Quarter ${quarterIndex + 1}, Week ${weekIndex + 1} saved`
-    );
+  const saveFeedbackToMongo = async (studentId, quarter, feedbackData) => {
+    try {
+      await axios.post(
+        `${backendUrl}/api/school/save-feedback`,
+        {
+          studentId,
+          quarter,
+          feedback: feedbackData
+        },
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      toast.error("Failed to save feedback.");
+    }
   };
 
-  // Handle week selection for quarters
-  const handleWeekSelection = (quarterIndex, weekIndex) => {
-    setSelectedWeek((prev) => {
-      const newSelectedWeek = [...prev];
-      newSelectedWeek[quarterIndex] = weekIndex;
-      return newSelectedWeek;
+  const filterProgress = (studentId) => {
+    const studentProgress = getStudentProgress(studentId);
+    return Object.entries(studentProgress).filter(([_, row]) => {
+      const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+      if (filterStatus === "All") return true;
+      if (filterStatus === "Not Presented") return !row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Presented") return row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Practiced") return row.practiced && !row.mastered;
+      if (filterStatus === "Mastered") return row.mastered;
+      if (filterStatus === "Needs Attention") return practicedCount >= 8;
+      return true;
     });
+  };
+
+  const getStatusIndicator = (row) => {
+    const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+    if (practicedCount >= 8) return <span className="text-red-500 font-bold">!</span>;
+    if (row.mastered) return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block"></span>;
+    if (row.practiced) return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block"></span>;
+    if (row.presented) return <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>;
+    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block"></span>;
   };
 
   return (
@@ -363,11 +397,8 @@ const Progress = () => {
                     (s) => s.studentData.firstName === selectedStudent
                   );
                   if (student) {
-                    const { lastName, firstName, middleName } =
-                      student.studentData;
-                    const middleInitial = middleName
-                      ? `${middleName.charAt(0)}.`
-                      : "";
+                    const { lastName, firstName, middleName } = student.studentData;
+                    const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
                     return `${lastName}, ${firstName} ${middleInitial}`;
                   }
                   return "STUDENT NAME";
@@ -393,52 +424,114 @@ const Progress = () => {
             <option value="STUDENT NAME">Select Student</option>
             {filteredStudents.map((student) => (
               <option key={student._id} value={student.studentData.firstName}>
-                {`${student.studentData.lastName}, ${
-                  student.studentData.firstName
-                } ${
-                  student.studentData.middleName
-                    ? `${student.studentData.middleName.charAt(0)}.`
-                    : ""
+                {`${student.studentData.lastName}, ${student.studentData.firstName} ${
+                  student.studentData.middleName ? `${student.studentData.middleName.charAt(0)}.` : ""
                 }`}
               </option>
             ))}
           </select>
-          <div className="relative w-full lg:w-96">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4 pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <img
-              src={assets.search}
-              alt="Search"
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
-            />
+          <div className="relative w-full lg:w-96 flex items-center gap-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="h-12 bg-[#d9d9d9] rounded-[15px] px-4 pl-10 pr-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <img
+                src={assets.search}
+                alt="Search"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+              />
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v5.586a1 1 0 01-.293.707l-2 2A1 1 0 0110 23v-7.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
+                </svg>
+              </button>
+              {showFilterDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-10">
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("All"); setShowFilterDropdown(false); }}
+                  >
+                    All
+                  </div>
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("Not Presented"); setShowFilterDropdown(false); }}
+                  >
+                    <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>Not Presented
+                  </div>
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("Presented"); setShowFilterDropdown(false); }}
+                  >
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Presented
+                  </div>
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("Practiced"); setShowFilterDropdown(false); }}
+                  >
+                    <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>Practiced
+                  </div>
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("Mastered"); setShowFilterDropdown(false); }}
+                  >
+                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>Mastered
+                  </div>
+                  <div
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => { setFilterStatus("Needs Attention"); setShowFilterDropdown(false); }}
+                  >
+                    <span className="text-red-500 font-bold mr-2">!</span>Needs Attention
+                  </div>
+                </div>
+              )}
+            </div>
+            <select
+              className="w-40 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              value={selectedQuarter}
+              onChange={(e) => setSelectedQuarter(e.target.value)}
+            >
+              <option value="Quarter 1">Quarter 1</option>
+              <option value="Quarter 2">Quarter 2</option>
+              <option value="Quarter 3">Quarter 3</option>
+              <option value="Quarter 4">Quarter 4</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* Count Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#5BB381] p-4 rounded-lg shadow text-center">
-          <p className="text-lg font-bold">{countPresented}</p>
-          <p className="text-sm text-black">Presented</p>
+      {selectedStudent !== "STUDENT NAME" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-[#5BB381] p-4 rounded-lg shadow text-center">
+            <p className="text-lg font-bold">{countStatus(students.find(s => s.studentData.firstName === selectedStudent)._id).presented}</p>
+            <p className="text-sm text-black">Presented</p>
+          </div>
+          <div className="bg-[#E3B34C] p-4 rounded-lg shadow text-center">
+            <p className="text-lg font-bold">{countStatus(students.find(s => s.studentData.firstName === selectedStudent)._id).practiced}</p>
+            <p className="text-sm text-black">Practiced</p>
+          </div>
+          <div className="bg-[#ac61ae] p-4 rounded-lg shadow text-center">
+            <p className="text-lg font-bold">{countStatus(students.find(s => s.studentData.firstName === selectedStudent)._id).mastered}</p>
+            <p className="text-sm text-black">Mastered</p>
+          </div>
+          <div className="bg-[#aeadad] p-4 rounded-lg shadow text-center">
+            <p className="text-lg font-bold">{countStatus(students.find(s => s.studentData.firstName === selectedStudent)._id).total}</p>
+            <p className="text-sm text-black">Total</p>
+          </div>
+          <div className="bg-[#ff4444] p-4 rounded-lg shadow text-center">
+            <p className="text-lg font-bold">{countStatus(students.find(s => s.studentData.firstName === selectedStudent)._id).needsAttention}</p>
+            <p className="text-sm text-black">Needs Attention</p>
+          </div>
         </div>
-        <div className="bg-[#E3B34C] p-4 rounded-lg shadow text-center">
-          <p className="text-lg font-bold">{countPracticed}</p>
-          <p className="text-sm text-black">Practiced</p>
-        </div>
-        <div className="bg-[#ac61ae] p-4 rounded-lg shadow text-center">
-          <p className="text-lg font-bold">{countMastered}</p>
-          <p className="text-sm text-black">Mastered</p>
-        </div>
-        <div className="bg-[#aeadad] p-4 rounded-lg shadow text-center">
-          <p className="text-lg font-bold">{totalWorks}</p>
-          <p className="text-sm text-black ">Total</p>
-        </div>
-      </div>
+      )}
 
       {/* Table Section */}
       <div className="overflow-x-auto">
@@ -479,19 +572,19 @@ const Progress = () => {
                   return (
                     <tr>
                       <td colSpan="7" className="p-3 text-center">
-                        Oops! Create a lesson plan for this student to start
-                        tracking progress.
+                        Oops! Create a lesson plan for this student to start tracking progress.
                       </td>
                     </tr>
                   );
                 }
-                return progress.map((row, index) => (
+                return filterProgress(student._id).map(([index, row]) => (
                   <>
-                    {/* Main Row */}
                     <tr key={index} className="border-b">
                       <td className="p-3 flex justify-between items-center">
-                        {student.studentData.lessons[index]?.lesson_work ||
-                          `Work ${index + 1}`}
+                        <span className="flex items-center">
+                          {getStatusIndicator(row)}
+                          <span className="ml-2">{student.studentData.lessons[index]?.lesson_work || `Work ${index + 1}`}</span>
+                        </span>
                         <button
                           onClick={() => toggleDropdown(index, student)}
                           className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
@@ -504,9 +597,7 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                           checked={row.presented}
-                          onChange={() =>
-                            handleCheckboxChange(index, "presented")
-                          }
+                          onChange={() => handleCheckboxChange(student._id, index, "presented")}
                         />
                       </td>
                       <td className="p-3 text-center">
@@ -514,9 +605,7 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                           checked={row.practiced}
-                          onChange={() =>
-                            handleCheckboxChange(index, "practiced")
-                          }
+                          onChange={() => handleCheckboxChange(student._id, index, "practiced")}
                           disabled={!row.presented}
                         />
                       </td>
@@ -525,9 +614,7 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                           checked={row.mastered}
-                          onChange={() =>
-                            handleCheckboxChange(index, "mastered")
-                          }
+                          onChange={() => handleCheckboxChange(student._id, index, "mastered")}
                           disabled={!row.presented || !row.practiced}
                         />
                       </td>
@@ -537,18 +624,12 @@ const Progress = () => {
                           onClick={() => handleEditRemarks(index)}
                           className="absolute right-2 top-1/2 transform -translate-y-1/2"
                         >
-                          <img
-                            src={assets.edit}
-                            alt="Edit"
-                            className="w-5 h-5"
-                          />
+                          <img src={assets.edit} alt="Edit" className="w-5 h-5" />
                         </button>
                       </td>
                       <td className="p-3">
                         {student.studentData.lessons[index]?.start_date
-                          ? new Date(
-                              student.studentData.lessons[index].start_date
-                            ).toLocaleDateString()
+                          ? new Date(student.studentData.lessons[index].start_date).toLocaleDateString()
                           : "-"}
                       </td>
                       <td className="p-3 text-center">
@@ -560,23 +641,13 @@ const Progress = () => {
                         </button>
                       </td>
                     </tr>
-
-                    {/* Sub-Rows */}
                     {row.expanded &&
                       row.subRows.map((subRow, subIndex) => {
-                        const subwork =
-                          student.studentData.lessons[index]?.subwork[subIndex];
+                        const subwork = student.studentData.lessons[index]?.subwork[subIndex];
                         return (
-                          <tr
-                            key={`sub-${index}-${subIndex}`}
-                            className="border-b bg-gray-300"
-                          >
+                          <tr key={`sub-${index}-${subIndex}`} className="border-b bg-gray-300">
                             <td className="p-3">
-                              {subwork?.subwork_name ||
-                                `Day ${subIndex + 1}: ${
-                                  student.studentData.lessons[index]
-                                    ?.lesson_work
-                                }`}
+                              {subwork?.subwork_name || `Day ${subIndex + 1}: ${student.studentData.lessons[index]?.lesson_work}`}
                             </td>
                             <td className="p-3 text-center">
                               <input
@@ -584,11 +655,7 @@ const Progress = () => {
                                 className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                                 checked={subRow.presented}
                                 onChange={() =>
-                                  handleSubRowCheckboxChange(
-                                    index,
-                                    subIndex,
-                                    "presented"
-                                  )
+                                  handleSubRowCheckboxChange(student._id, index, subIndex, "presented")
                                 }
                               />
                             </td>
@@ -598,11 +665,7 @@ const Progress = () => {
                                 className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                                 checked={subRow.practiced}
                                 onChange={() =>
-                                  handleSubRowCheckboxChange(
-                                    index,
-                                    subIndex,
-                                    "practiced"
-                                  )
+                                  handleSubRowCheckboxChange(student._id, index, subIndex, "practiced")
                                 }
                                 disabled={!subRow.presented}
                               />
@@ -613,15 +676,9 @@ const Progress = () => {
                                 className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                                 checked={subRow.mastered}
                                 onChange={() =>
-                                  handleSubRowCheckboxChange(
-                                    index,
-                                    subIndex,
-                                    "mastered"
-                                  )
+                                  handleSubRowCheckboxChange(student._id, index, subIndex, "mastered")
                                 }
-                                disabled={
-                                  !subRow.presented || !subRow.practiced
-                                }
+                                disabled={!subRow.presented || !subRow.practiced}
                               />
                             </td>
                             <td className="p-3 flex justify-between items-center">
@@ -635,9 +692,7 @@ const Progress = () => {
                                 />
                               </button>
                             </td>
-                            <td className="p-3">
-                              {subwork?.status_date || subRow.date || "-"}
-                            </td>
+                            <td className="p-3">{subwork?.status_date || subRow.date || "-"}</td>
                             <td className="p-3">{subwork?.updatedBy || "-"}</td>
                           </tr>
                         );
@@ -650,70 +705,38 @@ const Progress = () => {
         </table>
       </div>
 
-      {/* Quarters Section */}
+      {/* Feedback Section */}
       <div className="mt-8">
         <div className="bg-[#4A154B] text-white p-4 rounded-t-lg">
           <h2 className="text-2xl font-bold">Feedback</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
-          {Array.from({ length: 4 }).map((_, quarterIndex) => (
-            <div key={quarterIndex} className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-lg font-bold mb-4">
-                Quarter {quarterIndex + 1}
-              </h3>
-              <select
-                className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4 mb-4" // Updated dropdown styling
-                onChange={(e) =>
-                  handleWeekSelection(quarterIndex, parseInt(e.target.value))
-                }
-              >
-                <option value="">Select Week</option>
-                {Array.from({ length: 3 }).map((_, weekIndex) => (
-                  <option key={weekIndex} value={weekIndex}>
-                    Week {weekIndex + 1}
-                  </option>
-                ))}
-              </select>
-              {selectedWeek[quarterIndex] !== null && (
-                <div className="border border-gray-300 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">
-                    Week {selectedWeek[quarterIndex] + 1}
-                  </h4>
+        <div className="bg-white rounded-b-lg shadow p-4">
+          {selectedStudent !== "STUDENT NAME" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {quarterWeeks[selectedQuarter].map((weekLabel, weekIndex) => (
+                <div key={weekIndex} className="border border-gray-300 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">{weekLabel}</h4>
                   <textarea
-                    value={feedback[quarterIndex][selectedWeek[quarterIndex]]}
-                    onChange={(e) =>
-                      handleFeedbackChange(
-                        quarterIndex,
-                        selectedWeek[quarterIndex],
-                        e.target.value
-                      )
-                    }
+                    value={feedback[students.find(s => s.studentData.firstName === selectedStudent)._id]?.[selectedQuarter]?.[weekIndex] || ""}
+                    onChange={(e) => handleFeedbackChange(students.find(s => s.studentData.firstName === selectedStudent)._id, weekIndex, e.target.value)}
                     className="w-full h-24 p-2 border rounded-lg"
-                    placeholder="Enter feedback..."
+                    placeholder={`Enter feedback for ${weekLabel}...`}
                   />
-                  <button
-                    onClick={() =>
-                      handleSaveFeedback(
-                        quarterIndex,
-                        selectedWeek[quarterIndex]
-                      )
-                    }
-                    className="mt-2 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
-                  >
-                    Save
-                  </button>
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
+
       {/* Remarks Form Modal */}
       {editIndex !== null && (
         <RemarksForm
           onClose={() => setEditIndex(null)}
           onSave={(remarks) => handleSaveRemarks(editIndex, remarks)}
-          initialRemarks={progress[editIndex].remarks}
+          initialRemarks={
+            progress[students.find(s => s.studentData.firstName === selectedStudent)._id]?.[editIndex]?.remarks || ""
+          }
         />
       )}
     </div>

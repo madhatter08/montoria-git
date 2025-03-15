@@ -47,6 +47,8 @@ const preloadStudentData = async () => {
 
 preloadStudentData();
 
+//feedback summarizer
+
 // Function to summarize feedback using DeepSeek API
 export const summarizeFeedback = async (req, res) => {
   const { feedback, studentName } = req.body; // Feedback text and student name
@@ -193,7 +195,7 @@ export const handleGenerate = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to generate summary." });
   }
 };
-
+// end of feedback summarizer
 // Add Curriculum
 export const addCurriculum = async (req, res) => {
   const { Program, Level, Areas, Material, Lesson, Work } = req.body;
@@ -272,10 +274,10 @@ export const editCurriculum = async (req, res) => {
   }
 };
 
-// Get Class List
+// Get Class List (Updated for Progress Page)
 export const getClassList = async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.user?._id; // Use req.user from userToken middleware instead of req.body
     if (!userId) {
       return res.status(400).json({ success: false, message: "User ID is required" });
     }
@@ -492,6 +494,106 @@ export const deleteLesson = async (req, res) => {
 
 /*----------------PROGRESS PAGE------------------- */
 
+
+// Save Progress Endpoint
+export const saveProgress = async (req, res) => {
+  const { studentId, lessonIndex, progress } = req.body;
+
+  if (!studentId || lessonIndex === undefined || !progress) {
+    return res.status(400).json({
+      success: false,
+      message: "studentId, lessonIndex, and progress are required.",
+    });
+  }
+
+  try {
+    // Find the student by MongoDB _id
+    const student = await userModel.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
+
+    // Ensure the lesson exists
+    if (lessonIndex < 0 || lessonIndex >= student.studentData.lessons.length) {
+      return res.status(400).json({ success: false, message: "Invalid lesson index." });
+    }
+
+    // Update the lesson with progress data
+    const lesson = student.studentData.lessons[lessonIndex];
+    lesson.remarks = progress.remarks || lesson.remarks;
+
+    // Update subwork based on progress.subRows
+    const subRows = progress.subRows || [];
+    lesson.subwork = subRows.map((sub, idx) => ({
+      subwork_name: sub.subwork_name || lesson.subwork[idx]?.subwork_name || `Day ${idx + 1}: ${lesson.lesson_work}`,
+      status: sub.mastered ? "mastered" : sub.practiced ? "practiced" : sub.presented ? "presented" : "not_presented",
+      subwork_remarks: sub.subwork_remarks || lesson.subwork[idx]?.subwork_remarks || "",
+      status_date: sub.date ? new Date(sub.date) : lesson.subwork[idx]?.status_date || new Date(),
+      updatedBy: req.user?.email || lesson.subwork[idx]?.updatedBy || "system" // Assuming auth middleware provides req.user
+    }));
+
+    // Update main lesson status based on the most recent subrow
+    const latestSubRow = subRows[subRows.length - 1] || {};
+    lesson.status = latestSubRow.mastered ? "mastered" : latestSubRow.practiced ? "practiced" : latestSubRow.presented ? "presented" : lesson.status || "not_presented";
+    lesson.status_date = latestSubRow.date ? new Date(latestSubRow.date) : lesson.status_date || new Date();
+
+    student.updatedAt = new Date();
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Progress saved successfully.",
+      data: student.studentData.lessons[lessonIndex]
+    });
+  } catch (error) {
+    console.error("Error in saveProgress:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Save Feedback Endpoint
+export const saveFeedback = async (req, res) => {
+  const { studentId, quarter, feedback } = req.body;
+
+  if (!studentId || !quarter || !feedback) {
+    return res.status(400).json({
+      success: false,
+      message: "studentId, quarter, and feedback are required.",
+    });
+  }
+
+  try {
+    // Find the student by MongoDB _id
+    const student = await userModel.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
+
+    // Find or create the quarter entry
+    let quarterEntry = student.studentData.quarters.find(q => q.quarter === quarter);
+    if (!quarterEntry) {
+      quarterEntry = { quarter, feedback: ["", "", ""] }; // Initialize with 3 empty feedback slots
+      student.studentData.quarters.push(quarterEntry);
+    }
+
+    // Update feedback (ensure it's an array of 3 strings)
+    quarterEntry.feedback = feedback.length === 3 ? feedback : quarterEntry.feedback.map((existing, idx) => feedback[idx] || existing);
+
+    student.updatedAt = new Date();
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Feedback saved successfully.",
+      data: quarterEntry
+    });
+  } catch (error) {
+    console.error("Error in saveFeedback:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Existing functions (getSubwork, addSubwork, getStudentList) remain unchanged
 export const getSubwork = async (req, res) => {
   const { studentId, lessonIndex } = req.query;
 
@@ -503,7 +605,6 @@ export const getSubwork = async (req, res) => {
   }
 
   try {
-    // Find the student by their ID
     const student = await userModel.findOne({
       "studentData.schoolId": studentId,
     });
@@ -512,12 +613,10 @@ export const getSubwork = async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found." });
     }
 
-    // Check if the lesson index is valid
     if (lessonIndex < 0 || lessonIndex >= student.studentData.lessons.length) {
       return res.status(400).json({ success: false, message: "Invalid lesson index." });
     }
 
-    // Get the subwork for the specified lesson
     const subwork = student.studentData.lessons[lessonIndex].subwork;
 
     res.status(200).json({ success: true, subwork });
@@ -531,10 +630,8 @@ export const addSubwork = async (req, res) => {
   try {
     const { studentId, lessonIndex, subwork } = req.body;
 
-    // Log the request payload for debugging
     console.log("Request Payload:", { studentId, lessonIndex, subwork });
 
-    // Validate required fields
     if (!studentId || lessonIndex === undefined || !subwork) {
       return res.status(400).json({
         success: false,
@@ -542,33 +639,26 @@ export const addSubwork = async (req, res) => {
       });
     }
 
-    // Find the student by ID
     const student = await userModel.findById(studentId);
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found." });
     }
 
-    // Check if the lesson exists
     if (!student.studentData.lessons[lessonIndex]) {
       return res.status(404).json({ success: false, message: "Lesson not found." });
     }
 
-    // Create a new subwork entry
     const newSubwork = {
       subwork_name: subwork.subwork_name,
       status: subwork.status,
-      status_date: subwork.status_date || new Date(), // Automatically set the current date
-      subwork_remarks: subwork.subwork_remarks || "", // Optional field
+      status_date: subwork.status_date || new Date(),
+      subwork_remarks: subwork.subwork_remarks || "",
       updatedBy: subwork.updatedBy,
     };
 
-    // Add the new subwork to the lesson's subwork array
     student.studentData.lessons[lessonIndex].subwork.push(newSubwork);
-
-    // Save the updated student document
     await student.save();
 
-    // Return the updated student document
     res.status(200).json({
       success: true,
       message: "Subwork added successfully.",
@@ -616,8 +706,6 @@ export const getStudentList = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 /*--------------------------------------------------------- */
 
