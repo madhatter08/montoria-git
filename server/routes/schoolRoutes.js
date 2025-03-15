@@ -20,7 +20,9 @@ import {
   getSubwork,
   addSubwork,
   getStudentById,
-  saveLessonToMultiple // Include this route
+  saveLessonToMultiple,
+  saveProgress, // Add this
+  saveFeedback // Add this
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -53,5 +55,9 @@ schoolRouter.delete("/delete-lesson", deleteLesson);
 schoolRouter.get("/get-subwork", userToken, getSubwork);
 schoolRouter.post("/add-subwork", userToken, addSubwork);
 schoolRouter.post("/save-lesson-to-multiple", saveLessonToMultiple);
+
+// New routes for saving progress and feedback
+schoolRouter.post("/save-progress", userToken, saveProgress);
+schoolRouter.post("/save-feedback", userToken, saveFeedback);
 
 export default schoolRouter;

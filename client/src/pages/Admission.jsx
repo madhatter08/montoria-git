@@ -37,13 +37,13 @@ export default function TabPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const { backendUrl } = useContext(AppContext);
+  const { backendUrl, userData } = useContext(AppContext);
   
   const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
-    setCurrentPage(1); // Reset to page 1 when tab changes
+    setCurrentPage(1);
   }, [activeTab]);
 
   const fetchUsers = async () => {
@@ -177,11 +177,11 @@ export default function TabPanel() {
         if (!userToRestore) {
           throw new Error("User not found in inactive tab");
         }
-        const originalTab = userToRestore.role;
+        const originalTab = userToRestore.role + "s"; // e.g., "admins", "students"
         const updatedUserData = {
           ...data,
           inactive: data.inactive.filter((item) => item._id !== itemToRestore),
-          [originalTab]: [...data[originalTab], { ...userToRestore, isActive: true }],
+          [originalTab]: [...(data[originalTab] || []), { ...userToRestore, isActive: true }],
         };
         setData(updatedUserData);
         toast.success("User restored successfully!");
@@ -233,6 +233,16 @@ export default function TabPanel() {
       </div>
     );
   if (error) return <p>{error}</p>;
+
+  if (activeTab === "admission" && (!userData || userData.role !== "admin")) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg text-gray-700">
+          {userData ? "Not available: Admin access only." : "Please log in to access the admission dashboard."}
+        </p>
+      </div>
+    );
+  }
 
   const tabs = [
     { name: "GUIDE", key: "guide", count: data.guide.length },
@@ -292,51 +302,56 @@ export default function TabPanel() {
     switch (activeTab) {
       case "guide":
         return data.filter((item) => {
-          const guideData = item.guideData;
+          const guideData = item.guideData || {};
           return (
-            guideData.firstName.toLowerCase().includes(searchLower) ||
-            guideData.lastName.toLowerCase().includes(searchLower) ||
-            guideData.address.toLowerCase().includes(searchLower) ||
-            guideData.contactNumber.toLowerCase().includes(searchLower) ||
-            guideData.class.toLowerCase().includes(searchLower) ||
-            guideData.guideType.toLowerCase().includes(searchLower) ||
-            guideData.birthday.toLowerCase().includes(searchLower) ||
+            (guideData.firstName?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.lastName?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.address?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.contactNumber?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.class?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.guideType?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.birthday?.toLowerCase().includes(searchLower) || false) ||
             item.email.toLowerCase().includes(searchLower) ||
             item.schoolId.toLowerCase().includes(searchLower)
           );
         });
       case "admin":
         return data.filter((item) => {
-          const adminData = item.adminData;
+          const adminData = item.adminData || {};
           return (
-            adminData.name.toLowerCase().includes(searchLower) ||
+            (adminData.name?.toLowerCase().includes(searchLower) || false) ||
             item.email.toLowerCase().includes(searchLower) ||
             item.schoolId.toLowerCase().includes(searchLower) ||
-            adminData.contactNumber.toLowerCase().includes(searchLower)
+            (adminData.contactNumber?.toLowerCase().includes(searchLower) || false)
           );
         });
       case "students":
       case "inactive":
         return data.filter((item) => {
-          const studentData = item.studentData || item.guideData || item.adminData;
+          const studentData = item.studentData || {};
+          const guideData = item.guideData || {};
+          const adminData = item.adminData || {};
           return (
             item.email.toLowerCase().includes(searchLower) ||
             item.schoolId.toLowerCase().includes(searchLower) ||
-            (studentData?.firstName?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.lastName?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.level?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.address?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.parentName?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.parentPhone?.toLowerCase().includes(searchLower) || false) ||
-            (studentData?.class?.toLowerCase().includes(searchLower) || false)
+            (studentData.firstName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.lastName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.level?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.address?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.parentName?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.parentPhone?.toLowerCase().includes(searchLower) || false) ||
+            (studentData.class?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.firstName?.toLowerCase().includes(searchLower) || false) ||
+            (guideData.lastName?.toLowerCase().includes(searchLower) || false) ||
+            (adminData.name?.toLowerCase().includes(searchLower) || false)
           );
         });
       case "admission":
         return data.filter((item) => {
           return (
-            item.program.toLowerCase().includes(searchLower) ||
-            item.level.toLowerCase().includes(searchLower) ||
-            item.learningArea.toLowerCase().includes(searchLower)
+            (item.program?.toLowerCase().includes(searchLower) || false) ||
+            (item.level?.toLowerCase().includes(searchLower) || false) ||
+            (item.learningArea?.toLowerCase().includes(searchLower) || false)
           );
         });
       default:
@@ -346,7 +361,6 @@ export default function TabPanel() {
 
   const filteredData = filterData(data[activeTab], activeTab, searchQuery);
   
-  // Pagination logic
   const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const endIndex = startIndex + ROWS_PER_PAGE;
@@ -368,7 +382,12 @@ export default function TabPanel() {
     rows.forEach((row) => {
       const rowData = [];
       row.querySelectorAll("th, td").forEach((cell) => {
-        rowData.push(cell.innerText);
+        // Skip image cells for CSV export
+        if (!cell.querySelector("img")) {
+          rowData.push(cell.innerText);
+        } else {
+          rowData.push(""); // Placeholder for photo column
+        }
       });
       csvContent += rowData.join(",") + "\n";
     });
@@ -530,102 +549,106 @@ export default function TabPanel() {
                       {activeTab === "students" && (
                         <>
                           <td className="p-3">
-                            {item.studentData.photo ? (
+                            {item.studentData?.photo ? (
                               <img
-                                src={item.studentData.photo}
-                                alt="User image"
-                                className="w-10 h-10 rounded-full"
+                                src={`${backendUrl}${item.studentData.photo}`} // Prepend backend URL
+                                alt={`${item.studentData.firstName}'s photo`}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
                               />
                             ) : (
                               <img
                                 src={assets.no_pfp}
-                                alt="Placeholder"
+                                alt="No photo"
                                 className="w-10 h-10 rounded-full"
                               />
                             )}
                           </td>
                           <td className="p-3">{item.schoolId}</td>
-                          <td className="p-3">{`${item.studentData.lastName}, ${item.studentData.firstName} ${item.studentData.middleName ? `${item.studentData.middleName.charAt(0)}.` : ""}`}</td>
-                          <td className="p-3">{item.studentData.level}</td>
-                          <td className="p-3">{item.studentData.lrn}</td>
-                          <td className="p-3">{new Date(item.studentData.birthday).toISOString().split("T")[0]}</td>
-                          <td className="p-3">{item.studentData.address}</td>
-                          <td className="p-3">{`${item.studentData.parentName} (${item.studentData.parentRel})`}</td>
-                          <td className="p-3">{item.studentData.parentPhone}</td>
+                          <td className="p-3">{`${item.studentData?.lastName || ""}, ${item.studentData?.firstName || ""} ${item.studentData?.middleName ? `${item.studentData.middleName.charAt(0)}.` : ""}`}</td>
+                          <td className="p-3">{item.studentData?.level || "N/A"}</td>
+                          <td className="p-3">{item.studentData?.lrn || "N/A"}</td>
+                          <td className="p-3">{item.studentData?.birthday ? new Date(item.studentData.birthday).toISOString().split("T")[0] : "N/A"}</td>
+                          <td className="p-3">{item.studentData?.address || "N/A"}</td>
+                          <td className="p-3">{item.studentData?.parentName ? `${item.studentData.parentName} (${item.studentData.parentRel || "N/A"})` : "N/A"}</td>
+                          <td className="p-3">{item.studentData?.parentPhone || "N/A"}</td>
                           <td className="p-3">{item.email}</td>
-                          <td className="p-3">{item.studentData.class}</td>
+                          <td className="p-3">{item.studentData?.class || "N/A"}</td>
                         </>
                       )}
                       {activeTab === "admin" && (
                         <>
                           <td className="p-3">
-                            {item.adminData.photo ? (
+                            {item.adminData?.photo ? (
                               <img
-                                src={item.adminData.photo}
-                                alt="User image"
-                                className="w-10 h-10 rounded-full"
+                                src={`${backendUrl}${item.adminData.photo}`} // Prepend backend URL
+                                alt={`${item.adminData.name}'s photo`}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
                               />
                             ) : (
                               <img
                                 src={assets.no_pfp}
-                                alt="Placeholder"
+                                alt="No photo"
                                 className="w-10 h-10 rounded-full"
                               />
                             )}
                           </td>
                           <td className="p-3">{item.schoolId}</td>
-                          <td className="p-3">{item.adminData.name}</td>
+                          <td className="p-3">{item.adminData?.name || "N/A"}</td>
                           <td className="p-3">{item.email}</td>
-                          <td className="p-3">{item.adminData.contactNumber}</td>
+                          <td className="p-3">{item.adminData?.contactNumber || "N/A"}</td>
                         </>
                       )}
                       {activeTab === "guide" && (
                         <>
                           <td className="p-3">
-                            {item.guideData.photo ? (
+                            {item.guideData?.photo ? (
                               <img
-                                src={item.guideData.photo}
-                                alt="User image"
-                                className="w-10 h-10 rounded-full"
+                                src={`${backendUrl}${item.guideData.photo}`} // Prepend backend URL
+                                alt={`${item.guideData.firstName}'s photo`}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
                               />
                             ) : (
                               <img
                                 src={assets.no_pfp}
-                                alt="Placeholder"
+                                alt="No photo"
                                 className="w-10 h-10 rounded-full"
                               />
                             )}
                           </td>
                           <td className="p-3">{item.schoolId}</td>
-                          <td className="p-3">{item.guideData.guideType}</td>
-                          <td className="p-3">{`${item.guideData.lastName}, ${item.guideData.firstName} ${item.guideData.middleName ? `${item.guideData.middleName.charAt(0)}.` : ""}`}</td>
-                          <td className="p-3">{new Date(item.guideData.birthday).toISOString().split("T")[0]}</td>
-                          <td className="p-3">{item.guideData.address}</td>
+                          <td className="p-3">{item.guideData?.guideType || "N/A"}</td>
+                          <td className="p-3">{`${item.guideData?.lastName || ""}, ${item.guideData?.firstName || ""} ${item.guideData?.middleName ? `${item.guideData.middleName.charAt(0)}.` : ""}`}</td>
+                          <td className="p-3">{item.guideData?.birthday ? new Date(item.guideData.birthday).toISOString().split("T")[0] : "N/A"}</td>
+                          <td className="p-3">{item.guideData?.address || "N/A"}</td>
                           <td className="p-3">{item.email}</td>
-                          <td className="p-3">{item.guideData.contactNumber}</td>
-                          <td className="p-3">{item.guideData.class}</td>
+                          <td className="p-3">{item.guideData?.contactNumber || "N/A"}</td>
+                          <td className="p-3">{item.guideData?.class || "N/A"}</td>
                         </>
                       )}
                       {activeTab === "admission" && (
                         <>
-                          <td className="p-3">{item.program}</td>
-                          <td className="p-3">{item.level}</td>
-                          <td className="p-3">{item.learningArea}</td>
+                          <td className="p-3">{item.program || "N/A"}</td>
+                          <td className="p-3">{item.level || "N/A"}</td>
+                          <td className="p-3">{item.learningArea || "N/A"}</td>
                         </>
                       )}
                       {activeTab === "inactive" && (
                         <>
                           <td className="p-3">
-                            {(item.studentData?.photo || item.guideData?.photo || item.adminData?.photo) ? (
+                            {item.studentData?.photo || item.guideData?.photo || item.adminData?.photo ? (
                               <img
-                                src={item.studentData?.photo || item.guideData?.photo || item.adminData?.photo}
-                                alt="User image"
-                                className="w-10 h-10 rounded-full"
+                                src={`${backendUrl}${item.studentData?.photo || item.guideData?.photo || item.adminData?.photo}`} // Prepend backend URL
+                                alt="User photo"
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
                               />
                             ) : (
                               <img
                                 src={assets.no_pfp}
-                                alt="Placeholder"
+                                alt="No photo"
                                 className="w-10 h-10 rounded-full"
                               />
                             )}
@@ -634,10 +657,10 @@ export default function TabPanel() {
                           <td className="p-3">{item.role}</td>
                           <td className="p-3">
                             {item.studentData
-                              ? `${item.studentData.lastName}, ${item.studentData.firstName}`
+                              ? `${item.studentData.lastName || ""}, ${item.studentData.firstName || ""}`
                               : item.guideData
-                              ? `${item.guideData.lastName}, ${item.guideData.firstName}`
-                              : item.adminData?.name}
+                              ? `${item.guideData.lastName || ""}, ${item.guideData.firstName || ""}`
+                              : item.adminData?.name || "N/A"}
                           </td>
                           <td className="p-3">{item.email}</td>
                         </>
@@ -684,24 +707,24 @@ export default function TabPanel() {
           </div>
 
           <div className="flex justify-between items-center mt-6">
-  <button 
-    className="border p-2 rounded-xl disabled:opacity-50" 
-    onClick={handlePreviousPage}
-    disabled={currentPage === 1}
-  >
-    &lt; Previous
-  </button>
-  <span>
-    Page {currentPage} of {totalPages}
-  </span>
-  <button 
-    className="border p-2 rounded-xl disabled:opacity-50" 
-    onClick={handleNextPage}
-    disabled={currentPage === totalPages}
-  >
-    Next &gt;
-  </button>
-</div>
+            <button 
+              className="border p-2 rounded-xl disabled:opacity-50" 
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              &lt; Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button 
+              className="border p-2 rounded-xl disabled:opacity-50" 
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Next &gt;
+            </button>
+          </div>
         </div>
       </div>
 
@@ -763,65 +786,39 @@ const Button = ({ onClick }) => {
   );
 };
 
+// Styled component for the button
 const StyledWrapper = styled.div`
   .Btn {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    width: 45px;
-    height: 45px;
+    width: 100px;
+    height: 40px;
     border: none;
-    border-radius: 12px;
+    padding: 0px 15px;
+    background-color: rgb(126, 38, 134);
+    border-radius: 25px;
     cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition-duration: 0.3s;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
-    background-color: black;
+    transition: all 0.3s;
+    gap: 10px;
   }
-
+  .Btn:hover {
+    background-color: rgb(0, 100, 255);
+  }
   .sign {
-    width: 100%;
-    font-size: 2em;
-    color: white;
-    transition-duration: 0.3s;
+    width: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .text {
-    position: absolute;
-    right: 0%;
-    width: 0%;
-    opacity: 0;
+    font-size: 24px;
     color: white;
-    font-size: 1.2em;
+    font-weight: 800;
+  }
+  .text {
+    width: 70px;
+    font-size: 16px;
+    color: white;
     font-weight: 500;
-    transition-duration: 0.3s;
-  }
-
-  .Btn:hover {
-    width: 125px;
-    border-radius: 12px;
-    transition-duration: 0.3s;
-  }
-
-  .Btn:hover .sign {
-    width: 30%;
-    transition-duration: 0.3s;
-    padding-left: 20px;
-  }
-
-  .Btn:hover .text {
-    opacity: 1;
-    width: 70%;
-    transition-duration: 0.3s;
-    padding-right: 20px;
-  }
-
-  .Btn:active {
-    transform: translate(2px, 2px);
   }
 `;
 
