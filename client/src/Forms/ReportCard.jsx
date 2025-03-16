@@ -8,83 +8,99 @@ const ReportCard = ({ onClose, student }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Dummy data for the bar graph
-  const learningAreas = ["Math", "Nature", "Language", "Science", "Arts"];
-  const barData = {
-    Math: [80, 60, 40], // [Presented, Practiced, Mastered]
-    Nature: [70, 50, 30],
-    Language: [90, 70, 50],
-    Science: [85, 65, 45],
-    Arts: [75, 55, 35],
-  };
-
-  // Handle Generate button click
-  const handleGenerate = async () => {
-    if (!selectedQuarter) {
-      setError("Please select a quarter.");
-      return;
-    }
-
-    setIsLoading(true); // Set loading state to true
+  const fetchFeedbackData = async (quarter) => {
+    console.log("Fetching feedback data for quarter:", quarter);
+    setIsLoading(true);
     setError("");
-
+  
     try {
-      // Check if the student has quarters data
-      if (!student.studentData || !student.studentData.quarters) {
-        setError("No quarters data found for the student.");
-        return;
-      }
-
-      // Find the selected quarter's feedback
-      const quarterData = student.studentData.quarters.find(
-        (q) => q.quarter === parseInt(selectedQuarter)
-      );
-
-      if (!quarterData || !quarterData.feedback || quarterData.feedback.length === 0) {
-        setError("No feedback found for the selected quarter.");
-        return;
-      }
-
-      // Prepare feedback text for summarization
-      const feedbackText = quarterData.feedback
-        .map((fb) => fb.feedback_text)
-        .join(" ");
-
-      // Call the DeepSeek API to summarize feedback
-      const summaryResponse = await axios.post(
-        "http://localhost:4000/api/school/summarize-feedback",
-        {
-          feedback: feedbackText,
-          studentName: `${student.studentData.firstName} ${student.studentData.lastName}`, // Include student's name
-        },
+      // Fetch feedback data for the selected student and quarter
+      const response = await axios.get(
+        `http://localhost:4000/api/school/get-feedback?schoolId=${student.schoolId}&quarter=${quarter}`,
         {
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           withCredentials: true,
         }
       );
-
-      if (!summaryResponse.data.success) {
-        throw new Error("Failed to summarize feedback.");
+  
+      console.log("Feedback API response:", response.data);
+  
+      if (response.data.success) {
+        const { feedback, feedbackData } = response.data;
+  
+        if (!feedbackData) {
+          throw new Error("No feedback data found for the selected quarter.");
+        }
+  
+        // Combine weekly feedback entries into a single string
+        const feedbackText = [
+          feedbackData.week1 || "",
+          feedbackData.week2 || "",
+          feedbackData.week3 || "",
+        ]
+          .filter((f) => f.trim() !== "") // Remove empty feedback entries
+          .join(" ");
+  
+        if (!feedbackText) {
+          throw new Error("No feedback text available to summarize.");
+        }
+  
+        // Summarize the feedback using OpenAI API
+        const summaryResponse = await axios.post(
+          "http://localhost:4000/api/school/summarize-feedback",
+          {
+            feedback: feedbackText,
+            studentName: `${student.studentData.firstName} ${student.studentData.lastName}`,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            withCredentials: true,
+          }
+        );
+  
+        console.log("Summary API response:", summaryResponse.data);
+  
+        if (summaryResponse.data.success) {
+          setFeedbackResults(summaryResponse.data.summary);
+        } else {
+          throw new Error("Failed to summarize feedback.");
+        }
+      } else {
+        throw new Error("No feedback found for the selected quarter.");
       }
-
-      // Set the summarized feedback
-      setFeedbackResults(summaryResponse.data.summary);
     } catch (error) {
-      console.error("Error generating feedback:", error);
-      setError(error.response?.data?.message || "Failed to generate feedback. Please try again.");
+      console.error("Error fetching or summarizing feedback:", error);
+      setError(error.message || "Failed to fetch or summarize feedback. Please try again.");
     } finally {
-      setIsLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
-  // Handle Quarter button click
   const handleQuarterSelect = (quarter) => {
     setSelectedQuarter(quarter);
-    setFeedbackResults(null); // Clear feedback results when a new quarter is selected
-    setError(""); // Clear any previous errors
+    setFeedbackResults(null); // Reset feedback when quarter changes
+    setError("");
+  };
+
+  const handleGenerate = () => {
+    if (selectedQuarter) {
+      fetchFeedbackData(selectedQuarter);
+    } else {
+      setError("Please select a quarter first.");
+    }
+  };
+
+  // Placeholder learning areas and bar data (update as needed)
+  const learningAreas = ["Language", "Math", "Science"];
+  const barData = {
+    Language: [30, 40, 30], // Presented, Practiced, Mastered percentages
+    Math: [20, 50, 30],
+    Science: [40, 30, 30],
   };
 
   return (
@@ -128,28 +144,14 @@ const ReportCard = ({ onClose, student }) => {
               <div key={area} className="space-y-2">
                 <h4 className="text-md font-medium">{area}</h4>
                 <div className="w-full h-7 bg-gray-200 rounded-xl overflow-hidden relative">
-                  <div
-                    className="h-full flex"
-                    style={{
-                      width: "100%",
-                    }}
-                  >
-                    <div
-                      className="bg-[#5bb381]"
-                      style={{ width: `${barData[area][0]}%` }}
-                    >
+                  <div className="h-full flex" style={{ width: "100%" }}>
+                    <div className="bg-[#5bb381]" style={{ width: `${barData[area][0]}%` }}>
                       <span className="text-xs text-white pl-2">{barData[area][0]}%</span>
                     </div>
-                    <div
-                      className="bg-[#e3b34c]"
-                      style={{ width: `${barData[area][1]}%` }}
-                    >
+                    <div className="bg-[#e3b34c]" style={{ width: `${barData[area][1]}%` }}>
                       <span className="text-xs text-white pl-2">{barData[area][1]}%</span>
                     </div>
-                    <div
-                      className="bg-[#4A154B]"
-                      style={{ width: `${barData[area][2]}%` }}
-                    >
+                    <div className="bg-[#4A154B]" style={{ width: `${barData[area][2]}%` }}>
                       <span className="text-xs text-white pl-2">{barData[area][2]}%</span>
                     </div>
                   </div>
@@ -186,20 +188,24 @@ const ReportCard = ({ onClose, student }) => {
             <div className="flex-1 overflow-y-auto mb-4">
               {feedbackResults ? (
                 <div className="p-4 bg-gray-100 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold mb-2">STUDENT NAME</h3>
-                  <div className="tex-sm h-[400px] overflow-y-auto whitespace-pre-wrap">
+                  <h3 className="text-lg font-semibold mb-2">
+                    {student.studentData.firstName} {student.studentData.lastName}
+                  </h3>
+                  <div className="text-sm h-[400px] overflow-y-auto whitespace-pre-wrap">
                     {feedbackResults}
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
-                  {isLoading ? ( // Show loader when Generate button is clicked
+                  {isLoading ? (
                     <div className="flex flex-col items-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                       <p className="mt-2">Generating feedback...</p>
                     </div>
+                  ) : selectedQuarter ? (
+                    "Click 'Generate' to summarize feedback."
                   ) : (
-                    "No feedback generated yet."
+                    "Select a quarter to view feedback."
                   )}
                 </div>
               )}
@@ -210,7 +216,7 @@ const ReportCard = ({ onClose, student }) => {
               <button
                 className="w-[200px] h-12 bg-[#4A154B] rounded-lg text-white text-lg font-semibold shadow-md hover:bg-purple-900 disabled:bg-purple-300"
                 onClick={handleGenerate}
-                disabled={isLoading || !selectedQuarter}
+                disabled={isLoading}
               >
                 {isLoading ? "GENERATING..." : "GENERATE"}
               </button>
