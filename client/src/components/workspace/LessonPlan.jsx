@@ -6,12 +6,13 @@ import PropTypes from "prop-types";
 import { assets } from "../../assets/assets";
 import ConfirmationModal from "../ConfirmationModal";
 import SaveModal from "../SaveModal";
-import Loader from "../../components/style/Loader"; // Added Loader import
+import Loader from "../../components/style/Loader";
 
 const LessonPlan = () => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(""); // New state for category filter
   const [students, setStudents] = useState([]);
   const [curriculumData, setCurriculum] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState({});
@@ -24,39 +25,114 @@ const LessonPlan = () => {
   const [assignLessonModalOpen, setAssignLessonModalOpen] = useState(false);
   const [lessonToAssign, setLessonToAssign] = useState("");
   const { backendUrl, userData } = useContext(AppContext);
-  const [loading, setLoading] = useState(false); // Added loading state
-  const [error, setError] = useState(null); // Added error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState({}); // New state for progress data
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      setLoading(true); // Set loading to true before fetch
-      setError(null); // Reset error state
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
+        // Fetch students and curriculum
+        const lessonPlanResponse = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
           withCredentials: true,
         });
 
-        if (response.status !== 200) {
-          throw new Error("Failed to fetch students");
+        if (lessonPlanResponse.status !== 200) {
+          throw new Error("Failed to fetch lesson plan data");
         }
 
-        const data = response.data;
-        setStudents(data.students);
-        setCurriculum(data.curriculumData);
+        const lessonPlanData = lessonPlanResponse.data;
+        setStudents(lessonPlanData.students);
+        setCurriculum(lessonPlanData.curriculumData);
+
+        // Fetch student progress for SPP calculation
+        const progressResponse = await axios.get(`${backendUrl}/api/school/class-list`, {
+          withCredentials: true,
+        });
+
+        if (progressResponse.status === 200 && progressResponse.data.success) {
+          const studentsData = progressResponse.data.students;
+          const initialProgress = {};
+
+          studentsData.forEach((student) => {
+            initialProgress[student._id] = {};
+
+            student.studentData.lessons.forEach((lesson, index) => {
+              const presented = lesson.subwork.some(
+                (sub) => sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered"
+              ) || true;
+              const mastered = lesson.subwork.some((sub) => sub.status === "mastered");
+              const totalPractices = lesson.subwork.reduce(
+                (sum, sub) => sum + (sub.practicedCount || 0),
+                0
+              );
+
+              initialProgress[student._id][index] = {
+                presented: presented ? 1 : 0,
+                practiced: totalPractices,
+                mastered: mastered ? 1 : 0,
+                remarks: lesson.remarks || "",
+                expanded: false,
+                subRows: lesson.subwork.map((sub, subIndex) => ({
+                  presented: sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered",
+                  practiced: sub.practicedCount || 0,
+                  mastered: sub.status === "mastered",
+                  date: sub.status_date ? new Date(sub.status_date).toLocaleDateString() : "",
+                  subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
+                  updatedBy: sub.updatedBy,
+                })),
+                date: lesson.start_date ? new Date(lesson.start_date).toLocaleDateString() : "",
+              };
+            });
+          });
+
+          setProgress(initialProgress);
+        } else {
+          throw new Error("Failed to fetch student progress");
+        }
       } catch (error) {
-        console.error("Error fetching students:", error);
-        setError("Failed to load student data."); // Set error message
-        toast.error("Failed to load student data.");
+        console.error("Error fetching data:", error);
+        setError("Failed to load data.");
+        toast.error("Failed to load data.");
       } finally {
-        setLoading(false); // Set loading to false after fetch completes
+        setLoading(false);
       }
     };
 
-    fetchStudents();
+    fetchData();
   }, [backendUrl]);
+
+  // SPP Calculation Functions (from BarChartSample)
+  const calculateSPP = (studentId) => {
+    const studentProgress = progress[studentId] || {};
+    const lessons = Object.values(studentProgress);
+    
+    if (lessons.length === 0) return 0;
+
+    const lessonSPPs = lessons.map((lesson) => {
+      const ME = lesson.mastered ? 1 : 0;
+      const PL = lesson.practiced || 0;
+      const OP = (lesson.practiced || 0) >= 8 ? 1 : 0;
+      const lessonSPP = PL === 0 ? (ME * 100) : (ME / (PL + OP)) * 100;
+      return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
+    });
+
+    const totalSPP = lessonSPPs.reduce((sum, spp) => sum + spp, 0) / lessons.length;
+    return isNaN(totalSPP) ? 0 : totalSPP;
+  };
+
+  const categorizeStudent = (spp) => {
+    if (spp >= 90) return "Advanced";
+    if (spp >= 75) return "Proficient";
+    if (spp >= 50) return "Developing";
+    return "Needs Attention";
+  };
 
   const classes = [...new Set(students.map((student) => student.studentData.class))];
   const levels = [...new Set(students.map((student) => student.studentData.level))];
+  const categories = ["Advanced", "Proficient", "Developing", "Needs Attention"];
 
   const formatStudentName = (student) => {
     const { lastName, firstName, middleName } = student.studentData;
@@ -67,10 +143,15 @@ const LessonPlan = () => {
   const handleClassChange = (e) => setSelectedClass(e.target.value);
   const handleLevelChange = (e) => setSelectedLevel(e.target.value);
   const handleSearchChange = (e) => setSearchQuery(e.target.value);
+  const handleCategoryChange = (e) => setSelectedCategory(e.target.value);
 
   const filteredStudents = students.filter((student) => {
     const matchesClass = selectedClass ? student.studentData.class === selectedClass : true;
     const matchesLevel = selectedLevel ? student.studentData.level === selectedLevel : true;
+
+    const spp = calculateSPP(student._id);
+    const category = categorizeStudent(spp);
+    const matchesCategory = selectedCategory ? category === selectedCategory : true;
 
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
@@ -83,6 +164,7 @@ const LessonPlan = () => {
     return (
       matchesClass &&
       matchesLevel &&
+      matchesCategory &&
       (studentName.includes(searchLower) ||
         schoolId.includes(searchLower) ||
         gender.includes(searchLower) ||
@@ -282,7 +364,6 @@ const LessonPlan = () => {
               : student
           )
         );
-        // Reset selections after successful assignment
         setSelectedStudents([]);
         setSelectAll(false);
         toast.success("Lesson assigned to selected students successfully!");
@@ -325,7 +406,7 @@ const LessonPlan = () => {
           </ol>
           <button
             onClick={onClose}
-            className="mt-4 bg-[#9d16be] text-white px-4 py-2 rounded-lg"
+            className="mt-4 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
           >
             Close
           </button>
@@ -403,7 +484,7 @@ const LessonPlan = () => {
             </select>
           </div>
         </div>
-        <div className="flex-1 lg:flex-none lg:w-110">
+        <div className="flex-1 lg:flex-none lg:w-110 flex items-center space-x-4">
           <input
             type="text"
             placeholder="Search..."
@@ -411,11 +492,23 @@ const LessonPlan = () => {
             onChange={handleSearchChange}
             className="w-full h-12 bg-[#e6e6e6] rounded-[15px] px-4"
           />
+          <select
+            value={selectedCategory}
+            onChange={handleCategoryChange}
+            className="w-40 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
+          >
+            <option value="">All Categories</option>
+            {categories.map((category, index) => (
+              <option key={index} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Actions and Cards Section */}
-      <div className="bg-[#f3f3f3] p-6 shadow-md">
+      <div className="bg-[#e2e2e2] p-10 shadow-md">
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={handleSelectAll}
@@ -426,10 +519,10 @@ const LessonPlan = () => {
           {selectedStudents.length > 0 && (
             <div className="flex items-center gap-2">
               <select
-                className="w-60 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
+                className="w-60 h-12 bg-[#ffffff] rounded-[15px] px-4"
                 onChange={(e) => handleAssignLessonToSelected(e.target.value)}
               >
-                <option value="">Assign Lesson to Selected</option>
+                <option value="">Select Lesson to Assign</option>
                 {levels.map((level) =>
                   getLessonsForStudentLevel(level).map((lesson, i) => (
                     <option key={i} value={lesson}>
@@ -535,7 +628,7 @@ const LessonPlan = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center"></div>
+            <div className="col-span-full text-center">No students found.</div>
           )}
         </div>
       </div>

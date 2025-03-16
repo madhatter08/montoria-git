@@ -5,6 +5,7 @@ import StudentAdmissionForm from "../Forms/StudentAdmissionForm";
 import AdminForm from "../Forms/AdminForm";
 import GuideForm from "../Forms/GuideForm";
 import AdmissionForm from "../Forms/AdmissionForm";
+import SchoolYearForm from "../Forms/SchoolYearForm"; // Import the new SchoolYearForm
 import { assets } from "../assets/assets";
 import styled from "styled-components";
 import PropTypes from "prop-types";
@@ -19,6 +20,7 @@ export default function TabPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState(localStorage.getItem("activeTab") || "students");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSchoolYearFormOpen, setIsSchoolYearFormOpen] = useState(false); // State for SchoolYearForm
   const [selectedRemarks, setSelectedRemarks] = useState(null);
   const [data, setData] = useState({
     students: [],
@@ -38,7 +40,7 @@ export default function TabPanel() {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const { backendUrl, userData } = useContext(AppContext);
-  
+
   const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
@@ -360,7 +362,7 @@ export default function TabPanel() {
   };
 
   const filteredData = filterData(data[activeTab], activeTab, searchQuery);
-  
+
   const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const endIndex = startIndex + ROWS_PER_PAGE;
@@ -382,7 +384,6 @@ export default function TabPanel() {
     rows.forEach((row) => {
       const rowData = [];
       row.querySelectorAll("th, td").forEach((cell) => {
-        // Skip image cells for CSV export
         if (!cell.querySelector("img")) {
           rowData.push(cell.innerText);
         } else {
@@ -458,6 +459,15 @@ export default function TabPanel() {
               />
             </div>
             <div className="flex space-x-2">
+              {/* School Year Button (Admin Only) */}
+              {userData?.role === "admin" && (
+                <button
+                  className="border p-2 bg-gray-100 rounded-xl"
+                  onClick={() => setIsSchoolYearFormOpen(true)}
+                >
+                  School Year
+                </button>
+              )}
               <button
                 className="border p-2 bg-gray-100 rounded-xl"
                 onClick={exportToExcel}
@@ -542,8 +552,8 @@ export default function TabPanel() {
                   </tr>
                 ) : (
                   paginatedData.map((item, index) => (
-                    <tr 
-                      key={index} 
+                    <tr
+                      key={index}
                       className="border-b hover:bg-gray-100 transition-colors duration-200"
                     >
                       {activeTab === "students" && (
@@ -551,10 +561,10 @@ export default function TabPanel() {
                           <td className="p-3">
                             {item.studentData?.photo ? (
                               <img
-                                src={`${backendUrl}${item.studentData.photo}`} // Prepend backend URL
+                                src={`${backendUrl}${item.studentData.photo}`}
                                 alt={`${item.studentData.firstName}'s photo`}
                                 className="w-10 h-10 rounded-full object-cover"
-                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
+                                onError={(e) => (e.target.src = assets.no_pfp)}
                               />
                             ) : (
                               <img
@@ -581,10 +591,10 @@ export default function TabPanel() {
                           <td className="p-3">
                             {item.adminData?.photo ? (
                               <img
-                                src={`${backendUrl}${item.adminData.photo}`} // Prepend backend URL
+                                src={`${backendUrl}${item.adminData.photo}`}
                                 alt={`${item.adminData.name}'s photo`}
                                 className="w-10 h-10 rounded-full object-cover"
-                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
+                                onError={(e) => (e.target.src = assets.no_pfp)}
                               />
                             ) : (
                               <img
@@ -605,10 +615,10 @@ export default function TabPanel() {
                           <td className="p-3">
                             {item.guideData?.photo ? (
                               <img
-                                src={`${backendUrl}${item.guideData.photo}`} // Prepend backend URL
+                                src={`${backendUrl}${item.guideData.photo}`}
                                 alt={`${item.guideData.firstName}'s photo`}
                                 className="w-10 h-10 rounded-full object-cover"
-                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
+                                onError={(e) => (e.target.src = assets.no_pfp)}
                               />
                             ) : (
                               <img
@@ -640,10 +650,10 @@ export default function TabPanel() {
                           <td className="p-3">
                             {item.studentData?.photo || item.guideData?.photo || item.adminData?.photo ? (
                               <img
-                                src={`${backendUrl}${item.studentData?.photo || item.guideData?.photo || item.adminData?.photo}`} // Prepend backend URL
+                                src={`${backendUrl}${item.studentData?.photo || item.guideData?.photo || item.adminData?.photo}`}
                                 alt="User photo"
                                 className="w-10 h-10 rounded-full object-cover"
-                                onError={(e) => (e.target.src = assets.no_pfp)} // Fallback on error
+                                onError={(e) => (e.target.src = assets.no_pfp)}
                               />
                             ) : (
                               <img
@@ -707,8 +717,8 @@ export default function TabPanel() {
           </div>
 
           <div className="flex justify-between items-center mt-6">
-            <button 
-              className="border p-2 rounded-xl disabled:opacity-50" 
+            <button
+              className="border p-2 rounded-xl disabled:opacity-50"
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
             >
@@ -717,8 +727,8 @@ export default function TabPanel() {
             <span>
               Page {currentPage} of {totalPages}
             </span>
-            <button 
-              className="border p-2 rounded-xl disabled:opacity-50" 
+            <button
+              className="border p-2 rounded-xl disabled:opacity-50"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
             >
@@ -732,6 +742,14 @@ export default function TabPanel() {
         <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
           <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto">
             {renderForm()}
+          </div>
+        </div>
+      )}
+
+      {isSchoolYearFormOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-transparent shadow-5xl bg-opacity-50 z-50">
+          <div className="bg-white p-6 border rounded-lg shadow-2xl w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto">
+            <SchoolYearForm onClose={() => setIsSchoolYearFormOpen(false)} />
           </div>
         </div>
       )}
@@ -786,7 +804,6 @@ const Button = ({ onClick }) => {
   );
 };
 
-// Styled component for the button
 const StyledWrapper = styled.div`
   .Btn {
     display: flex;

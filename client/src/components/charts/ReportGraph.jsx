@@ -1,3 +1,4 @@
+// frontend/src/components/charts/ReportGraph.jsx
 import { Bar, Line, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -12,7 +13,6 @@ import {
   Legend,
 } from "chart.js";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -25,8 +25,8 @@ ChartJS.register(
   Legend
 );
 
-const ReportGraph = ({ data }) => {
-  if (!data || !data.type || !data.labels || !data.datasets) {
+const ReportGraph = ({ data, graphType }) => {
+  if (!data || !data.labels || !data.datasets) {
     return <div>No valid data to display</div>;
   }
 
@@ -44,7 +44,7 @@ const ReportGraph = ({ data }) => {
     datasets: data.datasets,
   };
 
-  switch (data.type) {
+  switch (graphType) {
     case "bar":
       return <Bar data={chartData} options={options} />;
     case "line":

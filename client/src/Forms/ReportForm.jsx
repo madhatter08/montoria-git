@@ -1,11 +1,10 @@
+// frontend/src/Forms/ReportForm.jsx
 import { useState } from "react";
 import axios from "axios";
 
 const ReportForm = ({ onReportGenerated }) => {
   const [prompt, setPrompt] = useState("");
-  const [graphType, setGraphType] = useState("bar"); // Default to bar
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [filters, setFilters] = useState(""); // e.g., "Math, Grade 10"
+  const [graphType, setGraphType] = useState("bar");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -14,19 +13,17 @@ const ReportForm = ({ onReportGenerated }) => {
     setLoading(true);
     setError(null);
 
-    const requestData = {
-      prompt, // Natural language input
-      graphType, // "bar", "line", "pie"
-      dateRange, // { start: "2023-01-01", end: "2023-12-31" }
-      filters, // Additional filters as a string
-    };
-
     try {
-      const response = await axios.post("http://localhost:4000/api/reports/generate", requestData);
-      if (response.data) {
-        onReportGenerated(response.data); // Expected: { type, labels, datasets }
+      const response = await axios.post(
+        "http://localhost:4000/api/reports/generate",
+        { prompt, graphType },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        onReportGenerated({ graphType, data: response.data.data });
       } else {
-        setError("No data returned from the server.");
+        setError(response.data.message || "No data returned from the server.");
         onReportGenerated(null);
       }
     } catch (error) {
@@ -47,7 +44,7 @@ const ReportForm = ({ onReportGenerated }) => {
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="E.g., Show student performance in Math"
+          placeholder="E.g., Show me a progress overview for Casa 3 in Quarter 2"
         />
       </div>
 
@@ -62,38 +59,6 @@ const ReportForm = ({ onReportGenerated }) => {
           <option value="line">Line</option>
           <option value="pie">Pie</option>
         </select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-lg font-medium text-gray-800">Start Date</label>
-          <input
-            type="date"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            value={dateRange.start}
-            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-lg font-medium text-gray-800">End Date</label>
-          <input
-            type="date"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            value={dateRange.end}
-            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-lg font-medium text-gray-800">Filters (optional)</label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400"
-          value={filters}
-          onChange={(e) => setFilters(e.target.value)}
-          placeholder="E.g., Math, Grade 10"
-        />
       </div>
 
       <button

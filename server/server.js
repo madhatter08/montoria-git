@@ -9,18 +9,16 @@ import schoolRouter from "./routes/schoolRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import calendarRoutes from "./routes/calendarRoutes.js";
-import attendanceRoutes from "./routes/attendanceRoutes.js"; // Add this
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 4001; // Changed to 4001
 
-// Middleware
 const allowedOrigins = ["http://localhost:5173"];
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// Routes
 app.get("/", (req, res) => res.send("api working"));
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
@@ -28,9 +26,8 @@ app.use("/api/school", schoolRouter);
 app.use("/api", chatRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/calendar", calendarRoutes);
-app.use("/api/attendance", attendanceRoutes); // Add this
+app.use("/api/attendance", attendanceRoutes);
 
-// Start server after MongoDB connection
 const startServer = async () => {
   try {
     await connectdb();

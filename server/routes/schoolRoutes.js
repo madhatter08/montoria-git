@@ -21,8 +21,8 @@ import {
   addSubwork,
   getStudentById,
   saveLessonToMultiple,
-  saveProgress, // Add this
-  saveFeedback // Add this
+  saveProgress,
+  saveFeedback,
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -44,9 +44,10 @@ schoolRouter.put("/edit-curriculum/:id", editCurriculum);
 
 schoolRouter.get("/student/:schoolId", getStudentById);
 schoolRouter.get("/class-list", userToken, getClassList);
-schoolRouter.get("/feedback-by-quarter", getFeedbackByQuarter);
 
-schoolRouter.post("/summarize-feedback", summarizeFeedback);
+// Updated feedback routes
+schoolRouter.get("/get-feedback", userToken, getFeedbackByQuarter); // Use schoolId and quarter as query params
+schoolRouter.post("/summarize-feedback", userToken, summarizeFeedback); // Protected route
 
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", saveLesson);
