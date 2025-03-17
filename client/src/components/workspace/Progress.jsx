@@ -682,7 +682,7 @@ const Progress = () => {
             value={selectedUser}
             onChange={handleUserChange}
           >
-            <option value="USER NAME">Select User</option>
+            <option value="USER NAME">Select Student</option>
             {filteredUsers.map((user) => (
               <option key={user._id} value={formatUserName(user)}>
                 {formatUserName(user)}
