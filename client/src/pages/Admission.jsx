@@ -240,7 +240,7 @@ export default function TabPanel() {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-100">
         <p className="text-lg text-gray-700">
-          {userData ? "Not available: Admin access only." : "Please log in to access the admission dashboard."}
+          {userData ? "Not available: Admin access only." : "Please log in to access admission."}
         </p>
       </div>
     );
@@ -409,6 +409,18 @@ export default function TabPanel() {
   const closeRemarksModal = () => {
     setSelectedRemarks(null);
   };
+
+  if (!userData || userData.role !== "admin") {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg text-gray-700">
+          {userData
+            ? "Not available: Admin access only."
+            : "Please log in to access admission."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

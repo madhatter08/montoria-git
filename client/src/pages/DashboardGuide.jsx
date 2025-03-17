@@ -8,6 +8,7 @@ import ReportGraph from "../components/charts/ReportGraph";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import axios from "axios";
+import Loader from "../components/style/Loader";
 
 const DashboardGuide = () => {
   const { userData, backendUrl, loading } = useContext(AppContext);
@@ -156,8 +157,16 @@ const DashboardGuide = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-lg text-gray-700">Loading...</p>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
       </div>
     );
   }

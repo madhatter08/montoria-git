@@ -42,7 +42,7 @@ const SidebarWs = ({ isOpen, setIsOpen, currentRoute }) => {
               className="w-6 h-6"
             />
           </button>
-          <p className="mt-20 text-gray-700">Loading...</p>
+          <p className="mt-20 text-gray-700">...</p>
         </div>
       </div>
     );

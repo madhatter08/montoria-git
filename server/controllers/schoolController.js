@@ -85,6 +85,136 @@ export const summarizeFeedback = async (req, res) => {
   }
 };
 
+export const getFeedback = async (req, res) => {
+  const { schoolId, quarter } = req.query;
+
+  console.log("Received feedback fetch request:", { schoolId, quarter });
+
+  // Validate required fields
+  if (!schoolId || !quarter) {
+    return res.status(400).json({
+      success: false,
+      message: "schoolId and quarter are required.",
+    });
+  }
+
+  try {
+    // Find the student by schoolId
+    const student = await userModel.findOne({ schoolId });
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    }
+
+    // Validate quarter
+    const validQuarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
+    if (!validQuarters.includes(quarter)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid quarter." });
+    }
+
+    // Get the feedback for the specified quarter
+    const feedback = student.studentData?.feedbacks?.[quarter] || {};
+
+    res.status(200).json({
+      success: true,
+      message: "Feedback retrieved successfully.",
+      data: feedback,
+    });
+  } catch (error) {
+    console.error("Error in getFeedback:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const addFeedback = async (req, res) => {
+  const { schoolId, quarter, week, feedbackText } = req.body;
+
+  console.log("Received feedback payload:", {
+    schoolId,
+    quarter,
+    week,
+    feedbackText,
+  });
+
+  // Validate required fields
+  if (!schoolId || !quarter || !week || feedbackText === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "schoolId, quarter, week, and feedbackText are required.",
+    });
+  }
+
+  try {
+    // Find the student by schoolId (unique in userModel)
+    const student = await userModel.findOne({ schoolId });
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    }
+
+    // Validate quarter and week
+    const validQuarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
+    if (!validQuarters.includes(quarter)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid quarter." });
+    }
+
+    const validWeeks = {
+      quarter1: ["week1", "week2", "week3"],
+      quarter2: ["week4", "week5", "week6"],
+      quarter3: ["week7", "week8", "week9"],
+      quarter4: ["week10", "week11", "week12"],
+    };
+    if (!validWeeks[quarter].includes(week)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invalid week for the given quarter.",
+        });
+    }
+
+    // Update the feedback in studentData.feedbacks
+    if (!student.studentData) {
+      student.studentData = {};
+    }
+    if (!student.studentData.feedbacks) {
+      student.studentData.feedbacks = {
+        quarter1: { week1: "", week2: "", week3: "", summarized_feedback: "" },
+        quarter2: { week4: "", week5: "", week6: "", summarized_feedback: "" },
+        quarter3: { week7: "", week8: "", week9: "", summarized_feedback: "" },
+        quarter4: {
+          week10: "",
+          week11: "",
+          week12: "",
+          summarized_feedback: "",
+        },
+      };
+    }
+    student.studentData.feedbacks[quarter][week] = feedbackText;
+
+    // Mark the nested field as modified for Mongoose
+    student.markModified(`studentData.feedbacks.${quarter}`);
+
+    // Save the updated document
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Feedback saved successfully.",
+      data: student.studentData.feedbacks[quarter],
+    });
+  } catch (error) {
+    console.error("Error in saveFeedback:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Get Feedback by Quarter
 export const getFeedbackByQuarter = async (req, res) => {
   console.log("getFeedbackByQuarter called");

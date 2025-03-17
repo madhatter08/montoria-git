@@ -5,6 +5,7 @@ import CurriculumForm from "../../Forms/CurriculumForm";
 import styled from "styled-components";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../ConfirmationModal";
+import Loader from "../style/Loader";
 
 const Curriculum = () => {
   const [selectedLearningArea, setSelectedLearningArea] = useState("");
@@ -156,7 +157,21 @@ const Curriculum = () => {
     );
   });
 
-  if (loading) return <p>Loading curriculum data...</p>;
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
+      </div>
+    );
+  };
   if (error) return <p>{error}</p>;
 
   return (

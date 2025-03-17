@@ -55,43 +55,83 @@ const quarterSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const studentSchema = new mongoose.Schema({
-  photo: { type: String },
-  lrn: { type: String, trim: true },
-  firstName: { type: String, required: true, trim: true },
-  middleName: { type: String, trim: true },
-  lastName: { type: String, required: true, trim: true },
-  age: { type: Number, required: true, min: 0 },
-  gender: { type: String, enum: ["Male", "Female", "Others"], required: true },
-  birthday: { type: Date, required: true },
-  address: { type: String, required: true, trim: true },
-  //parent: parentSchema,
-  parentName: { type: String, required: true },
-  parentRel: { type: String, required: true, trim: true },
-  parentPhone: { type: String, required: true },
-  program: { type: String, ref: "program" },
-  level: { type: String, ref: "level" },
-  class: { type: String, ref: "class" },
-  remarks: { type: String, trim: true },
-  //lessons: [{ type: String }],
-  // lessons: [{
-  //   lesson_work: { type: String, }, 
-  //   subwork: [subworkSchema], 
-  // }],
-  lessons: [{
-    lesson_work: { type: String },
-    addedBy: { type: String },
-    remarks: { type: String },
-    start_date: { type: Date },
-    subwork: [{
-      subwork_name: { type: String },
-      status: { type: String, enum: ["presented", "practiced", "mastered"] },
-      subwork_remarks: { type: String },
-      status_date: { type: Date },
-      updatedBy: { type: String }, 
-    }],
-  }],
-}, { _id: false });
+const studentSchema = new mongoose.Schema(
+  {
+    photo: { type: String },
+    lrn: { type: String, trim: true },
+    firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    age: { type: Number, required: true, min: 0 },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Others"],
+      required: true,
+    },
+    birthday: { type: Date, required: true },
+    address: { type: String, required: true, trim: true },
+    //parent: parentSchema,
+    parentName: { type: String, required: true },
+    parentRel: { type: String, required: true, trim: true },
+    parentPhone: { type: String, required: true },
+    program: { type: String, ref: "program" },
+    level: { type: String, ref: "level" },
+    class: { type: String, ref: "class" },
+    remarks: { type: String, trim: true },
+    //lessons: [{ type: String }],
+    // lessons: [{
+    //   lesson_work: { type: String, },
+    //   subwork: [subworkSchema],
+    // }],
+    lessons: [
+      {
+        lesson_work: { type: String },
+        addedBy: { type: String },
+        remarks: { type: String },
+        start_date: { type: Date },
+        subwork: [
+          {
+            subwork_name: { type: String },
+            status: {
+              type: String,
+              enum: ["presented", "practiced", "mastered"],
+            },
+            subwork_remarks: { type: String },
+            status_date: { type: Date },
+            updatedBy: { type: String },
+          },
+        ],
+      },
+    ],
+    feedbacks: {
+      quarter1: {
+        week1: { type: String, default: "" },
+        week2: { type: String, default: "" },
+        week3: { type: String, default: "" },
+        summarized_feedback: { type: String, default: "" },
+      },
+      quarter2: {
+        week4: { type: String, default: "" },
+        week5: { type: String, default: "" },
+        week6: { type: String, default: "" },
+        summarized_feedback: { type: String, default: "" },
+      },
+      quarter3: {
+        week7: { type: String, default: "" },
+        week8: { type: String, default: "" },
+        week9: { type: String, default: "" },
+        summarized_feedback: { type: String, default: "" },
+      },
+      quarter4: {
+        week10: { type: String, default: "" },
+        week11: { type: String, default: "" },
+        week12: { type: String, default: "" },
+        summarized_feedback: { type: String, default: "" },
+      },
+    },
+  },
+  { _id: false }
+);
 
 const userSchema = new mongoose.Schema({
   roleId: { type: Number, required: true },

@@ -484,10 +484,10 @@ const LessonPlan = () => {
             </select>
           </div>
         </div>
-        <div className="flex-1 lg:flex-none lg:w-110 flex items-center space-x-4">
+        <div className="flex-1 lg:flex-none lg:w-150 flex items-center space-x-4">
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search for student..."
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full h-12 bg-[#e6e6e6] rounded-[15px] px-4"
@@ -541,7 +541,9 @@ const LessonPlan = () => {
               <div
                 key={student._id}
                 className={`bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer ${
-                  selectedStudents.includes(student._id) ? "border-[#4A154B]" : ""
+                  selectedStudents.includes(student._id)
+                    ? "border-[#4A154B]"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -567,13 +569,18 @@ const LessonPlan = () => {
                   </label>
                 </div>
 
-                <div className="flex-grow p-3 overflow-y-auto">
+                <div
+                  className="flex-grow p-3 overflow-y-auto"
+                  onClick={() => { setIsModalOpen(true); }}
+                >
                   <ol className="list-decimal pl-5 text-gray-700 text-base">
-                    {student.studentData.lessons.slice(0, 4).map((lesson, i) => (
-                      <li key={i} className="py-1">
-                        {lesson.lesson_work}
-                      </li>
-                    ))}
+                    {student.studentData.lessons
+                      .slice(0, 4)
+                      .map((lesson, i) => (
+                        <li key={i} className="py-1">
+                          {lesson.lesson_work}
+                        </li>
+                      ))}
                     {student.studentData.lessons.length > 4 && (
                       <li className="text-gray-500">...</li>
                     )}

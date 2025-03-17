@@ -135,7 +135,7 @@ const Login = () => {
                 Login
               </button>
               <p className="text-gray-400 text-center text-xs mt-4">
-                Can't access your account?{" "}
+                Can&apos;t access your account?{" "}
                 <span onClick={handleEmailClick} className="text-[#9d16be] cursor-pointer underline">
                   Contact us
                 </span>
