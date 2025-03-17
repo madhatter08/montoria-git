@@ -1,3 +1,4 @@
+// schoolRoutes.js
 import express from "express";
 import {
   addLevel,
@@ -12,7 +13,6 @@ import {
   deleteCurriculum,
   editCurriculum,
   getClassList,
-  getFeedbackByQuarter,
   summarizeFeedback,
   lessonPlan,
   saveLesson,
@@ -22,45 +22,50 @@ import {
   getStudentById,
   saveLessonToMultiple,
   saveProgress,
-  saveFeedback,
+  saveFeedback, // Duplicate with addFeedback, consider removing
   addFeedback,
-  getFeedback
+  getFeedback,
+  getProgress, // Now correctly imported
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
 const schoolRouter = express.Router();
 
-// Other routes
-schoolRouter.post("/add-program", addProgram);
-schoolRouter.post("/add-level", addLevel);
-schoolRouter.post("/add-class", addClass);
-schoolRouter.post("/add-area", addArea);
-schoolRouter.post("/add-lesson", addLesson);
-schoolRouter.post("/add-work", addWork);
-schoolRouter.post("/add-material", addMaterial);
+// Curriculum-related routes
+schoolRouter.post("/add-program", userToken, addProgram);
+schoolRouter.post("/add-level", userToken, addLevel);
+schoolRouter.post("/add-class", userToken, addClass);
+schoolRouter.post("/add-area", userToken, addArea);
+schoolRouter.post("/add-lesson", userToken, addLesson);
+schoolRouter.post("/add-work", userToken, addWork);
+schoolRouter.post("/add-material", userToken, addMaterial);
 
-schoolRouter.post("/add-curriculum", addCurriculum);
-schoolRouter.get("/get-curriculum", getAllCurriculum);
-schoolRouter.delete("/delete-curriculum/:id", deleteCurriculum);
-schoolRouter.put("/edit-curriculum/:id", editCurriculum);
+schoolRouter.post("/add-curriculum", userToken, addCurriculum);
+schoolRouter.get("/get-curriculum", userToken, getAllCurriculum);
+schoolRouter.delete("/delete-curriculum/:id", userToken, deleteCurriculum);
+schoolRouter.put("/edit-curriculum/:id", userToken, editCurriculum);
 
-schoolRouter.get("/student/:schoolId", getStudentById);
+// Student-related routes
+schoolRouter.get("/student/:schoolId", userToken, getStudentById);
 schoolRouter.get("/class-list", userToken, getClassList);
 
-// Updated feedback routes
-schoolRouter.get("/get-feedback", userToken, getFeedback); // Use schoolId and quarter as query params
-schoolRouter.post("/summarize-feedback", userToken, summarizeFeedback); // Protected route
+// Feedback-related routes
+schoolRouter.get("/get-feedback", userToken, getFeedback);
+schoolRouter.post("/summarize-feedback", userToken, summarizeFeedback);
+schoolRouter.post("/add-feedback", userToken, addFeedback);
 
+// Lesson-related routes
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
-schoolRouter.post("/save-lesson", saveLesson);
-schoolRouter.delete("/delete-lesson", deleteLesson);
+schoolRouter.post("/save-lesson", userToken, saveLesson);
+schoolRouter.delete("/delete-lesson", userToken, deleteLesson);
+schoolRouter.post("/save-lesson-to-multiple", userToken, saveLessonToMultiple);
 
+// Subwork-related routes
 schoolRouter.get("/get-subwork", userToken, getSubwork);
 schoolRouter.post("/add-subwork", userToken, addSubwork);
-schoolRouter.post("/save-lesson-to-multiple", saveLessonToMultiple);
 
-// New routes for saving progress and feedback
+// Progress-related routes
 schoolRouter.post("/save-progress", userToken, saveProgress);
-schoolRouter.post("/save-feedback", userToken, addFeedback);
+schoolRouter.get("/student/:schoolId/progress", getProgress); // Route is correct
 
 export default schoolRouter;
