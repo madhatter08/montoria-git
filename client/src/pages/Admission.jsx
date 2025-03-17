@@ -130,74 +130,59 @@ export default function TabPanel() {
     }
   };
 
-  const handleArchiveConfirm = async () => {
-    if (!itemToArchive) return;
+const handleArchiveConfirm = async () => {
+  if (!itemToArchive) return;
 
-    try {
-      const res = await axios.put(
-        `${backendUrl}/api/user/update/${itemToArchive}`,
-        { isActive: false },
-        { withCredentials: true }
+  try {
+    const res = await axios.put(
+      `${backendUrl}/api/user/update/${itemToArchive}`,
+      { isActive: false },
+      { withCredentials: true }
+    );
+
+    if (res.data.success) {
+      toast.success("User archived successfully!");
+      refreshData(); // Fetch updated data from backend
+    } else {
+      toast.error(
+        "Failed to archive user: " + (res.data.message || "Unknown error")
       );
-
-      if (res.data.success) {
-        const userToArchive = data[activeTab].find((item) => item._id === itemToArchive);
-        if (!userToArchive) {
-          throw new Error("User not found in current tab");
-        }
-        const updatedUserData = {
-          ...data,
-          [activeTab]: data[activeTab].filter((item) => item._id !== itemToArchive),
-          inactive: [...data.inactive, { ...userToArchive, isActive: false }],
-        };
-        setData(updatedUserData);
-        toast.success("User archived successfully!");
-      } else {
-        toast.error("Failed to archive user: " + (res.data.message || "Unknown error"));
-      }
-    } catch (err) {
-      console.error("Error archiving user:", err);
-      toast.error("An error occurred while archiving the user: " + err.message);
-    } finally {
-      setArchiveModalOpen(false);
-      setItemToArchive(null);
     }
-  };
+  } catch (err) {
+    console.error("Error archiving user:", err);
+    toast.error("An error occurred while archiving the user: " + err.message);
+  } finally {
+    setArchiveModalOpen(false);
+    setItemToArchive(null);
+  }
+};
 
-  const handleRestoreConfirm = async () => {
-    if (!itemToRestore) return;
+const handleRestoreConfirm = async () => {
+  if (!itemToRestore) return;
 
-    try {
-      const res = await axios.put(
-        `${backendUrl}/api/user/update/${itemToRestore}`,
-        { isActive: true },
-        { withCredentials: true }
+  try {
+    const res = await axios.put(
+      `${backendUrl}/api/user/update/${itemToRestore}`,
+      { isActive: true },
+      { withCredentials: true }
+    );
+
+    if (res.data.success) {
+      toast.success("User restored successfully!");
+      refreshData(); // Fetch updated data from backend
+    } else {
+      toast.error(
+        "Failed to restore user: " + (res.data.message || "Unknown error")
       );
-
-      if (res.data.success) {
-        const userToRestore = data.inactive.find((item) => item._id === itemToRestore);
-        if (!userToRestore) {
-          throw new Error("User not found in inactive tab");
-        }
-        const originalTab = userToRestore.role + "s"; // e.g., "admins", "students"
-        const updatedUserData = {
-          ...data,
-          inactive: data.inactive.filter((item) => item._id !== itemToRestore),
-          [originalTab]: [...(data[originalTab] || []), { ...userToRestore, isActive: true }],
-        };
-        setData(updatedUserData);
-        toast.success("User restored successfully!");
-      } else {
-        toast.error("Failed to restore user: " + (res.data.message || "Unknown error"));
-      }
-    } catch (err) {
-      console.error("Error restoring user:", err);
-      toast.error("An error occurred while restoring the user: " + err.message);
-    } finally {
-      setRestoreModalOpen(false);
-      setItemToRestore(null);
     }
-  };
+  } catch (err) {
+    console.error("Error restoring user:", err);
+    toast.error("An error occurred while restoring the user: " + err.message);
+  } finally {
+    setRestoreModalOpen(false);
+    setItemToRestore(null);
+  }
+};
 
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);

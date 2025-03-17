@@ -34,70 +34,86 @@ const LessonPlan = () => {
       setLoading(true);
       setError(null);
       try {
-        const lessonPlanResponse = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
-          withCredentials: true,
-        });
+        const lessonPlanResponse = await axios.get(
+          `${backendUrl}/api/school/lesson-plan`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (lessonPlanResponse.status !== 200) {
           throw new Error("Failed to fetch lesson plan data");
         }
 
         const lessonPlanData = lessonPlanResponse.data;
-        setStudents(lessonPlanData.students);
+        // Filter only active students
+        const activeStudents = lessonPlanData.students.filter(
+          (student) => student.isActive === true
+        );
+        setStudents(activeStudents);
         setCurriculum(lessonPlanData.curriculumData);
 
-        const progressResponse = await axios.get(`${backendUrl}/api/school/class-list`, {
-          withCredentials: true,
-        });
+        const progressResponse = await axios.get(
+          `${backendUrl}/api/school/class-list`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (progressResponse.status === 200 && progressResponse.data.success) {
-          const studentsData = progressResponse.data.students;
+          // Filter only active students from progress data
+          const studentsData = progressResponse.data.students.filter(
+            (student) => student.isActive === true
+          );
           const initialProgress = {};
 
           studentsData.forEach((student) => {
             initialProgress[student._id] = {};
-            student.studentData.lessons.forEach((lesson, index) => {
-              let presented = false;
-              let practiced = false;
-              let mastered = false;
-              let latestDate = lesson.start_date
-                ? new Date(lesson.start_date).toLocaleDateString()
-                : "";
+            if (student.studentData?.lessons) {
+              student.studentData.lessons.forEach((lesson, index) => {
+                let presented = false;
+                let practiced = false;
+                let mastered = false;
+                let latestDate = lesson.start_date
+                  ? new Date(lesson.start_date).toLocaleDateString()
+                  : "";
 
-              const subRows = lesson.subwork.map((sub, subIndex) => ({
-                presented:
-                  sub.status === "presented" ||
-                  sub.status === "practiced" ||
-                  sub.status === "mastered",
-                practiced: sub.status === "practiced" || sub.status === "mastered",
-                mastered: sub.status === "mastered",
-                date: sub.status_date
-                  ? new Date(sub.status_date).toLocaleDateString()
-                  : "",
-                subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
-                updatedBy: sub.updatedBy,
-              }));
+                const subRows = lesson.subwork.map((sub, subIndex) => ({
+                  presented:
+                    sub.status === "presented" ||
+                    sub.status === "practiced" ||
+                    sub.status === "mastered",
+                  practiced:
+                    sub.status === "practiced" || sub.status === "mastered",
+                  mastered: sub.status === "mastered",
+                  date: sub.status_date
+                    ? new Date(sub.status_date).toLocaleDateString()
+                    : "",
+                  subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
+                  updatedBy: sub.updatedBy,
+                }));
 
-              if (subRows.length > 0) {
-                const latestSubRow = subRows[subRows.length - 1];
-                presented = latestSubRow.presented;
-                practiced = latestSubRow.practiced;
-                mastered = latestSubRow.mastered;
-                latestDate = latestSubRow.date;
-              } else {
-                presented = true; // Default to presented if no subwork exists
-              }
+                if (subRows.length > 0) {
+                  const latestSubRow = subRows[subRows.length - 1];
+                  presented = latestSubRow.presented;
+                  practiced = latestSubRow.practiced;
+                  mastered = latestSubRow.mastered;
+                  latestDate = latestSubRow.date;
+                } else {
+                  presented = true; // Default to presented if no subwork exists
+                }
 
-              initialProgress[student._id][index] = {
-                presented,
-                practiced,
-                mastered,
-                remarks: lesson.remarks || "",
-                expanded: false,
-                subRows,
-                date: latestDate,
-              };
-            });
+                initialProgress[student._id][index] = {
+                  presented,
+                  practiced,
+                  mastered,
+                  remarks: lesson.remarks || "",
+                  expanded: false,
+                  subRows,
+                  date: latestDate,
+                };
+              });
+            }
           });
 
           setProgress(initialProgress);
@@ -141,12 +157,20 @@ const LessonPlan = () => {
     if (practicedCount >= 8)
       return <span className="text-red-500 font-bold mr-2">!</span>;
     if (row.mastered)
-      return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>
+      );
     if (row.practiced)
-      return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>
+      );
     if (row.presented)
-      return <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>;
-    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>
+      );
+    return (
+      <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>
+    );
   };
 
   const calculateSPP = (studentId) => {
@@ -158,12 +182,14 @@ const LessonPlan = () => {
     const lessonSPPs = lessons.map((lesson) => {
       const ME = lesson.mastered ? 1 : 0;
       const PL = lesson.practiced ? 1 : 0;
-      const OP = lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
-      const lessonSPP = PL === 0 ? (ME * 100) : (ME / (PL + OP)) * 100;
+      const OP =
+        lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
+      const lessonSPP = PL === 0 ? ME * 100 : (ME / (PL + OP)) * 100;
       return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
     });
 
-    const totalSPP = lessonSPPs.reduce((sum, spp) => sum + spp, 0) / lessons.length;
+    const totalSPP =
+      lessonSPPs.reduce((sum, spp) => sum + spp, 0) / lessons.length;
     return isNaN(totalSPP) ? 0 : totalSPP;
   };
 
@@ -174,14 +200,23 @@ const LessonPlan = () => {
     return "Needs Attention";
   };
 
-  const classes = [...new Set(students.map((student) => student.studentData.class))];
-  const levels = [...new Set(students.map((student) => student.studentData.level))];
-  const categories = ["Advanced", "Proficient", "Developing", "Needs Attention"];
+  const classes = [
+    ...new Set(students.map((student) => student.studentData?.class).filter(Boolean)),
+  ];
+  const levels = [
+    ...new Set(students.map((student) => student.studentData?.level).filter(Boolean)),
+  ];
+  const categories = [
+    "Advanced",
+    "Proficient",
+    "Developing",
+    "Needs Attention",
+  ];
 
   const formatStudentName = (student) => {
-    const { lastName, firstName, middleName } = student.studentData;
+    const { lastName, firstName, middleName } = student.studentData || {};
     const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
-    return `${lastName}, ${firstName} ${middleInitial}`;
+    return `${lastName || ""}, ${firstName || ""} ${middleInitial}`;
   };
 
   const handleClassChange = (e) => setSelectedClass(e.target.value);
@@ -190,20 +225,28 @@ const LessonPlan = () => {
   const handleCategoryChange = (e) => setSelectedCategory(e.target.value);
 
   const filteredStudents = students.filter((student) => {
-    const matchesClass = selectedClass ? student.studentData.class === selectedClass : true;
-    const matchesLevel = selectedLevel ? student.studentData.level === selectedLevel : true;
+    const matchesClass = selectedClass
+      ? student.studentData?.class === selectedClass
+      : true;
+    const matchesLevel = selectedLevel
+      ? student.studentData?.level === selectedLevel
+      : true;
 
     const spp = calculateSPP(student._id);
     const category = categorizeStudent(spp);
-    const matchesCategory = selectedCategory ? category === selectedCategory : true;
+    const matchesCategory = selectedCategory
+      ? category === selectedCategory
+      : true;
 
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
-    const schoolId = student.schoolId.toLowerCase();
-    const gender = student.studentData.gender.toLowerCase();
-    const age = student.studentData.age.toString();
-    const birthday = new Date(student.studentData.birthday).toLocaleDateString();
-    const remarks = student.studentData.remarks.toLowerCase();
+    const schoolId = (student.schoolId || "").toLowerCase();
+    const gender = (student.studentData?.gender || "").toLowerCase();
+    const age = (student.studentData?.age || "").toString();
+    const birthday = student.studentData?.birthday
+      ? new Date(student.studentData.birthday).toLocaleDateString()
+      : "";
+    const remarks = (student.studentData?.remarks || "").toLowerCase();
 
     return (
       matchesClass &&
@@ -436,7 +479,7 @@ const LessonPlan = () => {
             {student.studentData.lessons.map((lesson, i) => (
               <li key={i} className="py-1 flex justify-between items-center">
                 <div className="flex items-center">
-                  {getStatusIndicator(progress[student._id][i])}
+                  {getStatusIndicator(progress[student._id]?.[i] || {})}
                   <span>{lesson.lesson_work}</span>
                 </div>
                 <img
@@ -628,7 +671,7 @@ const LessonPlan = () => {
                       .slice(0, 4)
                       .map((lesson, i) => (
                         <li key={i} className="py-1 flex items-center">
-                          {getStatusIndicator(progress[student._id][i])}
+                          {getStatusIndicator(progress[student._id]?.[i] || {})}
                           <span>{lesson.lesson_work}</span>
                         </li>
                       ))}
@@ -650,7 +693,7 @@ const LessonPlan = () => {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <option value="">Select Lesson</option>
-                    {getLessonsForStudentLevel(student.studentData.level).map(
+                    {getLessonsForStudentLevel(student.studentData?.level).map(
                       (lesson, i) => (
                         <option key={i} value={lesson}>
                           {lesson}
@@ -686,7 +729,9 @@ const LessonPlan = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center">No students found.</div>
+            <div className="col-span-full text-center">
+              No active students found.
+            </div>
           )}
         </div>
       </div>

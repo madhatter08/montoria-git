@@ -47,6 +47,7 @@ const Class = () => {
       } catch (error) {
         console.error("Error fetching students:", error);
         setError("Failed to load student data: " + error.message);
+
       } finally {
         setLoading(false);
       }
@@ -69,7 +70,6 @@ const Class = () => {
   const handleClassChange = (e) => setSelectedClass(e.target.value);
   const handleLevelChange = (e) => setSelectedLevel(e.target.value);
   const handleSearchChange = (e) => setSearchQuery(e.target.value);
-
   const handleStudentClick = async (student) => {
     console.log("Action button clicked for student:", student.schoolId);
     if (!isLoggedIn) {
@@ -79,31 +79,37 @@ const Class = () => {
       return;
     }
 
+
     try {
       const response = await axios.get(
-        `${backendUrl}/api/school/student/${student.schoolId}`,
+        `${backendUrl}/api/school/student/${user.schoolId}`,
         {
           withCredentials: true, // Rely on cookie-based auth
         }
       );
 
+
       console.log("Student data response:", response.data);
       if (response.status !== 200 || !response.data.success) {
         throw new Error(response.data.message || "Failed to fetch student data");
+
       }
 
       setSelectedStudent(response.data);
       setShowReportCard(true);
+
       console.log("ReportCard should now be visible.");
     } catch (error) {
       console.error("Error fetching student data:", error);
       setError(`Failed to fetch student data: ${error.message}`);
+
     }
   };
 
   const handleCloseReportCard = () => {
     setShowReportCard(false);
     setSelectedStudent(null);
+
     setError(null);
     console.log("ReportCard closed.");
   };
@@ -123,8 +129,9 @@ const Class = () => {
       : "";
     const remarks = (student.studentData?.remarks || "").toLowerCase();
 
+
     const matchesSearch =
-      studentName.includes(searchLower) ||
+      userName.includes(searchLower) ||
       schoolId.includes(searchLower) ||
       gender.includes(searchLower) ||
       age.includes(searchLower) ||
@@ -135,6 +142,7 @@ const Class = () => {
   });
 
   if (authLoading || loading) {
+
     return (
       <div
         style={{
@@ -219,8 +227,9 @@ const Class = () => {
             <tr>
               <th className="p-3 text-left">PHOTO</th>
               <th className="p-3 text-left">SCHOOL ID</th>
+              <th className="p-3 text-left">ROLE</th> {/* Added Role column */}
               <th className="p-3 text-left">LRN</th>
-              <th className="p-3 text-left">STUDENT NAME</th>
+              <th className="p-3 text-left">NAME</th>
               <th className="p-3 text-left">GENDER</th>
               <th className="p-3 text-left">LEVEL</th>
               <th className="p-3 text-left">AGE</th>
@@ -230,11 +239,12 @@ const Class = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <tr key={student._id} className="border-b hover:bg-gray-100">
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <tr key={user._id} className="border-b hover:bg-gray-100">
                   <td className="p-3">
                     <img
+
                       src={student.studentData?.photo || "https://placehold.co/120x120"}
                       alt="Student"
                       className="w-12 h-12 rounded-full"
@@ -252,9 +262,10 @@ const Class = () => {
                       : "N/A"}
                   </td>
                   <td className="p-3">{student.studentData?.remarks || "N/A"}</td>
+
                   <td className="p-3">
                     <button
-                      onClick={() => handleStudentClick(student)}
+                      onClick={() => handleUserClick(user)}
                       className="text-[#4A154B] hover:text-purple-900"
                       title="View Report Card"
                     >
@@ -265,8 +276,8 @@ const Class = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="10" className="p-3 text-center">
-                  No students found
+                <td colSpan="11" className="p-3 text-center">
+                  No active users found
                 </td>
               </tr>
             )}

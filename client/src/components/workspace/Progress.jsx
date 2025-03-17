@@ -46,10 +46,10 @@ const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
 // Main Progress Component
 const Progress = () => {
   const [progress, setProgress] = useState({});
-  const [selectedStudent, setSelectedStudent] = useState("STUDENT NAME");
+  const [selectedUser, setSelectedUser] = useState("USER NAME"); // Changed to "USER NAME" for all roles
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [users, setUsers] = useState([]); // Renamed to "users" for all roles
   const [searchTerm, setSearchTerm] = useState("");
   const [editIndex, setEditIndex] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("Quarter 1");
@@ -88,7 +88,7 @@ const Progress = () => {
     "Week 12": "week12",
   };
 
-  // Fetch initial data (classes and students)
+  // Fetch initial data (classes and active users)
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -105,72 +105,81 @@ const Progress = () => {
         }
 
         const data = response.data;
+        // Filter only active users
+        const activeUsers = data.students.filter(
+          (user) => user.isActive === true
+        );
         const uniqueClasses = [
-          ...new Set(data.students.map((student) => student.studentData.class)),
+          ...new Set(
+            activeUsers.map((user) => user.studentData?.class).filter(Boolean)
+          ),
         ];
         setClasses(uniqueClasses);
-        setStudents(data.students);
+        setUsers(activeUsers);
 
         const initialProgress = {};
         const initialFeedback = {};
-        data.students.forEach((student) => {
-          initialProgress[student._id] = {};
-          initialFeedback[student._id] = {
+        activeUsers.forEach((user) => {
+          initialProgress[user._id] = {};
+          initialFeedback[user._id] = {
             "Quarter 1": ["", "", ""],
             "Quarter 2": ["", "", ""],
             "Quarter 3": ["", "", ""],
             "Quarter 4": ["", "", ""],
           };
 
-          student.studentData.lessons.forEach((lesson, index) => {
-            let presented = false;
-            let practiced = false;
-            let mastered = false;
-            let latestDate = lesson.start_date
-              ? new Date(lesson.start_date).toLocaleDateString()
-              : "";
+          // Only process lessons for students
+          if (user.role === "student" && user.studentData?.lessons) {
+            user.studentData.lessons.forEach((lesson, index) => {
+              let presented = false;
+              let practiced = false;
+              let mastered = false;
+              let latestDate = lesson.start_date
+                ? new Date(lesson.start_date).toLocaleDateString()
+                : "";
 
-            const subRows = lesson.subwork.map((sub, subIndex) => ({
-              presented:
-                sub.status === "presented" ||
-                sub.status === "practiced" ||
-                sub.status === "mastered",
-              practiced:
-                sub.status === "practiced" || sub.status === "mastered",
-              mastered: sub.status === "mastered",
-              date: sub.status_date
-                ? new Date(sub.status_date).toLocaleDateString()
-                : "",
-              subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
-              updatedBy: sub.updatedBy,
-            }));
+              const subRows = lesson.subwork.map((sub, subIndex) => ({
+                presented:
+                  sub.status === "presented" ||
+                  sub.status === "practiced" ||
+                  sub.status === "mastered",
+                practiced:
+                  sub.status === "practiced" || sub.status === "mastered",
+                mastered: sub.status === "mastered",
+                date: sub.status_date
+                  ? new Date(sub.status_date).toLocaleDateString()
+                  : "",
+                subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
+                updatedBy: sub.updatedBy,
+              }));
 
-            if (subRows.length > 0) {
-              const latestSubRow = subRows[subRows.length - 1];
-              presented = latestSubRow.presented;
-              practiced = latestSubRow.practiced;
-              mastered = latestSubRow.mastered;
-              latestDate = latestSubRow.date;
-            } else {
-              presented = true;
-            }
+              if (subRows.length > 0) {
+                const latestSubRow = subRows[subRows.length - 1];
+                presented = latestSubRow.presented;
+                practiced = latestSubRow.practiced;
+                mastered = latestSubRow.mastered;
+                latestDate = latestSubRow.date;
+              } else {
+                presented = true;
+              }
 
-            initialProgress[student._id][index] = {
-              presented,
-              practiced,
-              mastered,
-              remarks: lesson.remarks || "",
-              expanded: false,
-              subRows,
-              date: latestDate,
-            };
-          });
+              initialProgress[user._id][index] = {
+                presented,
+                practiced,
+                mastered,
+                remarks: lesson.remarks || "",
+                expanded: false,
+                subRows,
+                date: latestDate,
+              };
+            });
+          }
         });
         setProgress(initialProgress);
         setFeedback(initialFeedback);
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load student data.");
+        toast.error("Failed to load user data.");
       } finally {
         setLoading(false);
       }
@@ -179,20 +188,13 @@ const Progress = () => {
     fetchData();
   }, [backendUrl]);
 
-  // Fetch feedback for the selected student only
+  // Fetch feedback for the selected user
   useEffect(() => {
     const fetchFeedback = async () => {
-      if (selectedStudent === "STUDENT NAME") {
-        //setLoading(false);
-        return;
-      }
-      const student = students.find(
-        (s) => s.studentData.firstName === selectedStudent
-      );
-      if (!student || !student.schoolId) {
-        //setLoading(false);
-        return;
-      }
+      if (selectedUser === "USER NAME") return;
+
+      const user = users.find((u) => formatUserName(u) === selectedUser);
+      if (!user || !user.schoolId) return;
 
       const quarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
       const quarterMapping = {
@@ -215,7 +217,7 @@ const Progress = () => {
           const feedbackResponse = await axios.get(
             `${backendUrl}/api/school/get-feedback`,
             {
-              params: { schoolId: student.schoolId, quarter },
+              params: { schoolId: user.schoolId, quarter },
               withCredentials: true,
             }
           );
@@ -228,26 +230,38 @@ const Progress = () => {
             const weekFeedback = weekMapping[quarter].map(
               (week) => fetchedFeedback[week] || ""
             );
-            updatedFeedback[student._id][quarterMapping[quarter]] =
-              weekFeedback;
+            updatedFeedback[user._id][quarterMapping[quarter]] = weekFeedback;
           }
         }
         setFeedback(updatedFeedback);
       } catch (feedbackError) {
         console.error(
-          `Error fetching feedback for ${student.schoolId}:`,
+          `Error fetching feedback for ${user.schoolId}:`,
           feedbackError
         );
         toast.error("Failed to fetch feedback.");
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchFeedback();
-  }, [selectedStudent, students, backendUrl, feedback]);
+  }, [selectedUser, users, backendUrl, feedback]);
 
-  // Show loader while fetching
+  // Format name based on role
+  const formatUserName = (user) => {
+    if (user.role === "student" && user.studentData) {
+      const { lastName, firstName, middleName } = user.studentData;
+      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+      return `${lastName}, ${firstName} ${middleInitial}`;
+    } else if (user.role === "guide" && user.guideData) {
+      const { lastName, firstName, middleName } = user.guideData;
+      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+      return `${lastName}, ${firstName} ${middleInitial}`;
+    } else if (user.role === "admin" && user.adminData) {
+      return user.adminData.name || "N/A";
+    }
+    return "N/A";
+  };
+
   if (loading) {
     return (
       <div
@@ -264,22 +278,24 @@ const Progress = () => {
     );
   }
 
-  const filteredStudents = selectedClass
-    ? students.filter((student) => student.studentData.class === selectedClass)
+  const filteredUsers = selectedClass
+    ? users.filter((user) => user.studentData?.class === selectedClass)
     : [];
 
-  const fetchSubwork = async (studentId, lessonIndex) => {
+  const fetchSubwork = async (userId, lessonIndex) => {
     try {
       const response = await axios.get(`${backendUrl}/api/school/get-subwork`, {
-        params: { studentId, lessonIndex },
+        params: { studentId: userId, lessonIndex },
         withCredentials: true,
       });
 
       if (response.data.success) {
         setProgress((prev) => {
           const newProgress = { ...prev };
-          const lesson = students.find((s) => s._id === studentId).studentData
-            .lessons[lessonIndex];
+          const user = users.find((u) => u._id === userId);
+          const lesson = user.studentData?.lessons?.[lessonIndex];
+          if (!lesson) return prev;
+
           const subRows = response.data.subwork.map((sub, subIndex) => ({
             presented:
               sub.status === "presented" ||
@@ -294,12 +310,12 @@ const Progress = () => {
             updatedBy: sub.updatedBy,
           }));
 
-          newProgress[studentId][lessonIndex].subRows = subRows;
+          newProgress[userId][lessonIndex].subRows = subRows;
 
           if (subRows.length > 0) {
             const latestSubRow = subRows[subRows.length - 1];
-            newProgress[studentId][lessonIndex] = {
-              ...newProgress[studentId][lessonIndex],
+            newProgress[userId][lessonIndex] = {
+              ...newProgress[userId][lessonIndex],
               presented: latestSubRow.presented,
               practiced: latestSubRow.practiced,
               mastered: latestSubRow.mastered,
@@ -318,20 +334,20 @@ const Progress = () => {
 
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
-    setSelectedStudent("STUDENT NAME");
+    setSelectedUser("USER NAME");
   };
 
-  const handleStudentChange = (e) => {
-    setSelectedStudent(e.target.value);
+  const handleUserChange = (e) => {
+    setSelectedUser(e.target.value);
   };
 
-  const getStudentProgress = (studentId) => {
-    return progress[studentId] || {};
+  const getUserProgress = (userId) => {
+    return progress[userId] || {};
   };
 
-  const countStatus = (studentId) => {
-    const studentProgress = getStudentProgress(studentId);
-    const lessons = Object.values(studentProgress);
+  const countStatus = (userId) => {
+    const userProgress = getUserProgress(userId);
+    const lessons = Object.values(userProgress);
     return {
       presented: lessons.filter((row) => row.presented).length,
       practiced: lessons.reduce(
@@ -352,28 +368,26 @@ const Progress = () => {
     };
   };
 
-  const toggleDropdown = async (index, student) => {
+  const toggleDropdown = async (index, user) => {
     setProgress((prev) => {
       const newProgress = { ...prev };
-      newProgress[student._id][index].expanded =
-        !newProgress[student._id][index].expanded;
+      newProgress[user._id][index].expanded =
+        !newProgress[user._id][index].expanded;
       return newProgress;
     });
 
-    if (!progress[student._id][index].expanded) {
-      await fetchSubwork(student._id, index);
+    if (!progress[user._id][index].expanded) {
+      await fetchSubwork(user._id, index);
     }
   };
 
-  const handleCheckboxChange = (studentId, index, field) => {
+  const handleCheckboxChange = (userId, index, field) => {
     setProgress((prev) => {
       const newProgress = { ...prev };
-      const row = { ...newProgress[studentId][index] };
+      const row = { ...newProgress[userId][index] };
 
       if (field === "presented") {
-        if (!row.presented && (row.practiced || row.mastered)) {
-          return prev;
-        }
+        if (!row.presented && (row.practiced || row.mastered)) return prev;
         row.presented = !row.presented;
         if (!row.presented) {
           row.practiced = false;
@@ -381,9 +395,7 @@ const Progress = () => {
         }
         row.date = row.presented ? new Date().toLocaleDateString() : "";
       } else if (field === "practiced" && row.presented) {
-        if (!row.practiced && row.mastered) {
-          return prev;
-        }
+        if (!row.practiced && row.mastered) return prev;
         row.practiced = !row.practiced;
         if (!row.practiced) row.mastered = false;
       } else if (field === "mastered" && row.presented && row.practiced) {
@@ -391,22 +403,21 @@ const Progress = () => {
         row.date = row.mastered ? new Date().toLocaleDateString() : row.date;
       }
 
-      newProgress[studentId][index] = row;
-      saveProgressToMongo(studentId, index, row);
+      newProgress[userId][index] = row;
+      saveProgressToMongo(userId, index, row);
       return newProgress;
     });
   };
 
-  const handleSubRowCheckboxChange = (studentId, index, subIndex, field) => {
+  const handleSubRowCheckboxChange = (userId, index, subIndex, field) => {
     setProgress((prev) => {
       const newProgress = { ...prev };
-      const row = { ...newProgress[studentId][index] };
+      const row = { ...newProgress[userId][index] };
       const subRow = { ...row.subRows[subIndex] };
 
       if (field === "presented") {
-        if (!subRow.presented && (subRow.practiced || subRow.mastered)) {
+        if (!subRow.presented && (subRow.practiced || subRow.mastered))
           return prev;
-        }
         subRow.presented = !subRow.presented;
         if (!subRow.presented) {
           subRow.practiced = false;
@@ -414,9 +425,7 @@ const Progress = () => {
         }
         subRow.date = subRow.presented ? new Date().toLocaleDateString() : "";
       } else if (field === "practiced" && subRow.presented) {
-        if (!subRow.practiced && subRow.mastered) {
-          return prev;
-        }
+        if (!subRow.practiced && subRow.mastered) return prev;
         subRow.practiced = !subRow.practiced;
         if (!subRow.practiced) subRow.mastered = false;
       } else if (field === "mastered" && subRow.presented && subRow.practiced) {
@@ -429,7 +438,7 @@ const Progress = () => {
       row.subRows[subIndex] = subRow;
 
       const latestSubRow = row.subRows[row.subRows.length - 1];
-      newProgress[studentId][index] = {
+      newProgress[userId][index] = {
         ...row,
         presented: latestSubRow.presented,
         practiced: latestSubRow.practiced,
@@ -437,17 +446,17 @@ const Progress = () => {
         date: latestSubRow.date,
       };
 
-      saveProgressToMongo(studentId, index, newProgress[studentId][index]);
+      saveProgressToMongo(userId, index, newProgress[userId][index]);
       return newProgress;
     });
   };
 
-  const saveProgressToMongo = async (studentId, lessonIndex, progressData) => {
+  const saveProgressToMongo = async (userId, lessonIndex, progressData) => {
     try {
       await axios.post(
         `${backendUrl}/api/school/save-progress`,
         {
-          studentId,
+          studentId: userId, // Renamed to userId for consistency
           lessonIndex,
           progress: {
             presented: progressData.presented,
@@ -466,9 +475,11 @@ const Progress = () => {
     }
   };
 
-  const handleAddSubwork = async (index, student) => {
-    const lesson = student.studentData.lessons[index];
-    const subRowsCount = progress[student._id][index].subRows.length;
+  const handleAddSubwork = async (index, user) => {
+    if (user.role !== "student" || !user.studentData?.lessons) return;
+
+    const lesson = user.studentData.lessons[index];
+    const subRowsCount = progress[user._id][index].subRows.length;
     const newDayNumber = subRowsCount + 1;
     const newSubwork = {
       subwork_name: `Day ${newDayNumber}: ${lesson.lesson_work}`,
@@ -482,7 +493,7 @@ const Progress = () => {
       const response = await axios.post(
         `${backendUrl}/api/school/add-subwork`,
         {
-          studentId: student._id,
+          studentId: user._id,
           lessonIndex: index,
           subwork: newSubwork,
         },
@@ -501,11 +512,11 @@ const Progress = () => {
             updatedBy: newSubwork.updatedBy,
           };
 
-          newProgress[student._id][index].subRows.push(newSubRow);
-          newProgress[student._id][index].expanded = true;
+          newProgress[user._id][index].subRows.push(newSubRow);
+          newProgress[user._id][index].expanded = true;
 
-          newProgress[student._id][index] = {
-            ...newProgress[student._id][index],
+          newProgress[user._id][index] = {
+            ...newProgress[user._id][index],
             presented: newSubRow.presented,
             practiced: newSubRow.practiced,
             mastered: newSubRow.mastered,
@@ -527,48 +538,38 @@ const Progress = () => {
   };
 
   const handleSaveRemarks = (index, remarks) => {
-    const student = students.find(
-      (s) => s.studentData.firstName === selectedStudent
-    );
+    const user = users.find((u) => formatUserName(u) === selectedUser);
     setProgress((prev) => {
       const newProgress = { ...prev };
-      newProgress[student._id][index].remarks = remarks;
-      saveProgressToMongo(student._id, index, newProgress[student._id][index]);
+      newProgress[user._id][index].remarks = remarks;
+      saveProgressToMongo(user._id, index, newProgress[user._id][index]);
       return newProgress;
     });
     setEditIndex(null);
   };
 
-  const handleFeedbackChange = (studentId, weekIndex, value) => {
+  const handleFeedbackChange = (userId, weekIndex, value) => {
     setUnsavedFeedback((prev) => ({
       ...prev,
-      [studentId]: {
-        ...prev[studentId],
+      [userId]: {
+        ...prev[userId],
         [selectedQuarter]: {
-          ...(prev[studentId]?.[selectedQuarter] || ["", "", ""]),
+          ...(prev[userId]?.[selectedQuarter] || ["", "", ""]),
           [weekIndex]: value,
         },
       },
     }));
   };
 
-  const saveFeedbackToMongo = async (studentId, quarter, weekIndex) => {
-    const student = students.find((s) => s._id === studentId);
-    if (!student) {
-      console.error("Student not found for ID:", studentId);
-      toast.error("Student not found.");
+  const saveFeedbackToMongo = async (userId, quarter, weekIndex) => {
+    const user = users.find((u) => u._id === userId);
+    if (!user || !user.schoolId) {
+      console.error("User not found or missing schoolId:", userId);
+      toast.error("Cannot save feedback: User not found.");
       return;
     }
 
-    const schoolId = student.schoolId;
-    if (!schoolId) {
-      console.error("schoolId missing for student:", student);
-      toast.error("Cannot save feedback: Student school ID is missing.");
-      return;
-    }
-
-    const feedbackText =
-      unsavedFeedback[studentId]?.[quarter]?.[weekIndex] || "";
+    const feedbackText = unsavedFeedback[userId]?.[quarter]?.[weekIndex] || "";
     const mongoQuarter = quarterToMongo[quarter];
     const mongoWeek = weekToMongo[quarterWeeks[quarter][weekIndex]];
 
@@ -576,7 +577,7 @@ const Progress = () => {
       const response = await axios.post(
         `${backendUrl}/api/school/save-feedback`,
         {
-          schoolId, // Use schoolId as per the controller
+          schoolId: user.schoolId,
           quarter: mongoQuarter,
           week: mongoWeek,
           feedbackText,
@@ -588,22 +589,22 @@ const Progress = () => {
         toast.success("Feedback saved successfully!");
         setFeedback((prev) => ({
           ...prev,
-          [studentId]: {
-            ...prev[studentId],
-            [quarter]: prev[studentId][quarter].map((val, idx) =>
+          [userId]: {
+            ...prev[userId],
+            [quarter]: prev[userId][quarter].map((val, idx) =>
               idx === weekIndex ? feedbackText : val
             ),
           },
         }));
         setUnsavedFeedback((prev) => {
           const newUnsaved = { ...prev };
-          if (newUnsaved[studentId]?.[quarter]?.[weekIndex] !== undefined) {
-            delete newUnsaved[studentId][quarter][weekIndex];
-            if (Object.keys(newUnsaved[studentId][quarter]).length === 0) {
-              delete newUnsaved[studentId][quarter];
+          if (newUnsaved[userId]?.[quarter]?.[weekIndex] !== undefined) {
+            delete newUnsaved[userId][quarter][weekIndex];
+            if (Object.keys(newUnsaved[userId][quarter]).length === 0) {
+              delete newUnsaved[userId][quarter];
             }
-            if (Object.keys(newUnsaved[studentId]).length === 0) {
-              delete newUnsaved[studentId];
+            if (Object.keys(newUnsaved[userId]).length === 0) {
+              delete newUnsaved[userId];
             }
           }
           return newUnsaved;
@@ -619,9 +620,9 @@ const Progress = () => {
     }
   };
 
-  const filterProgress = (studentId) => {
-    const studentProgress = getStudentProgress(studentId);
-    return Object.entries(studentProgress).filter(([_, row]) => {
+  const filterProgress = (userId) => {
+    const userProgress = getUserProgress(userId);
+    return Object.entries(userProgress).filter(([_, row]) => {
       const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
       if (filterStatus === "All") return true;
       if (filterStatus === "Not Presented")
@@ -662,22 +663,7 @@ const Progress = () => {
       <div className="mb-5">
         <div className="flex flex-wrap items-center gap-8">
           <div className="text-black font-bold text-2xl lg:text-4xl whitespace-nowrap">
-            {selectedStudent === "STUDENT NAME"
-              ? "STUDENT NAME"
-              : (() => {
-                  const student = students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  );
-                  if (student) {
-                    const { lastName, firstName, middleName } =
-                      student.studentData;
-                    const middleInitial = middleName
-                      ? `${middleName.charAt(0)}.`
-                      : "";
-                    return `${lastName}, ${firstName} ${middleInitial}`;
-                  }
-                  return "STUDENT NAME";
-                })()}
+            {selectedUser === "USER NAME" ? "USER NAME" : selectedUser}
           </div>
           <select
             className="w-full lg:w-60 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
@@ -693,19 +679,13 @@ const Progress = () => {
           </select>
           <select
             className="w-full lg:w-60 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
-            value={selectedStudent}
-            onChange={handleStudentChange}
+            value={selectedUser}
+            onChange={handleUserChange}
           >
-            <option value="STUDENT NAME">Select Student</option>
-            {filteredStudents.map((student) => (
-              <option key={student._id} value={student.studentData.firstName}>
-                {`${student.studentData.lastName}, ${
-                  student.studentData.firstName
-                } ${
-                  student.studentData.middleName
-                    ? `${student.studentData.middleName.charAt(0)}.`
-                    : ""
-                }`}
+            <option value="USER NAME">Select Student</option>
+            {filteredUsers.map((user) => (
+              <option key={user._id} value={formatUserName(user)}>
+                {formatUserName(user)}
               </option>
             ))}
           </select>
@@ -821,15 +801,13 @@ const Progress = () => {
       </div>
 
       {/* Count Cards Section */}
-      {selectedStudent !== "STUDENT NAME" && (
+      {selectedUser !== "USER NAME" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-[#5BB381] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
               {
                 countStatus(
-                  students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  )._id
+                  users.find((u) => formatUserName(u) === selectedUser)._id
                 ).presented
               }
             </p>
@@ -839,9 +817,7 @@ const Progress = () => {
             <p className="text-lg font-bold">
               {
                 countStatus(
-                  students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  )._id
+                  users.find((u) => formatUserName(u) === selectedUser)._id
                 ).practiced
               }
             </p>
@@ -851,9 +827,7 @@ const Progress = () => {
             <p className="text-lg font-bold">
               {
                 countStatus(
-                  students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  )._id
+                  users.find((u) => formatUserName(u) === selectedUser)._id
                 ).mastered
               }
             </p>
@@ -863,9 +837,7 @@ const Progress = () => {
             <p className="text-lg font-bold">
               {
                 countStatus(
-                  students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  )._id
+                  users.find((u) => formatUserName(u) === selectedUser)._id
                 ).total
               }
             </p>
@@ -875,9 +847,7 @@ const Progress = () => {
             <p className="text-lg font-bold">
               {
                 countStatus(
-                  students.find(
-                    (s) => s.studentData.firstName === selectedStudent
-                  )._id
+                  users.find((u) => formatUserName(u) === selectedUser)._id
                 ).needsAttention
               }
             </p>
@@ -901,50 +871,54 @@ const Progress = () => {
             </tr>
           </thead>
           <tbody>
-            {!selectedStudent || selectedStudent === "STUDENT NAME" ? (
+            {!selectedUser || selectedUser === "USER NAME" ? (
               <tr>
                 <td colSpan="7" className="p-3 text-center">
-                  Select a student to review progress.
+                  Select a user to review progress.
                 </td>
               </tr>
             ) : (
               (() => {
-                const student = students.find(
-                  (s) => s.studentData.firstName === selectedStudent
+                const user = users.find(
+                  (u) => formatUserName(u) === selectedUser
                 );
-                if (!student) {
+                if (!user) {
                   return (
                     <tr>
                       <td colSpan="7" className="p-3 text-center">
-                        Student not found.
+                        User not found.
                       </td>
                     </tr>
                   );
                 }
-                if (student.studentData.lessons.length === 0) {
+                if (
+                  user.role !== "student" ||
+                  !user.studentData?.lessons?.length
+                ) {
                   return (
                     <tr>
                       <td colSpan="7" className="p-3 text-center">
-                        Oops! Create a lesson plan for this student to start
-                        tracking progress.
+                        {user.role === "student"
+                          ? "Oops! Create a lesson plan for this student to start tracking progress."
+                          : "Progress tracking is only available for students."}
                       </td>
                     </tr>
                   );
                 }
-                return filterProgress(student._id).map(([index, row]) => (
+                return filterProgress(user._id).map(([index, row]) => (
                   <>
                     <tr key={index} className="border-b">
                       <td className="p-3 flex justify-between items-center">
                         <span className="flex items-center">
                           {getStatusIndicator(row)}
                           <span className="ml-2">
-                            {student.studentData.lessons[index]?.lesson_work ||
+                            {user.studentData.lessons[index]?.lesson_work ||
                               `Work ${index + 1}`}
                           </span>
                         </span>
                         {row.subRows.length > 0 && (
                           <button
-                            onClick={() => toggleDropdown(index, student)}
+                            onClick={() => toggleDropdown(index, user)}
                             className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
                           >
                             {row.expanded ? "▲" : "▼"}
@@ -957,11 +931,7 @@ const Progress = () => {
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                           checked={row.presented}
                           onChange={() =>
-                            handleCheckboxChange(
-                              student._id,
-                              index,
-                              "presented"
-                            )
+                            handleCheckboxChange(user._id, index, "presented")
                           }
                           disabled={row.practiced || row.mastered}
                         />
@@ -972,11 +942,7 @@ const Progress = () => {
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                           checked={row.practiced}
                           onChange={() =>
-                            handleCheckboxChange(
-                              student._id,
-                              index,
-                              "practiced"
-                            )
+                            handleCheckboxChange(user._id, index, "practiced")
                           }
                           disabled={!row.presented || row.mastered}
                         />
@@ -987,13 +953,13 @@ const Progress = () => {
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                           checked={row.mastered}
                           onChange={() =>
-                            handleCheckboxChange(student._id, index, "mastered")
+                            handleCheckboxChange(user._id, index, "mastered")
                           }
                           disabled={!row.presented || !row.practiced}
                         />
                       </td>
                       <td className="p-3 relative">
-                        {student.studentData.lessons[index]?.remarks || "-"}
+                        {user.studentData.lessons[index]?.remarks || "-"}
                         <button
                           onClick={() => handleEditRemarks(index)}
                           className="absolute right-2 top-1/2 transform -translate-y-1/2"
@@ -1008,7 +974,7 @@ const Progress = () => {
                       <td className="p-3">{row.date || "-"}</td>
                       <td className="p-3 text-center">
                         <button
-                          onClick={() => handleAddSubwork(index, student)}
+                          onClick={() => handleAddSubwork(index, user)}
                           className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
                         >
                           Add
@@ -1029,7 +995,7 @@ const Progress = () => {
                               checked={subRow.presented}
                               onChange={() =>
                                 handleSubRowCheckboxChange(
-                                  student._id,
+                                  user._id,
                                   index,
                                   subIndex,
                                   "presented"
@@ -1045,7 +1011,7 @@ const Progress = () => {
                               checked={subRow.practiced}
                               onChange={() =>
                                 handleSubRowCheckboxChange(
-                                  student._id,
+                                  user._id,
                                   index,
                                   subIndex,
                                   "practiced"
@@ -1061,7 +1027,7 @@ const Progress = () => {
                               checked={subRow.mastered}
                               onChange={() =>
                                 handleSubRowCheckboxChange(
-                                  student._id,
+                                  user._id,
                                   index,
                                   subIndex,
                                   "mastered"
@@ -1099,17 +1065,17 @@ const Progress = () => {
           <h2 className="text-2xl font-bold">Feedback</h2>
         </div>
         <div className="bg-white rounded-b-lg shadow p-4">
-          {selectedStudent !== "STUDENT NAME" && (
+          {selectedUser !== "USER NAME" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {quarterWeeks[selectedQuarter].map((weekLabel, weekIndex) => {
-                const student = students.find(
-                  (s) => s.studentData.firstName === selectedStudent
+                const user = users.find(
+                  (u) => formatUserName(u) === selectedUser
                 );
-                const studentId = student?._id;
+                const userId = user?._id;
                 const savedFeedback =
-                  feedback[studentId]?.[selectedQuarter]?.[weekIndex] || "";
+                  feedback[userId]?.[selectedQuarter]?.[weekIndex] || "";
                 const unsavedValue =
-                  unsavedFeedback[studentId]?.[selectedQuarter]?.[weekIndex];
+                  unsavedFeedback[userId]?.[selectedQuarter]?.[weekIndex];
                 const displayValue =
                   unsavedValue !== undefined ? unsavedValue : savedFeedback;
 
@@ -1122,22 +1088,14 @@ const Progress = () => {
                     <textarea
                       value={displayValue}
                       onChange={(e) =>
-                        handleFeedbackChange(
-                          studentId,
-                          weekIndex,
-                          e.target.value
-                        )
+                        handleFeedbackChange(userId, weekIndex, e.target.value)
                       }
                       className="w-full h-24 p-2 border rounded-lg"
                       placeholder={`Enter feedback for ${weekLabel}...`}
                     />
                     <button
                       onClick={() =>
-                        saveFeedbackToMongo(
-                          studentId,
-                          selectedQuarter,
-                          weekIndex
-                        )
+                        saveFeedbackToMongo(userId, selectedQuarter, weekIndex)
                       }
                       className="mt-2 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
                     >
@@ -1158,8 +1116,7 @@ const Progress = () => {
           onSave={(remarks) => handleSaveRemarks(editIndex, remarks)}
           initialRemarks={
             progress[
-              students.find((s) => s.studentData.firstName === selectedStudent)
-                ._id
+              users.find((u) => formatUserName(u) === selectedUser)._id
             ]?.[editIndex]?.remarks || ""
           }
         />
