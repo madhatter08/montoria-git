@@ -2,76 +2,87 @@ import { useState, useEffect, useContext } from "react";
 import ReportCard from "../../Forms/ReportCard"; // Adjust the path as needed
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
-import { FaFileAlt } from "react-icons/fa"; // Import an icon library (e.g., react-icons)
-import Loader from "../style/Loader"; // Import Loader (adjusted path)
+import { FaFileAlt } from "react-icons/fa";
+import Loader from "../style/Loader";
 
 const Class = () => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showReportCard, setShowReportCard] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null); // Track the selected student
-  const [students, setStudents] = useState([]); // State to store student data
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [users, setUsers] = useState([]); // Renamed to "users" to include all roles
   const { backendUrl } = useContext(AppContext);
-  const [loading, setLoading] = useState(false); // Added loading state
-  const [error, setError] = useState(null); // Added error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Fetch student data from the backend
+  // Fetch all users from the backend
   useEffect(() => {
-    const fetchStudents = async () => {
-      setLoading(true); // Start loading
-      setError(null); // Reset error
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await axios.get(`${backendUrl}/api/school/class-list`, {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `${backendUrl}/api/school/class-list`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (response.status !== 200) {
-          throw new Error("Failed to fetch students");
+          throw new Error("Failed to fetch users");
         }
 
         const data = response.data;
-        setStudents(data.students); // Set the fetched student data
-        console.log("Fetched students:", data.students);
+        // Filter to only include active users
+        const activeUsers = data.students.filter(
+          (user) => user.isActive === true
+        );
+        setUsers(activeUsers);
+        console.log("Fetched active users:", activeUsers);
       } catch (error) {
-        console.error("Error fetching students:", error);
-        setError("Failed to load student data."); // Set error message
+        console.error("Error fetching users:", error);
+        setError("Failed to load user data.");
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
 
-    fetchStudents();
+    fetchUsers();
   }, [backendUrl]);
 
-  // Extract unique classes and levels from student data
-  const classes = [...new Set(students.map((student) => student.studentData.class))];
-  const levels = [...new Set(students.map((student) => student.studentData.level))];
+  // Extract unique classes and levels from active users (students only for now)
+  const classes = [
+    ...new Set(users.map((user) => user.studentData?.class).filter(Boolean)),
+  ];
+  const levels = [
+    ...new Set(users.map((user) => user.studentData?.level).filter(Boolean)),
+  ];
 
-  // Format student name as [lastName, firstName middleName (initial + period)]
-  const formatStudentName = (student) => {
-    const { lastName, firstName, middleName } = student.studentData;
-    const middleInitial = middleName ? `${middleName.charAt(0)}.` : ""; // Get the first letter of middleName
-    return `${lastName}, ${firstName} ${middleInitial}`;
+  // Format name based on role
+  const formatUserName = (user) => {
+    if (user.role === "student" && user.studentData) {
+      const { lastName, firstName, middleName } = user.studentData;
+      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+      return `${lastName}, ${firstName} ${middleInitial}`;
+    } else if (user.role === "guide" && user.guideData) {
+      const { lastName, firstName, middleName } = user.guideData;
+      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+      return `${lastName}, ${firstName} ${middleInitial}`;
+    } else if (user.role === "admin" && user.adminData) {
+      return user.adminData.name || "N/A";
+    }
+    return "N/A";
   };
 
-  const handleClassChange = (e) => {
-    setSelectedClass(e.target.value);
-  };
+  const handleClassChange = (e) => setSelectedClass(e.target.value);
+  const handleLevelChange = (e) => setSelectedLevel(e.target.value);
+  const handleSearchChange = (e) => setSearchQuery(e.target.value);
 
-  const handleLevelChange = (e) => {
-    setSelectedLevel(e.target.value);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleStudentClick = async (student) => {
+  const handleUserClick = async (user) => {
     try {
-      // Fetch the student data using the schoolId
       const response = await axios.get(
-        `${backendUrl}/api/school/student/${student.schoolId}`,
+        `${backendUrl}/api/school/student/${user.schoolId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -81,43 +92,42 @@ const Class = () => {
       );
 
       if (response.status !== 200) {
-        throw new Error("Failed to fetch student data");
+        throw new Error("Failed to fetch user data");
       }
 
-      // Set the fetched student data
       setSelectedStudent(response.data);
-      setShowReportCard(true); // Open the ReportCard form
+      setShowReportCard(true);
     } catch (error) {
-      console.error("Error fetching student data:", error);
+      console.error("Error fetching user data:", error);
     }
   };
 
   const handleCloseReportCard = () => {
-    setShowReportCard(false); // Close the ReportCard form
-    setSelectedStudent(null); // Reset the selected student
+    setShowReportCard(false);
+    setSelectedStudent(null);
   };
 
-  // Filter students based on selected class, level, and search query
-  const filteredStudents = students.filter((student) => {
+  // Filter users based on class, level, and search query
+  const filteredUsers = users.filter((user) => {
     const matchesClass = selectedClass
-      ? student.studentData.class === selectedClass
+      ? user.studentData?.class === selectedClass
       : true;
     const matchesLevel = selectedLevel
-      ? student.studentData.level === selectedLevel
+      ? user.studentData?.level === selectedLevel
       : true;
 
-    // Convert all searchable fields to lowercase for case-insensitive comparison
     const searchLower = searchQuery.toLowerCase();
-    const studentName = formatStudentName(student).toLowerCase();
-    const schoolId = student.schoolId.toLowerCase();
-    const gender = student.studentData.gender.toLowerCase();
-    const age = student.studentData.age.toString();
-    const birthday = new Date(student.studentData.birthday).toLocaleDateString();
-    const remarks = student.studentData.remarks.toLowerCase();
+    const userName = formatUserName(user).toLowerCase();
+    const schoolId = user.schoolId.toLowerCase();
+    const gender = user.studentData?.gender?.toLowerCase() || "";
+    const age = user.studentData?.age?.toString() || "";
+    const birthday = user.studentData?.birthday
+      ? new Date(user.studentData.birthday).toLocaleDateString()
+      : "";
+    const remarks = user.studentData?.remarks?.toLowerCase() || "";
 
-    // Check if the search query matches any of the fields
     const matchesSearch =
-      studentName.includes(searchLower) ||
+      userName.includes(searchLower) ||
       schoolId.includes(searchLower) ||
       gender.includes(searchLower) ||
       age.includes(searchLower) ||
@@ -127,7 +137,6 @@ const Class = () => {
     return matchesClass && matchesLevel && matchesSearch;
   });
 
-  // Conditional rendering for loading and error states
   if (loading) {
     return (
       <div
@@ -154,9 +163,7 @@ const Class = () => {
 
       {/* Dropdowns and Search Bar */}
       <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
-        {/* Dropdowns on the Left */}
         <div className="flex space-x-4">
-          {/* Class Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700"></label>
             <select
@@ -172,8 +179,6 @@ const Class = () => {
               ))}
             </select>
           </div>
-
-          {/* Level Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700"></label>
             <select
@@ -190,8 +195,6 @@ const Class = () => {
             </select>
           </div>
         </div>
-
-        {/* Search Bar in the Middle */}
         <div className="flex-1 lg:flex-none lg:w-110 mb-8 mt-12">
           <label className="block text-sm font-medium text-gray-700"></label>
           <input
@@ -204,58 +207,67 @@ const Class = () => {
         </div>
       </div>
 
-      {/* Table with Remaining Columns */}
+      {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-[#4A154B] text-white">
             <tr>
               <th className="p-3 text-left">PHOTO</th>
               <th className="p-3 text-left">SCHOOL ID</th>
+              <th className="p-3 text-left">ROLE</th> {/* Added Role column */}
               <th className="p-3 text-left">LRN</th>
-              <th className="p-3 text-left">STUDENT NAME</th>
+              <th className="p-3 text-left">NAME</th>
               <th className="p-3 text-left">GENDER</th>
               <th className="p-3 text-left">LEVEL</th>
               <th className="p-3 text-left">AGE</th>
               <th className="p-3 text-left">BIRTHDAY</th>
               <th className="p-3 text-left">REMARKS</th>
-              <th className="p-1 text-left">ACTION</th> {/* New column for the icon */}
+              <th className="p-1 text-left">ACTION</th>
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <tr key={student._id} className="border-b hover:bg-gray-100">
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <tr key={user._id} className="border-b hover:bg-gray-100">
                   <td className="p-3">
                     <img
-                      src={student.studentData.photo || "https://placehold.co/120x120"}
-                      alt="Student"
+                      src={
+                        user.studentData?.photo ||
+                        user.guideData?.photo ||
+                        user.adminData?.photo ||
+                        "https://placehold.co/120x120"
+                      }
+                      alt={formatUserName(user)}
                       className="w-12 h-12 rounded-full"
                     />
                   </td>
-                  <td className="p-3">{student.schoolId}</td>
-                  <td className="p-3">{student.studentData.lrn}</td>
-                  <td className="p-3">{formatStudentName(student)}</td>
-                  <td className="p-3">{student.studentData.gender}</td>
-                  <td className="p-3">{student.studentData.level}</td>
-                  <td className="p-3">{student.studentData.age}</td>
+                  <td className="p-3">{user.schoolId}</td>
+                  <td className="p-3">{user.role}</td>
+                  <td className="p-3">{user.studentData?.lrn || "N/A"}</td>
+                  <td className="p-3">{formatUserName(user)}</td>
+                  <td className="p-3">{user.studentData?.gender || "N/A"}</td>
+                  <td className="p-3">{user.studentData?.level || "N/A"}</td>
+                  <td className="p-3">{user.studentData?.age || "N/A"}</td>
                   <td className="p-3">
-                    {new Date(student.studentData.birthday).toLocaleDateString()}
+                    {user.studentData?.birthday
+                      ? new Date(user.studentData.birthday).toLocaleDateString()
+                      : "N/A"}
                   </td>
-                  <td className="p-3">{student.studentData.remarks}</td>
+                  <td className="p-3">{user.studentData?.remarks || "N/A"}</td>
                   <td className="p-3">
                     <button
-                      onClick={() => handleStudentClick(student)}
+                      onClick={() => handleUserClick(user)}
                       className="text-[#4A154B] hover:text-purple-900"
                     >
-                      <FaFileAlt className="w-5 h-5" /> {/* Report icon */}
+                      <FaFileAlt className="w-5 h-5" />
                     </button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="10" className="p-3 text-center">
-                  No students found
+                <td colSpan="11" className="p-3 text-center">
+                  No active users found
                 </td>
               </tr>
             )}
@@ -265,10 +277,7 @@ const Class = () => {
 
       {/* ReportCard Form Pop-up */}
       {showReportCard && selectedStudent && (
-        <ReportCard
-          onClose={handleCloseReportCard}
-          student={selectedStudent} // Pass the selected student to ReportCard
-        />
+        <ReportCard onClose={handleCloseReportCard} student={selectedStudent} />
       )}
     </div>
   );

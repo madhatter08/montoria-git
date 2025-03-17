@@ -321,3 +321,53 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error while deleting user" });
   }
 };
+
+
+export const archiveUser = async (req, res) => {
+  try {
+    const { id } = req.params; // User ID from URL
+    const { isActive } = req.body; // isActive from request body
+
+    // Validate input
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid input: isActive must be a boolean",
+      });
+    }
+
+    // Find and update the user
+    const updatedUser = await userModel.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true, runValidators: true } // Return updated document
+    );
+
+    // Check if user exists
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Send success response
+    res.status(200).json({
+      success: true,
+      message: `User ${isActive ? "restored" : "archived"} successfully`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error in archiveUser:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating user",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
