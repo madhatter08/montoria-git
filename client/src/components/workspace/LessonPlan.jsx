@@ -35,12 +35,9 @@ const LessonPlan = () => {
       setError(null);
       try {
         // Fetch users and curriculum
-        const lessonPlanResponse = await axios.get(
-          `${backendUrl}/api/school/lesson-plan`,
-          {
-            withCredentials: true,
-          }
-        );
+        const lessonPlanResponse = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
+          withCredentials: true,
+        });
 
         if (lessonPlanResponse.status !== 200) {
           throw new Error("Failed to fetch lesson plan data");
@@ -55,19 +52,15 @@ const LessonPlan = () => {
         setCurriculum(lessonPlanData.curriculumData);
 
         // Fetch user progress for SPP calculation
-        const progressResponse = await axios.get(
-          `${backendUrl}/api/school/class-list`,
-          {
-            withCredentials: true,
-          }
-        );
+        const progressResponse = await axios.get(`${backendUrl}/api/school/class-list`, {
+          withCredentials: true,
+        });
 
         if (progressResponse.status === 200 && progressResponse.data.success) {
           const usersData = progressResponse.data.students.filter(
             (user) => user.isActive === true
           );
           const initialProgress = {};
-
           usersData.forEach((user) => {
             initialProgress[user._id] = {};
 
@@ -131,18 +124,50 @@ const LessonPlan = () => {
     fetchData();
   }, [backendUrl]);
 
-  // SPP Calculation Functions
-  const calculateSPP = (userId) => {
-    const userProgress = progress[userId] || {};
-    const lessons = Object.values(userProgress);
+  const getStudentProgress = (studentId) => {
+    return progress[studentId] || {};
+  };
+
+  const filterProgress = (studentId) => {
+    const studentProgress = getStudentProgress(studentId);
+    return Object.entries(studentProgress).filter(([_, row]) => {
+      const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+      if (filterStatus === "All") return true;
+      if (filterStatus === "Not Presented")
+        return !row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Presented")
+        return row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Practiced") return row.practiced && !row.mastered;
+      if (filterStatus === "Mastered") return row.mastered;
+      if (filterStatus === "Needs Attention") return practicedCount >= 8;
+      return true;
+    });
+  };
+
+  const getStatusIndicator = (row) => {
+    const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+    if (practicedCount >= 8)
+      return <span className="text-red-500 font-bold mr-2">!</span>;
+    if (row.mastered)
+      return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>;
+    if (row.practiced)
+      return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>;
+    if (row.presented)
+      return <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>;
+    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>;
+  };
+
+  const calculateSPP = (studentId) => {
+    const studentProgress = progress[studentId] || {};
+    const lessons = Object.values(studentProgress);
 
     if (lessons.length === 0) return 0;
 
     const lessonSPPs = lessons.map((lesson) => {
       const ME = lesson.mastered ? 1 : 0;
-      const PL = lesson.practiced || 0;
-      const OP = (lesson.practiced || 0) >= 8 ? 1 : 0;
-      const lessonSPP = PL === 0 ? ME * 100 : (ME / (PL + OP)) * 100;
+      const PL = lesson.practiced ? 1 : 0;
+      const OP = lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
+      const lessonSPP = PL === 0 ? (ME * 100) : (ME / (PL + OP)) * 100;
       return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
     });
 
