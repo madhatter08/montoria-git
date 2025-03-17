@@ -1,3 +1,4 @@
+// schoolController.js
 import programModel from "../models/acads/programModel.js";
 import levelModel from "../models/acads/levelModel.js";
 import classModel from "../models/acads/classModel.js";
@@ -7,25 +8,22 @@ import workModel from "../models/acads/workModel.js";
 import materialModel from "../models/acads/materialModel.js";
 import curriculumModel from "../models/acads/curriculumModel.js";
 import userModel from "../models/roles/userModel.js";
-import Feedback from "../models/roles/feedbackModel.js"; // Import your Feedback model
 import OpenAI from "openai";
 
 // Initialize OpenAI client with DeepSeek API
 const openai = new OpenAI({
   baseURL: "https://api.deepseek.com/v1",
-  apiKey: process.env.SUMMARIZER_API_KEY, // Ensure this is set in your .env file
+  apiKey: process.env.SUMMARIZER_API_KEY,
 });
 
 // Fetch student by schoolId
 export const getStudentById = async (req, res) => {
   try {
     const { schoolId } = req.params;
-
     const student = await userModel.findOne({ schoolId });
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found." });
     }
-
     res.status(200).json({ success: true, ...student.toObject() });
   } catch (error) {
     console.error("Error fetching student:", error);
@@ -45,14 +43,12 @@ const preloadStudentData = async () => {
 
 preloadStudentData();
 
-// Function to summarize feedback using DeepSeek API
+// Summarize feedback using DeepSeek API
 export const summarizeFeedback = async (req, res) => {
   const { feedback, studentName } = req.body;
-
   if (!feedback || !studentName) {
     return res.status(400).json({ success: false, message: "Feedback text and student name are required." });
   }
-
   try {
     const response = await openai.chat.completions.create({
       model: "deepseek-reasoner",
@@ -76,7 +72,6 @@ export const summarizeFeedback = async (req, res) => {
       ],
       max_tokens: 300,
     });
-
     const summary = response.choices[0].message.content;
     res.status(200).json({ success: true, summary });
   } catch (error) {
@@ -87,42 +82,24 @@ export const summarizeFeedback = async (req, res) => {
 
 export const getFeedback = async (req, res) => {
   const { schoolId, quarter } = req.query;
-
   console.log("Received feedback fetch request:", { schoolId, quarter });
-
-  // Validate required fields
   if (!schoolId || !quarter) {
-    return res.status(400).json({
-      success: false,
-      message: "schoolId and quarter are required.",
-    });
+    return res.status(400).json({ success: false, message: "schoolId and quarter are required." });
   }
-
   try {
-    // Find the student by schoolId
     const student = await userModel.findOne({ schoolId });
     if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Student not found." });
+      return res.status(404).json({ success: false, message: "Student not found." });
     }
-
-    // Validate quarter
     const validQuarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
     if (!validQuarters.includes(quarter)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid quarter." });
+      return res.status(400).json({ success: false, message: "Invalid quarter." });
     }
-
-    // Get the feedback for the specified quarter
     const feedback = student.studentData?.feedbacks?.[quarter] || {};
-
-    res.status(200).json({
-      success: true,
-      message: "Feedback retrieved successfully.",
-      data: feedback,
-    });
+    if (!Object.keys(feedback).length) {
+      return res.status(404).json({ success: false, message: "No feedback found for the selected quarter." });
+    }
+    res.status(200).json({ success: true, message: "Feedback retrieved successfully.", data: feedback });
   } catch (error) {
     console.error("Error in getFeedback:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -131,39 +108,19 @@ export const getFeedback = async (req, res) => {
 
 export const addFeedback = async (req, res) => {
   const { schoolId, quarter, week, feedbackText } = req.body;
-
-  console.log("Received feedback payload:", {
-    schoolId,
-    quarter,
-    week,
-    feedbackText,
-  });
-
-  // Validate required fields
+  console.log("Received feedback payload:", { schoolId, quarter, week, feedbackText });
   if (!schoolId || !quarter || !week || feedbackText === undefined) {
-    return res.status(400).json({
-      success: false,
-      message: "schoolId, quarter, week, and feedbackText are required.",
-    });
+    return res.status(400).json({ success: false, message: "schoolId, quarter, week, and feedbackText are required." });
   }
-
   try {
-    // Find the student by schoolId (unique in userModel)
     const student = await userModel.findOne({ schoolId });
     if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Student not found." });
+      return res.status(404).json({ success: false, message: "Student not found." });
     }
-
-    // Validate quarter and week
     const validQuarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
     if (!validQuarters.includes(quarter)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid quarter." });
+      return res.status(400).json({ success: false, message: "Invalid quarter." });
     }
-
     const validWeeks = {
       quarter1: ["week1", "week2", "week3"],
       quarter2: ["week4", "week5", "week6"],
@@ -171,39 +128,20 @@ export const addFeedback = async (req, res) => {
       quarter4: ["week10", "week11", "week12"],
     };
     if (!validWeeks[quarter].includes(week)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Invalid week for the given quarter.",
-        });
+      return res.status(400).json({ success: false, message: "Invalid week for the given quarter." });
     }
-
-    // Update the feedback in studentData.feedbacks
-    if (!student.studentData) {
-      student.studentData = {};
-    }
+    if (!student.studentData) student.studentData = {};
     if (!student.studentData.feedbacks) {
       student.studentData.feedbacks = {
         quarter1: { week1: "", week2: "", week3: "", summarized_feedback: "" },
         quarter2: { week4: "", week5: "", week6: "", summarized_feedback: "" },
         quarter3: { week7: "", week8: "", week9: "", summarized_feedback: "" },
-        quarter4: {
-          week10: "",
-          week11: "",
-          week12: "",
-          summarized_feedback: "",
-        },
+        quarter4: { week10: "", week11: "", week12: "", summarized_feedback: "" },
       };
     }
     student.studentData.feedbacks[quarter][week] = feedbackText;
-
-    // Mark the nested field as modified for Mongoose
     student.markModified(`studentData.feedbacks.${quarter}`);
-
-    // Save the updated document
     await student.save();
-
     res.status(200).json({
       success: true,
       message: "Feedback saved successfully.",
@@ -215,138 +153,72 @@ export const addFeedback = async (req, res) => {
   }
 };
 
-// Get Feedback by Quarter
-export const getFeedbackByQuarter = async (req, res) => {
-  console.log("getFeedbackByQuarter called");
+// New getProgress function
+export const getProgress = async (req, res) => {
   try {
-    const { schoolId, quarter } = req.query; // Extract schoolId and quarter from query params
-    console.log("schoolId:", schoolId, "quarter:", quarter);
+    const { schoolId } = req.params;
 
-    if (!schoolId || !quarter) {
-      console.log("Missing schoolId or quarter");
-      return res.status(400).json({ success: false, message: "schoolId and quarter are required." });
+    // Fetch student data
+    const student = await userModel.findOne({ schoolId });
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found." });
     }
 
-    // Find feedback document by schoolId
-    const feedbackDoc = await Feedback.findOne({ schoolId });
-    console.log("feedbackDoc:", feedbackDoc);
+    // Fetch all curriculum data
+    const curriculums = await curriculumModel.find();
 
-    if (!feedbackDoc) {
-      console.log("No feedback document found for schoolId:", schoolId);
-      return res.status(404).json({ success: false, message: "Feedback not found for this school ID." });
-    }
+    // Process lesson_work and map to areas
+    const lessons = student.studentData?.lessons || [];
+    const areaProgress = {};
 
-    // Normalize quarter key (e.g., "1" -> "quarter1")
-    const quarterKey = `quarter${quarter}`; // Ensure the key matches the format in the database
-    console.log("quarterKey:", quarterKey);
+    lessons.forEach((lesson) => {
+      const lessonWork = lesson.lesson_work;
+      const curriculumEntry = curriculums.find((curr) =>
+        lessonWork.includes(`${curr.Lesson} - ${curr.Work}`)
+      );
+      const area = curriculumEntry ? curriculumEntry.Areas : "Unknown";
 
-    // Extract feedback data for the selected quarter
-    const feedbackData = feedbackDoc.feedbacks[quarterKey];
-    console.log("feedbackData:", feedbackData);
+      if (!areaProgress[area]) {
+        areaProgress[area] = { presented: 0, practiced: 0, mastered: 0, total: 0 };
+      }
 
-    if (!feedbackData) {
-      console.log("No feedback found for quarter:", quarterKey);
-      return res.status(404).json({ success: false, message: "No feedback found for the selected quarter." });
-    }
+      // Get the latest subwork entry (based on status_date or last in array if no date)
+      const subwork = lesson.subwork.length > 0 ? lesson.subwork[lesson.subwork.length - 1] : null;
 
-    // Extract weekly feedback entries (week1, week2, week3)
-    const weekFeedback = [
-      feedbackData.week1 || "",
-      feedbackData.week2 || "",
-      feedbackData.week3 || "",
-    ].filter((feedback) => feedback.trim() !== ""); // Remove empty feedback entries
-
-    console.log("weekFeedback:", weekFeedback);
-
-    res.status(200).json({ success: true, feedback: weekFeedback, feedbackData });
-  } catch (error) {
-    console.error("Error fetching feedback by quarter:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch feedback by quarter." });
-  }
-};
-
-// Handle Generate button click
-export const handleGenerate = async (req, res) => {
-  const { studentId, quarter } = req.body;
-
-  if (!studentId || !quarter) {
-    return res.status(400).json({ success: false, message: "Student ID and quarter are required." });
-  }
-
-  try {
-    // Find feedback document by studentId
-    const feedbackDoc = await Feedback.findOne({ studentId });
-    if (!feedbackDoc) {
-      return res.status(404).json({ success: false, message: "Feedback not found for this student." });
-    }
-
-    // Normalize quarter key (e.g., "1" -> "quarter1")
-    const quarterKey = `quarter${quarter}`; // Ensure the key matches the format in the database
-
-    // Extract feedback data for the selected quarter
-    const feedbackData = feedbackDoc.feedbacks[quarterKey];
-    if (!feedbackData) {
-      return res.status(404).json({ success: false, message: "No feedback found for the selected quarter." });
-    }
-
-    // Combine weekly feedback entries into a single string
-    const feedbackText = [feedbackData.week1, feedbackData.week2, feedbackData.week3]
-      .filter((f) => f && f.trim() !== "") // Remove empty feedback entries
-      .join(" ");
-
-    if (!feedbackText) {
-      return res.status(404).json({ success: false, message: "No feedback text available to summarize." });
-    }
-
-    // Fetch student data to get the student's name
-    const student = await userModel.findById(studentId);
-    const studentName = student ? `${student.studentData.firstName} ${student.studentData.lastName}` : "Student";
-
-    // Generate summary using OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "deepseek-reasoner",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful assistant that summarizes feedback for student progress reports. Provide a concise summary of the feedback and include suggestions for improvement.",
-        },
-        {
-          role: "user",
-          content: `Summarize the following feedback for ${studentName} in one paragraph and provide suggestions for improvement: ${feedbackText}`,
-        },
-      ],
-      max_tokens: 200,
+      if (subwork) {
+        // Count only the status of the latest subwork
+        if (subwork.status === "presented") areaProgress[area].presented += 1;
+        else if (subwork.status === "practiced") areaProgress[area].practiced += 1;
+        else if (subwork.status === "mastered") areaProgress[area].mastered += 1;
+        areaProgress[area].total += 1; // Increment total for each lesson with subwork
+      }
     });
 
-    // Extract the generated summary
-    const summary = response.choices[0].message.content;
+    // Calculate percentages for each area
+    const progressData = {};
+    Object.keys(areaProgress).forEach((area) => {
+      const total = areaProgress[area].total;
+      if (total > 0) {
+        progressData[area] = {
+          presented: Math.round((areaProgress[area].presented / total) * 100),
+          practiced: Math.round((areaProgress[area].practiced / total) * 100),
+          mastered: Math.round((areaProgress[area].mastered / total) * 100),
+        };
+      } else {
+        progressData[area] = { presented: 0, practiced: 0, mastered: 0 };
+      }
+    });
 
-    // Update the summarized_feedback field for the selected quarter
-    feedbackDoc.feedbacks[quarterKey].summarized_feedback = summary;
-
-    // Mark the feedbacks field as modified
-    feedbackDoc.markModified("feedbacks");
-
-    // Log the updated feedbackDoc
-    console.log("Updated feedbackDoc:", JSON.stringify(feedbackDoc, null, 2));
-
-    // Save the updated feedback document
-    try {
-      await feedbackDoc.save();
-      console.log("Feedback document saved successfully.");
-    } catch (error) {
-      console.error("Error saving feedback document:", error);
-      throw error; // Re-throw the error to be caught by the outer try-catch block
-    }
-
-    res.status(200).json({ success: true, summary });
+    res.status(200).json({
+      success: true,
+      message: "Progress data retrieved successfully.",
+      data: progressData,
+    });
   } catch (error) {
-    console.error("Error generating summary:", error);
-    res.status(500).json({ success: false, message: "Failed to generate summary." });
+    console.error("Error fetching progress:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch progress data." });
   }
 };
-
 // Add Curriculum
 export const addCurriculum = async (req, res) => {
   const { Program, Level, Areas, Material, Lesson, Work } = req.body;

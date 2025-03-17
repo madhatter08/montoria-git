@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from "react";
-import ReportCard from "../../Forms/ReportCard"; // Adjust the path as needed
+import { useNavigate } from "react-router-dom";
+import ReportCard from "../../Forms/ReportCard";
 import { AppContext } from "../../context/AppContext";
 import axios from "axios";
 import { FaFileAlt } from "react-icons/fa";
@@ -11,120 +12,123 @@ const Class = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showReportCard, setShowReportCard] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [users, setUsers] = useState([]); // Renamed to "users" to include all roles
-  const { backendUrl } = useContext(AppContext);
+  const [students, setStudents] = useState([]);
+  const { backendUrl, isLoggedIn, loading: authLoading } = useContext(AppContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // Fetch all users from the backend
+  // Check authentication and fetch students
   useEffect(() => {
-    const fetchUsers = async () => {
+    if (authLoading) return; // Wait for auth state to resolve
+
+    if (!isLoggedIn) {
+      console.warn("User not logged in. Redirecting to login.");
+      setError("You must be logged in to view this page.");
+      navigate("/login");
+      return;
+    }
+
+    const fetchStudents = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(
-          `${backendUrl}/api/school/class-list`,
-          {
-            withCredentials: true,
-          }
-        );
+        const response = await axios.get(`${backendUrl}/api/school/class-list`, {
+          withCredentials: true, // Rely on cookie-based auth
+        });
 
-        if (response.status !== 200) {
-          throw new Error("Failed to fetch users");
+        if (response.status !== 200 || !response.data.success) {
+          throw new Error(response.data.message || "Failed to fetch students");
         }
 
         const data = response.data;
-        // Filter to only include active users
-        const activeUsers = data.students.filter(
-          (user) => user.isActive === true
-        );
-        setUsers(activeUsers);
-        console.log("Fetched active users:", activeUsers);
+        setStudents(data.students || []);
+        console.log("Fetched students:", data.students);
       } catch (error) {
-        console.error("Error fetching users:", error);
-        setError("Failed to load user data.");
+        console.error("Error fetching students:", error);
+        setError("Failed to load student data: " + error.message);
+
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
-  }, [backendUrl]);
+    fetchStudents();
+  }, [backendUrl, isLoggedIn, authLoading, navigate]);
 
-  // Extract unique classes and levels from active users (students only for now)
-  const classes = [
-    ...new Set(users.map((user) => user.studentData?.class).filter(Boolean)),
-  ];
-  const levels = [
-    ...new Set(users.map((user) => user.studentData?.level).filter(Boolean)),
-  ];
+  // Extract unique classes and levels from student data
+  const classes = [...new Set(students.map((student) => student.studentData?.class).filter(Boolean))];
+  const levels = [...new Set(students.map((student) => student.studentData?.level).filter(Boolean))];
 
-  // Format name based on role
-  const formatUserName = (user) => {
-    if (user.role === "student" && user.studentData) {
-      const { lastName, firstName, middleName } = user.studentData;
-      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
-      return `${lastName}, ${firstName} ${middleInitial}`;
-    } else if (user.role === "guide" && user.guideData) {
-      const { lastName, firstName, middleName } = user.guideData;
-      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
-      return `${lastName}, ${firstName} ${middleInitial}`;
-    } else if (user.role === "admin" && user.adminData) {
-      return user.adminData.name || "N/A";
-    }
-    return "N/A";
+  // Format student name
+  const formatStudentName = (student) => {
+    const { lastName, firstName, middleName } = student.studentData || {};
+    const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+    return `${lastName || ""}, ${firstName || ""} ${middleInitial}`;
   };
 
   const handleClassChange = (e) => setSelectedClass(e.target.value);
   const handleLevelChange = (e) => setSelectedLevel(e.target.value);
   const handleSearchChange = (e) => setSearchQuery(e.target.value);
+  const handleStudentClick = async (student) => {
+    console.log("Action button clicked for student:", student.schoolId);
+    if (!isLoggedIn) {
+      console.warn("User not logged in. Redirecting to login.");
+      setError("Please log in to view student report cards.");
+      navigate("/login");
+      return;
+    }
 
-  const handleUserClick = async (user) => {
+
     try {
       const response = await axios.get(
         `${backendUrl}/api/school/student/${user.schoolId}`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          withCredentials: true,
+          withCredentials: true, // Rely on cookie-based auth
         }
       );
 
-      if (response.status !== 200) {
-        throw new Error("Failed to fetch user data");
+
+      console.log("Student data response:", response.data);
+      if (response.status !== 200 || !response.data.success) {
+        throw new Error(response.data.message || "Failed to fetch student data");
+
       }
 
       setSelectedStudent(response.data);
       setShowReportCard(true);
+
+      console.log("ReportCard should now be visible.");
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error("Error fetching student data:", error);
+      setError(`Failed to fetch student data: ${error.message}`);
+
     }
   };
 
   const handleCloseReportCard = () => {
     setShowReportCard(false);
     setSelectedStudent(null);
+
+    setError(null);
+    console.log("ReportCard closed.");
   };
 
-  // Filter users based on class, level, and search query
-  const filteredUsers = users.filter((user) => {
-    const matchesClass = selectedClass
-      ? user.studentData?.class === selectedClass
-      : true;
-    const matchesLevel = selectedLevel
-      ? user.studentData?.level === selectedLevel
-      : true;
+  // Filter students
+  const filteredStudents = students.filter((student) => {
+    const matchesClass = selectedClass ? student.studentData?.class === selectedClass : true;
+    const matchesLevel = selectedLevel ? student.studentData?.level === selectedLevel : true;
 
     const searchLower = searchQuery.toLowerCase();
-    const userName = formatUserName(user).toLowerCase();
-    const schoolId = user.schoolId.toLowerCase();
-    const gender = user.studentData?.gender?.toLowerCase() || "";
-    const age = user.studentData?.age?.toString() || "";
-    const birthday = user.studentData?.birthday
-      ? new Date(user.studentData.birthday).toLocaleDateString()
+    const studentName = formatStudentName(student).toLowerCase();
+    const schoolId = (student.schoolId || "").toLowerCase();
+    const gender = (student.studentData?.gender || "").toLowerCase();
+    const age = (student.studentData?.age || "").toString();
+    const birthday = student.studentData?.birthday
+      ? new Date(student.studentData.birthday).toLocaleDateString()
       : "";
-    const remarks = user.studentData?.remarks?.toLowerCase() || "";
+    const remarks = (student.studentData?.remarks || "").toLowerCase();
+
 
     const matchesSearch =
       userName.includes(searchLower) ||
@@ -137,7 +141,8 @@ const Class = () => {
     return matchesClass && matchesLevel && matchesSearch;
   });
 
-  if (loading) {
+  if (authLoading || loading) {
+
     return (
       <div
         style={{
@@ -153,15 +158,24 @@ const Class = () => {
     );
   }
 
-  if (error) {
-    return <p>{error}</p>;
-  }
-
   return (
     <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Class Page</h1>
 
-      {/* Dropdowns and Search Bar */}
+      {error && (
+        <div className="mb-4 p-2 bg-red-100 text-red-600 rounded-lg text-sm">
+          {error}
+          {error.includes("log in") && (
+            <button
+              onClick={() => navigate("/login")}
+              className="ml-2 text-blue-600 underline"
+            >
+              Go to Login
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-4">
         <div className="flex space-x-4">
           <div>
@@ -207,7 +221,6 @@ const Class = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-[#4A154B] text-white">
@@ -231,33 +244,30 @@ const Class = () => {
                 <tr key={user._id} className="border-b hover:bg-gray-100">
                   <td className="p-3">
                     <img
-                      src={
-                        user.studentData?.photo ||
-                        user.guideData?.photo ||
-                        user.adminData?.photo ||
-                        "https://placehold.co/120x120"
-                      }
-                      alt={formatUserName(user)}
+
+                      src={student.studentData?.photo || "https://placehold.co/120x120"}
+                      alt="Student"
                       className="w-12 h-12 rounded-full"
                     />
                   </td>
-                  <td className="p-3">{user.schoolId}</td>
-                  <td className="p-3">{user.role}</td>
-                  <td className="p-3">{user.studentData?.lrn || "N/A"}</td>
-                  <td className="p-3">{formatUserName(user)}</td>
-                  <td className="p-3">{user.studentData?.gender || "N/A"}</td>
-                  <td className="p-3">{user.studentData?.level || "N/A"}</td>
-                  <td className="p-3">{user.studentData?.age || "N/A"}</td>
+                  <td className="p-3">{student.schoolId}</td>
+                  <td className="p-3">{student.studentData?.lrn || "N/A"}</td>
+                  <td className="p-3">{formatStudentName(student)}</td>
+                  <td className="p-3">{student.studentData?.gender || "N/A"}</td>
+                  <td className="p-3">{student.studentData?.level || "N/A"}</td>
+                  <td className="p-3">{student.studentData?.age || "N/A"}</td>
                   <td className="p-3">
-                    {user.studentData?.birthday
-                      ? new Date(user.studentData.birthday).toLocaleDateString()
+                    {student.studentData?.birthday
+                      ? new Date(student.studentData.birthday).toLocaleDateString()
                       : "N/A"}
                   </td>
-                  <td className="p-3">{user.studentData?.remarks || "N/A"}</td>
+                  <td className="p-3">{student.studentData?.remarks || "N/A"}</td>
+
                   <td className="p-3">
                     <button
                       onClick={() => handleUserClick(user)}
                       className="text-[#4A154B] hover:text-purple-900"
+                      title="View Report Card"
                     >
                       <FaFileAlt className="w-5 h-5" />
                     </button>
@@ -275,7 +285,6 @@ const Class = () => {
         </table>
       </div>
 
-      {/* ReportCard Form Pop-up */}
       {showReportCard && selectedStudent && (
         <ReportCard onClose={handleCloseReportCard} student={selectedStudent} />
       )}
