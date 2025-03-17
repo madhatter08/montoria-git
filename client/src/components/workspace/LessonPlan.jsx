@@ -13,14 +13,14 @@ const LessonPlan = () => {
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [users, setUsers] = useState([]); // Renamed to "users" for all roles
+  const [students, setStudents] = useState([]);
   const [curriculumData, setCurriculum] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null); // Renamed to "selectedUser"
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [selectedUsers, setSelectedUsers] = useState([]); // Renamed to "selectedUsers"
+  const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [assignLessonModalOpen, setAssignLessonModalOpen] = useState(false);
   const [lessonToAssign, setLessonToAssign] = useState("");
@@ -34,75 +34,83 @@ const LessonPlan = () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch users and curriculum
-        const lessonPlanResponse = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
-          withCredentials: true,
-        });
+        const lessonPlanResponse = await axios.get(
+          `${backendUrl}/api/school/lesson-plan`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (lessonPlanResponse.status !== 200) {
           throw new Error("Failed to fetch lesson plan data");
         }
 
         const lessonPlanData = lessonPlanResponse.data;
-        // Filter only active users
-        const activeUsers = lessonPlanData.students.filter(
-          (user) => user.isActive === true
+        // Filter only active students
+        const activeStudents = lessonPlanData.students.filter(
+          (student) => student.isActive === true
         );
-        setUsers(activeUsers);
+        setStudents(activeStudents);
         setCurriculum(lessonPlanData.curriculumData);
 
-        // Fetch user progress for SPP calculation
-        const progressResponse = await axios.get(`${backendUrl}/api/school/class-list`, {
-          withCredentials: true,
-        });
+        const progressResponse = await axios.get(
+          `${backendUrl}/api/school/class-list`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (progressResponse.status === 200 && progressResponse.data.success) {
-          const usersData = progressResponse.data.students.filter(
-            (user) => user.isActive === true
+          // Filter only active students from progress data
+          const studentsData = progressResponse.data.students.filter(
+            (student) => student.isActive === true
           );
           const initialProgress = {};
-          usersData.forEach((user) => {
-            initialProgress[user._id] = {};
 
-            if (user.role === "student" && user.studentData?.lessons) {
-              user.studentData.lessons.forEach((lesson, index) => {
-                const presented =
-                  lesson.subwork.some(
-                    (sub) =>
-                      sub.status === "presented" ||
-                      sub.status === "practiced" ||
-                      sub.status === "mastered"
-                  ) || true;
-                const mastered = lesson.subwork.some(
-                  (sub) => sub.status === "mastered"
-                );
-                const totalPractices = lesson.subwork.reduce(
-                  (sum, sub) => sum + (sub.practicedCount || 0),
-                  0
-                );
+          studentsData.forEach((student) => {
+            initialProgress[student._id] = {};
+            if (student.studentData?.lessons) {
+              student.studentData.lessons.forEach((lesson, index) => {
+                let presented = false;
+                let practiced = false;
+                let mastered = false;
+                let latestDate = lesson.start_date
+                  ? new Date(lesson.start_date).toLocaleDateString()
+                  : "";
 
-                initialProgress[user._id][index] = {
-                  presented: presented ? 1 : 0,
-                  practiced: totalPractices,
-                  mastered: mastered ? 1 : 0,
+                const subRows = lesson.subwork.map((sub, subIndex) => ({
+                  presented:
+                    sub.status === "presented" ||
+                    sub.status === "practiced" ||
+                    sub.status === "mastered",
+                  practiced:
+                    sub.status === "practiced" || sub.status === "mastered",
+                  mastered: sub.status === "mastered",
+                  date: sub.status_date
+                    ? new Date(sub.status_date).toLocaleDateString()
+                    : "",
+                  subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
+                  updatedBy: sub.updatedBy,
+                }));
+
+                if (subRows.length > 0) {
+                  const latestSubRow = subRows[subRows.length - 1];
+                  presented = latestSubRow.presented;
+                  practiced = latestSubRow.practiced;
+                  mastered = latestSubRow.mastered;
+                  latestDate = latestSubRow.date;
+                } else {
+                  presented = true; // Default to presented if no subwork exists
+                }
+
+                initialProgress[student._id][index] = {
+                  presented,
+                  practiced,
+                  mastered,
                   remarks: lesson.remarks || "",
                   expanded: false,
-                  subRows: lesson.subwork.map((sub, subIndex) => ({
-                    presented:
-                      sub.status === "presented" ||
-                      sub.status === "practiced" ||
-                      sub.status === "mastered",
-                    practiced: sub.practicedCount || 0,
-                    mastered: sub.status === "mastered",
-                    date: sub.status_date
-                      ? new Date(sub.status_date).toLocaleDateString()
-                      : "",
-                    subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
-                    updatedBy: sub.updatedBy,
-                  })),
-                  date: lesson.start_date
-                    ? new Date(lesson.start_date).toLocaleDateString()
-                    : "",
+                  subRows,
+                  date: latestDate,
                 };
               });
             }
@@ -110,7 +118,7 @@ const LessonPlan = () => {
 
           setProgress(initialProgress);
         } else {
-          throw new Error("Failed to fetch user progress");
+          throw new Error("Failed to fetch student progress");
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -149,12 +157,20 @@ const LessonPlan = () => {
     if (practicedCount >= 8)
       return <span className="text-red-500 font-bold mr-2">!</span>;
     if (row.mastered)
-      return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>
+      );
     if (row.practiced)
-      return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>
+      );
     if (row.presented)
-      return <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>;
-    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>;
+      return (
+        <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>
+      );
+    return (
+      <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>
+    );
   };
 
   const calculateSPP = (studentId) => {
@@ -166,8 +182,9 @@ const LessonPlan = () => {
     const lessonSPPs = lessons.map((lesson) => {
       const ME = lesson.mastered ? 1 : 0;
       const PL = lesson.practiced ? 1 : 0;
-      const OP = lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
-      const lessonSPP = PL === 0 ? (ME * 100) : (ME / (PL + OP)) * 100;
+      const OP =
+        lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
+      const lessonSPP = PL === 0 ? ME * 100 : (ME / (PL + OP)) * 100;
       return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
     });
 
@@ -176,7 +193,7 @@ const LessonPlan = () => {
     return isNaN(totalSPP) ? 0 : totalSPP;
   };
 
-  const categorizeUser = (spp) => {
+  const categorizeStudent = (spp) => {
     if (spp >= 90) return "Advanced";
     if (spp >= 75) return "Proficient";
     if (spp >= 50) return "Developing";
@@ -184,10 +201,10 @@ const LessonPlan = () => {
   };
 
   const classes = [
-    ...new Set(users.map((user) => user.studentData?.class).filter(Boolean)),
+    ...new Set(students.map((student) => student.studentData?.class).filter(Boolean)),
   ];
   const levels = [
-    ...new Set(users.map((user) => user.studentData?.level).filter(Boolean)),
+    ...new Set(students.map((student) => student.studentData?.level).filter(Boolean)),
   ];
   const categories = [
     "Advanced",
@@ -196,20 +213,10 @@ const LessonPlan = () => {
     "Needs Attention",
   ];
 
-  // Format name based on role
-  const formatUserName = (user) => {
-    if (user.role === "student" && user.studentData) {
-      const { lastName, firstName, middleName } = user.studentData;
-      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
-      return `${lastName}, ${firstName} ${middleInitial}`;
-    } else if (user.role === "guide" && user.guideData) {
-      const { lastName, firstName, middleName } = user.guideData;
-      const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
-      return `${lastName}, ${firstName} ${middleInitial}`;
-    } else if (user.role === "admin" && user.adminData) {
-      return user.adminData.name || "N/A";
-    }
-    return "N/A";
+  const formatStudentName = (student) => {
+    const { lastName, firstName, middleName } = student.studentData || {};
+    const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+    return `${lastName || ""}, ${firstName || ""} ${middleInitial}`;
   };
 
   const handleClassChange = (e) => setSelectedClass(e.target.value);
@@ -217,35 +224,35 @@ const LessonPlan = () => {
   const handleSearchChange = (e) => setSearchQuery(e.target.value);
   const handleCategoryChange = (e) => setSelectedCategory(e.target.value);
 
-  const filteredUsers = users.filter((user) => {
+  const filteredStudents = students.filter((student) => {
     const matchesClass = selectedClass
-      ? user.studentData?.class === selectedClass
+      ? student.studentData?.class === selectedClass
       : true;
     const matchesLevel = selectedLevel
-      ? user.studentData?.level === selectedLevel
+      ? student.studentData?.level === selectedLevel
       : true;
 
-    const spp = user.role === "student" ? calculateSPP(user._id) : 0;
-    const category = categorizeUser(spp);
+    const spp = calculateSPP(student._id);
+    const category = categorizeStudent(spp);
     const matchesCategory = selectedCategory
       ? category === selectedCategory
       : true;
 
     const searchLower = searchQuery.toLowerCase();
-    const userName = formatUserName(user).toLowerCase();
-    const schoolId = user.schoolId.toLowerCase();
-    const gender = user.studentData?.gender?.toLowerCase() || "";
-    const age = user.studentData?.age?.toString() || "";
-    const birthday = user.studentData?.birthday
-      ? new Date(user.studentData.birthday).toLocaleDateString()
+    const studentName = formatStudentName(student).toLowerCase();
+    const schoolId = (student.schoolId || "").toLowerCase();
+    const gender = (student.studentData?.gender || "").toLowerCase();
+    const age = (student.studentData?.age || "").toString();
+    const birthday = student.studentData?.birthday
+      ? new Date(student.studentData.birthday).toLocaleDateString()
       : "";
-    const remarks = user.studentData?.remarks?.toLowerCase() || "";
+    const remarks = (student.studentData?.remarks || "").toLowerCase();
 
     return (
       matchesClass &&
       matchesLevel &&
       matchesCategory &&
-      (userName.includes(searchLower) ||
+      (studentName.includes(searchLower) ||
         schoolId.includes(searchLower) ||
         gender.includes(searchLower) ||
         age.includes(searchLower) ||
@@ -254,39 +261,34 @@ const LessonPlan = () => {
     );
   });
 
-  const getLessonsForUserLevel = (userLevel) => {
+  const getLessonsForStudentLevel = (studentLevel) => {
     return curriculumData
-      .filter((item) => item.Level === userLevel)
+      .filter((item) => item.Level === studentLevel)
       .map((item) => `${item.Lesson} - ${item.Work}`);
   };
 
-  const handleBookmarkClick = async (userId) => {
-    const selectedLesson = selectedLessons[userId];
+  const handleBookmarkClick = async (studentId) => {
+    const selectedLesson = selectedLessons[studentId];
     if (!selectedLesson) {
       toast.warning("Please select a lesson before bookmarking.");
       return;
     }
 
     try {
-      const user = users.find((u) => u._id === userId);
-      if (user.role !== "student") {
-        toast.warning("Lessons can only be assigned to students.");
-        return;
-      }
-
-      const lessonExists = user.studentData.lessons.some(
+      const student = students.find((s) => s._id === studentId);
+      const lessonExists = student.studentData.lessons.some(
         (lesson) => lesson.lesson_work === selectedLesson
       );
 
       if (lessonExists) {
-        toast.warning("This lesson is already assigned to the user.");
+        toast.warning("This lesson is already assigned to the student.");
         return;
       }
 
       const response = await axios.post(
         `${backendUrl}/api/school/save-lesson`,
         {
-          studentId: userId,
+          studentId,
           lesson_work: selectedLesson,
           addedBy: userData.email,
           remarks: "",
@@ -296,15 +298,15 @@ const LessonPlan = () => {
       );
 
       if (response.status === 200) {
-        setUsers((prevUsers) =>
-          prevUsers.map((u) =>
-            u._id === userId
+        setStudents((prevStudents) =>
+          prevStudents.map((s) =>
+            s._id === studentId
               ? {
-                  ...u,
+                  ...s,
                   studentData: {
-                    ...u.studentData,
+                    ...s.studentData,
                     lessons: [
-                      ...u.studentData.lessons,
+                      ...s.studentData.lessons,
                       {
                         lesson_work: selectedLesson,
                         addedBy: userData.email,
@@ -315,7 +317,7 @@ const LessonPlan = () => {
                     ],
                   },
                 }
-              : u
+              : s
           )
         );
         toast.success("Lesson saved successfully!");
@@ -332,34 +334,34 @@ const LessonPlan = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!itemToDelete || !selectedUser) {
-      toast.error("No lesson or user selected for deletion.");
+    if (!itemToDelete || !selectedStudent) {
+      toast.error("No lesson or student selected for deletion.");
       return;
     }
 
     try {
       const res = await axios.delete(
-        `${backendUrl}/api/school/delete-lesson?studentId=${selectedUser._id}&lesson_work=${itemToDelete}`,
+        `${backendUrl}/api/school/delete-lesson?studentId=${selectedStudent._id}&lesson_work=${itemToDelete}`,
         { withCredentials: true }
       );
 
       if (res.data.success) {
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user._id === selectedUser._id
+        setStudents((prevStudents) =>
+          prevStudents.map((student) =>
+            student._id === selectedStudent._id
               ? {
-                  ...user,
+                  ...student,
                   studentData: {
-                    ...user.studentData,
-                    lessons: user.studentData.lessons.filter(
+                    ...student.studentData,
+                    lessons: student.studentData.lessons.filter(
                       (lesson) => lesson.lesson_work !== itemToDelete
                     ),
                   },
                 }
-              : user
+              : student
           )
         );
-        setSelectedUser((prev) => ({
+        setSelectedStudent((prev) => ({
           ...prev,
           studentData: {
             ...prev.studentData,
@@ -379,16 +381,18 @@ const LessonPlan = () => {
     }
   };
 
-  const handleUserSelect = (userId) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+  const handleStudentSelect = (studentId) => {
+    setSelectedStudents((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
     );
   };
 
   const handleSelectAll = () => {
-    setSelectedUsers(selectAll ? [] : filteredUsers.map((user) => user._id));
+    setSelectedStudents(
+      selectAll ? [] : filteredStudents.map((student) => student._id)
+    );
     setSelectAll(!selectAll);
   };
 
@@ -397,8 +401,8 @@ const LessonPlan = () => {
       toast.warning("Please select a lesson to assign.");
       return;
     }
-    if (selectedUsers.length === 0) {
-      toast.warning("Please select at least one user.");
+    if (selectedStudents.length === 0) {
+      toast.warning("Please select at least one student.");
       return;
     }
 
@@ -408,20 +412,10 @@ const LessonPlan = () => {
 
   const handleAssignConfirm = async () => {
     try {
-      const studentIds = selectedUsers.filter((userId) => {
-        const user = users.find((u) => u._id === userId);
-        return user.role === "student";
-      });
-
-      if (studentIds.length === 0) {
-        toast.warning("No students selected for lesson assignment.");
-        return;
-      }
-
       const response = await axios.post(
         `${backendUrl}/api/school/save-lesson-to-multiple`,
         {
-          studentIds,
+          studentIds: selectedStudents,
           lesson_work: lessonToAssign,
           addedBy: userData.email,
           remarks: "",
@@ -431,19 +425,19 @@ const LessonPlan = () => {
       );
 
       if (response.status === 200 && response.data.success) {
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            studentIds.includes(user._id)
+        setStudents((prevStudents) =>
+          prevStudents.map((student) =>
+            selectedStudents.includes(student._id)
               ? {
-                  ...user,
+                  ...student,
                   studentData: {
-                    ...user.studentData,
-                    lessons: user.studentData.lessons.some(
+                    ...student.studentData,
+                    lessons: student.studentData.lessons.some(
                       (lesson) => lesson.lesson_work === lessonToAssign
                     )
-                      ? user.studentData.lessons
+                      ? student.studentData.lessons
                       : [
-                          ...user.studentData.lessons,
+                          ...student.studentData.lessons,
                           {
                             lesson_work: lessonToAssign,
                             addedBy: userData.email,
@@ -454,10 +448,10 @@ const LessonPlan = () => {
                         ],
                   },
                 }
-              : user
+              : student
           )
         );
-        setSelectedUsers([]);
+        setSelectedStudents([]);
         setSelectAll(false);
         toast.success("Lesson assigned to selected students successfully!");
       } else {
@@ -472,35 +466,34 @@ const LessonPlan = () => {
     }
   };
 
-  const LessonPlanModal = ({ user, onClose }) => {
-    if (!user) return null;
+  const LessonPlanModal = ({ student, onClose }) => {
+    if (!student) return null;
 
     return (
       <div className="fixed inset-0 bg-[rgba(0,0,0,0.3)] flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded-lg w-11/12 max-w-2xl">
           <h2 className="text-2xl font-bold mb-4">
-            Lessons for {formatUserName(user)}
+            Lessons for {formatStudentName(student)}
           </h2>
-          {user.role === "student" && user.studentData?.lessons ? (
-            <ol className="list-decimal pl-5 text-gray-700 text-lg">
-              {user.studentData.lessons.map((lesson, i) => (
-                <li key={i} className="py-1 flex justify-between items-center">
+          <ol className="list-decimal pl-5 text-gray-700 text-lg">
+            {student.studentData.lessons.map((lesson, i) => (
+              <li key={i} className="py-1 flex justify-between items-center">
+                <div className="flex items-center">
+                  {getStatusIndicator(progress[student._id]?.[i] || {})}
                   <span>{lesson.lesson_work}</span>
-                  <img
-                    src={assets.delete_icon}
-                    alt="Delete"
-                    className="w-5 h-5 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDeleteModal(lesson.lesson_work);
-                    }}
-                  />
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p>No lessons available for this {user.role}.</p>
-          )}
+                </div>
+                <img
+                  src={assets.delete_icon}
+                  alt="Delete"
+                  className="w-5 h-5 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDeleteModal(lesson.lesson_work);
+                  }}
+                />
+              </li>
+            ))}
+          </ol>
           <button
             onClick={onClose}
             className="mt-4 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
@@ -513,7 +506,7 @@ const LessonPlan = () => {
   };
 
   LessonPlanModal.propTypes = {
-    user: PropTypes.object.isRequired,
+    student: PropTypes.object.isRequired,
     onClose: PropTypes.func.isRequired,
   };
 
@@ -584,7 +577,7 @@ const LessonPlan = () => {
         <div className="flex-1 lg:flex-none lg:w-150 flex items-center space-x-4">
           <input
             type="text"
-            placeholder="Search for user..."
+            placeholder="Search for student..."
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full h-12 bg-[#e6e6e6] rounded-[15px] px-4"
@@ -613,7 +606,7 @@ const LessonPlan = () => {
           >
             {selectAll ? "Deselect All" : "Select All"}
           </button>
-          {selectedUsers.length > 0 && (
+          {selectedStudents.length > 0 && (
             <div className="flex items-center gap-2">
               <select
                 className="w-60 h-12 bg-[#ffffff] rounded-[15px] px-4"
@@ -621,7 +614,7 @@ const LessonPlan = () => {
               >
                 <option value="">Select Lesson to Assign</option>
                 {levels.map((level) =>
-                  getLessonsForUserLevel(level).map((lesson, i) => (
+                  getLessonsForStudentLevel(level).map((lesson, i) => (
                     <option key={i} value={lesson}>
                       {lesson}
                     </option>
@@ -633,31 +626,33 @@ const LessonPlan = () => {
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
+          {filteredStudents.length > 0 ? (
+            filteredStudents.map((student) => (
               <div
-                key={user._id}
+                key={student._id}
                 className={`bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer ${
-                  selectedUsers.includes(user._id) ? "border-[#4A154B]" : ""
+                  selectedStudents.includes(student._id)
+                    ? "border-[#4A154B]"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <h3
                     className="text-xl font-semibold text-center bg-[#4A154B] text-white p-2 rounded-t-lg cursor-pointer"
                     onClick={() => {
-                      setSelectedUser(user);
+                      setSelectedStudent(student);
                       setIsModalOpen(true);
                     }}
                   >
-                    {formatUserName(user)}
+                    {formatStudentName(student)}
                   </h3>
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={selectedUsers.includes(user._id)}
+                      checked={selectedStudents.includes(student._id)}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleUserSelect(user._id);
+                        handleStudentSelect(student._id);
                       }}
                       className="form-checkbox h-5 w-5 text-[#4A154B]"
                     />
@@ -667,80 +662,75 @@ const LessonPlan = () => {
                 <div
                   className="flex-grow p-3 overflow-y-auto"
                   onClick={() => {
-                    setSelectedUser(user);
+                    setSelectedStudent(student);
                     setIsModalOpen(true);
                   }}
                 >
-                  {user.role === "student" && user.studentData?.lessons ? (
-                    <ol className="list-decimal pl-5 text-gray-700 text-base">
-                      {user.studentData.lessons.slice(0, 4).map((lesson, i) => (
-                        <li key={i} className="py-1">
-                          {lesson.lesson_work}
+                  <ol className="list-decimal pl-5 text-gray-700 text-base">
+                    {student.studentData.lessons
+                      .slice(0, 4)
+                      .map((lesson, i) => (
+                        <li key={i} className="py-1 flex items-center">
+                          {getStatusIndicator(progress[student._id]?.[i] || {})}
+                          <span>{lesson.lesson_work}</span>
                         </li>
                       ))}
-                      {user.studentData.lessons.length > 4 && (
-                        <li className="text-gray-500">...</li>
-                      )}
-                    </ol>
-                  ) : (
-                    <p className="text-gray-700 text-base">
-                      No lessons available for this {user.role}.
-                    </p>
-                  )}
+                    {student.studentData.lessons.length > 4 && (
+                      <li className="text-gray-500">...</li>
+                    )}
+                  </ol>
                 </div>
 
-                {user.role === "student" && (
-                  <div className="mt-auto flex items-center gap-2">
-                    <select
-                      className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
-                      onChange={(e) =>
-                        setSelectedLessons((prev) => ({
-                          ...prev,
-                          [user._id]: e.target.value,
-                        }))
-                      }
-                      onClick={(e) => e.stopPropagation()}
+                <div className="mt-auto flex items-center gap-2">
+                  <select
+                    className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+                    onChange={(e) =>
+                      setSelectedLessons((prev) => ({
+                        ...prev,
+                        [student._id]: e.target.value,
+                      }))
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">Select Lesson</option>
+                    {getLessonsForStudentLevel(student.studentData?.level).map(
+                      (lesson, i) => (
+                        <option key={i} value={lesson}>
+                          {lesson}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <label
+                    htmlFor={`bookmark-${student._id}`}
+                    className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`bookmark-${student._id}`}
+                      className="hidden"
+                      onClick={() => handleBookmarkClick(student._id)}
+                    />
+                    <svg
+                      width={15}
+                      viewBox="0 0 50 70"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
-                      <option value="">Select Lesson</option>
-                      {getLessonsForUserLevel(user.studentData.level).map(
-                        (lesson, i) => (
-                          <option key={i} value={lesson}>
-                            {lesson}
-                          </option>
-                        )
-                      )}
-                    </select>
-                    <label
-                      htmlFor={`bookmark-${user._id}`}
-                      className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        id={`bookmark-${user._id}`}
-                        className="hidden"
-                        onClick={() => handleBookmarkClick(user._id)}
+                      <path
+                        d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
+                        stroke="white"
+                        strokeWidth={7}
                       />
-                      <svg
-                        width={15}
-                        viewBox="0 0 50 70"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
-                          stroke="white"
-                          strokeWidth={7}
-                        />
-                      </svg>
-                    </label>
-                  </div>
-                )}
+                    </svg>
+                  </label>
+                </div>
               </div>
             ))
           ) : (
             <div className="col-span-full text-center">
-              No active users found.
+              No active students found.
             </div>
           )}
         </div>
@@ -748,7 +738,7 @@ const LessonPlan = () => {
 
       {isModalOpen && (
         <LessonPlanModal
-          user={selectedUser}
+          student={selectedStudent}
           onClose={() => setIsModalOpen(false)}
         />
       )}
@@ -764,7 +754,7 @@ const LessonPlan = () => {
         isOpen={assignLessonModalOpen}
         onClose={handleAssignCancel}
         onConfirm={handleAssignConfirm}
-        message={`Assign "${lessonToAssign}" to ${selectedUsers.length} selected user(s)?`}
+        message={`Assign "${lessonToAssign}" to ${selectedStudents.length} selected student(s)?`}
       />
     </div>
   );
