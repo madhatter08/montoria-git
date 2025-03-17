@@ -3,6 +3,7 @@ import { assets } from "../../assets/assets";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { AppContext } from "../../context/AppContext";
+import Loader from "../style/Loader";
 
 // RemarksForm Component (unchanged)
 const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
@@ -57,6 +58,7 @@ const Progress = () => {
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { backendUrl, userData } = useContext(AppContext);
+  const [loading, setLoading] = useState(true);
 
   const quarterWeeks = {
     "Quarter 1": ["Week 1", "Week 2", "Week 3"],
@@ -86,20 +88,23 @@ const Progress = () => {
     "Week 12": "week12",
   };
 
+  // Fetch initial data (classes and students)
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        console.log("Fetching data from:", `${backendUrl}/api/school/class-list`);
-        const response = await axios.get(`${backendUrl}/api/school/class-list`, {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `${backendUrl}/api/school/class-list`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (response.status !== 200 || !response.data.success) {
           throw new Error("Failed to fetch data");
         }
 
         const data = response.data;
-        console.log("Fetched students:", data.students);
         const uniqueClasses = [
           ...new Set(data.students.map((student) => student.studentData.class)),
         ];
@@ -121,13 +126,21 @@ const Progress = () => {
             let presented = false;
             let practiced = false;
             let mastered = false;
-            let latestDate = lesson.start_date ? new Date(lesson.start_date).toLocaleDateString() : "";
+            let latestDate = lesson.start_date
+              ? new Date(lesson.start_date).toLocaleDateString()
+              : "";
 
             const subRows = lesson.subwork.map((sub, subIndex) => ({
-              presented: sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered",
-              practiced: sub.status === "practiced" || sub.status === "mastered",
+              presented:
+                sub.status === "presented" ||
+                sub.status === "practiced" ||
+                sub.status === "mastered",
+              practiced:
+                sub.status === "practiced" || sub.status === "mastered",
               mastered: sub.status === "mastered",
-              date: sub.status_date ? new Date(sub.status_date).toLocaleDateString() : "",
+              date: sub.status_date
+                ? new Date(sub.status_date).toLocaleDateString()
+                : "",
               subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
               updatedBy: sub.updatedBy,
             }));
@@ -158,11 +171,98 @@ const Progress = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load student data.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
   }, [backendUrl]);
+
+  // Fetch feedback for the selected student only
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      if (selectedStudent === "STUDENT NAME") {
+        //setLoading(false);
+        return;
+      }
+      const student = students.find(
+        (s) => s.studentData.firstName === selectedStudent
+      );
+      if (!student || !student.schoolId) {
+        //setLoading(false);
+        return;
+      }
+
+      const quarters = ["quarter1", "quarter2", "quarter3", "quarter4"];
+      const quarterMapping = {
+        quarter1: "Quarter 1",
+        quarter2: "Quarter 2",
+        quarter3: "Quarter 3",
+        quarter4: "Quarter 4",
+      };
+      const weekMapping = {
+        quarter1: ["week1", "week2", "week3"],
+        quarter2: ["week4", "week5", "week6"],
+        quarter3: ["week7", "week8", "week9"],
+        quarter4: ["week10", "week11", "week12"],
+      };
+
+      const updatedFeedback = { ...feedback };
+
+      try {
+        for (const quarter of quarters) {
+          const feedbackResponse = await axios.get(
+            `${backendUrl}/api/school/get-feedback`,
+            {
+              params: { schoolId: student.schoolId, quarter },
+              withCredentials: true,
+            }
+          );
+
+          if (
+            feedbackResponse.status === 200 &&
+            feedbackResponse.data.success
+          ) {
+            const fetchedFeedback = feedbackResponse.data.data || {};
+            const weekFeedback = weekMapping[quarter].map(
+              (week) => fetchedFeedback[week] || ""
+            );
+            updatedFeedback[student._id][quarterMapping[quarter]] =
+              weekFeedback;
+          }
+        }
+        setFeedback(updatedFeedback);
+      } catch (feedbackError) {
+        console.error(
+          `Error fetching feedback for ${student.schoolId}:`,
+          feedbackError
+        );
+        toast.error("Failed to fetch feedback.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedback();
+  }, [selectedStudent, students, backendUrl, feedback]);
+
+  // Show loader while fetching
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
+      </div>
+    );
+  }
 
   const filteredStudents = selectedClass
     ? students.filter((student) => student.studentData.class === selectedClass)
@@ -178,12 +278,18 @@ const Progress = () => {
       if (response.data.success) {
         setProgress((prev) => {
           const newProgress = { ...prev };
-          const lesson = students.find(s => s._id === studentId).studentData.lessons[lessonIndex];
+          const lesson = students.find((s) => s._id === studentId).studentData
+            .lessons[lessonIndex];
           const subRows = response.data.subwork.map((sub, subIndex) => ({
-            presented: sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered",
+            presented:
+              sub.status === "presented" ||
+              sub.status === "practiced" ||
+              sub.status === "mastered",
             practiced: sub.status === "practiced" || sub.status === "mastered",
             mastered: sub.status === "mastered",
-            date: sub.status_date ? new Date(sub.status_date).toLocaleDateString() : "",
+            date: sub.status_date
+              ? new Date(sub.status_date).toLocaleDateString()
+              : "",
             subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
             updatedBy: sub.updatedBy,
           }));
@@ -229,14 +335,18 @@ const Progress = () => {
     return {
       presented: lessons.filter((row) => row.presented).length,
       practiced: lessons.reduce(
-        (total, row) => total + row.subRows.filter((subRow) => subRow.practiced).length,
+        (total, row) =>
+          total + row.subRows.filter((subRow) => subRow.practiced).length,
         0
       ),
       mastered: lessons.filter((row) => row.mastered).length,
       total: lessons.length,
       needsAttention: lessons.reduce(
         (total, row) =>
-          total + (row.subRows.filter((subRow) => subRow.practiced).length >= 8 ? 1 : 0),
+          total +
+          (row.subRows.filter((subRow) => subRow.practiced).length >= 8
+            ? 1
+            : 0),
         0
       ),
     };
@@ -245,7 +355,8 @@ const Progress = () => {
   const toggleDropdown = async (index, student) => {
     setProgress((prev) => {
       const newProgress = { ...prev };
-      newProgress[student._id][index].expanded = !newProgress[student._id][index].expanded;
+      newProgress[student._id][index].expanded =
+        !newProgress[student._id][index].expanded;
       return newProgress;
     });
 
@@ -310,7 +421,9 @@ const Progress = () => {
         if (!subRow.practiced) subRow.mastered = false;
       } else if (field === "mastered" && subRow.presented && subRow.practiced) {
         subRow.mastered = !subRow.mastered;
-        subRow.date = subRow.mastered ? new Date().toLocaleDateString() : subRow.date;
+        subRow.date = subRow.mastered
+          ? new Date().toLocaleDateString()
+          : subRow.date;
       }
 
       row.subRows[subIndex] = subRow;
@@ -414,7 +527,9 @@ const Progress = () => {
   };
 
   const handleSaveRemarks = (index, remarks) => {
-    const student = students.find((s) => s.studentData.firstName === selectedStudent);
+    const student = students.find(
+      (s) => s.studentData.firstName === selectedStudent
+    );
     setProgress((prev) => {
       const newProgress = { ...prev };
       newProgress[student._id][index].remarks = remarks;
@@ -452,62 +567,55 @@ const Progress = () => {
       return;
     }
 
-    const feedbackText = unsavedFeedback[studentId]?.[quarter]?.[weekIndex] || "";
+    const feedbackText =
+      unsavedFeedback[studentId]?.[quarter]?.[weekIndex] || "";
     const mongoQuarter = quarterToMongo[quarter];
     const mongoWeek = weekToMongo[quarterWeeks[quarter][weekIndex]];
 
     try {
-      console.log("Saving feedback to:", `${backendUrl}/api/school/save-feedback`);
-      console.log("Payload:", {
-        studentId,
-        schoolId,
-        quarter: mongoQuarter,
-        week: mongoWeek,
-        feedbackText,
-      });
       const response = await axios.post(
         `${backendUrl}/api/school/save-feedback`,
         {
-          studentId,
-          schoolId,
+          schoolId, // Use schoolId as per the controller
           quarter: mongoQuarter,
           week: mongoWeek,
           feedbackText,
         },
         { withCredentials: true }
       );
-      console.log("Feedback saved:", response.data);
-      toast.success("Feedback saved successfully!");
 
-      setFeedback((prev) => ({
-        ...prev,
-        [studentId]: {
-          ...prev[studentId],
-          [quarter]: prev[studentId][quarter].map((val, idx) =>
-            idx === weekIndex ? feedbackText : val
-          ),
-        },
-      }));
-      setUnsavedFeedback((prev) => {
-        const newUnsaved = { ...prev };
-        if (newUnsaved[studentId]?.[quarter]?.[weekIndex] !== undefined) {
-          delete newUnsaved[studentId][quarter][weekIndex];
-          if (Object.keys(newUnsaved[studentId][quarter]).length === 0) {
-            delete newUnsaved[studentId][quarter];
+      if (response.status === 200) {
+        toast.success("Feedback saved successfully!");
+        setFeedback((prev) => ({
+          ...prev,
+          [studentId]: {
+            ...prev[studentId],
+            [quarter]: prev[studentId][quarter].map((val, idx) =>
+              idx === weekIndex ? feedbackText : val
+            ),
+          },
+        }));
+        setUnsavedFeedback((prev) => {
+          const newUnsaved = { ...prev };
+          if (newUnsaved[studentId]?.[quarter]?.[weekIndex] !== undefined) {
+            delete newUnsaved[studentId][quarter][weekIndex];
+            if (Object.keys(newUnsaved[studentId][quarter]).length === 0) {
+              delete newUnsaved[studentId][quarter];
+            }
+            if (Object.keys(newUnsaved[studentId]).length === 0) {
+              delete newUnsaved[studentId];
+            }
           }
-          if (Object.keys(newUnsaved[studentId]).length === 0) {
-            delete newUnsaved[studentId];
-          }
-        }
-        return newUnsaved;
-      });
+          return newUnsaved;
+        });
+      }
     } catch (error) {
-      console.error("Error saving feedback:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-      toast.error(`Failed to save feedback: ${error.response?.data?.message || error.message}`);
+      console.error("Error saving feedback:", error);
+      toast.error(
+        `Failed to save feedback: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     }
   };
 
@@ -516,8 +624,10 @@ const Progress = () => {
     return Object.entries(studentProgress).filter(([_, row]) => {
       const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
       if (filterStatus === "All") return true;
-      if (filterStatus === "Not Presented") return !row.presented && !row.practiced && !row.mastered;
-      if (filterStatus === "Presented") return row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Not Presented")
+        return !row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Presented")
+        return row.presented && !row.practiced && !row.mastered;
       if (filterStatus === "Practiced") return row.practiced && !row.mastered;
       if (filterStatus === "Mastered") return row.mastered;
       if (filterStatus === "Needs Attention") return practicedCount >= 8;
@@ -527,11 +637,23 @@ const Progress = () => {
 
   const getStatusIndicator = (row) => {
     const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
-    if (practicedCount >= 8) return <span className="text-red-500 font-bold">!</span>;
-    if (row.mastered) return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block"></span>;
-    if (row.practiced) return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block"></span>;
-    if (row.presented) return <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>;
-    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block"></span>;
+    if (practicedCount >= 8)
+      return <span className="text-red-500 font-bold">!</span>;
+    if (row.mastered)
+      return (
+        <span className="w-2 h-2 bg-purple-500 rounded-full inline-block"></span>
+      );
+    if (row.practiced)
+      return (
+        <span className="w-2 h-2 bg-orange-500 rounded-full inline-block"></span>
+      );
+    if (row.presented)
+      return (
+        <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
+      );
+    return (
+      <span className="w-2 h-2 bg-gray-500 rounded-full inline-block"></span>
+    );
   };
 
   return (
@@ -547,8 +669,11 @@ const Progress = () => {
                     (s) => s.studentData.firstName === selectedStudent
                   );
                   if (student) {
-                    const { lastName, firstName, middleName } = student.studentData;
-                    const middleInitial = middleName ? `${middleName.charAt(0)}.` : "";
+                    const { lastName, firstName, middleName } =
+                      student.studentData;
+                    const middleInitial = middleName
+                      ? `${middleName.charAt(0)}.`
+                      : "";
                     return `${lastName}, ${firstName} ${middleInitial}`;
                   }
                   return "STUDENT NAME";
@@ -574,18 +699,22 @@ const Progress = () => {
             <option value="STUDENT NAME">Select Student</option>
             {filteredStudents.map((student) => (
               <option key={student._id} value={student.studentData.firstName}>
-                {`${student.studentData.lastName}, ${student.studentData.firstName} ${
-                  student.studentData.middleName ? `${student.studentData.middleName.charAt(0)}.` : ""
+                {`${student.studentData.lastName}, ${
+                  student.studentData.firstName
+                } ${
+                  student.studentData.middleName
+                    ? `${student.studentData.middleName.charAt(0)}.`
+                    : ""
                 }`}
               </option>
             ))}
           </select>
-          <div className="relative w-full lg:w-96 flex items-center gap-4">
+          <div className="relative w-full lg:w-150 flex items-center gap-4">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search..."
-                className="h-12 bg-[#d9d9d9] rounded-[15px] px-4 pl-10 pr-10"
+                className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4 pl-10 pr-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -631,7 +760,8 @@ const Progress = () => {
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>Not Presented
+                    <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                    Not Presented
                   </div>
                   <div
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
@@ -640,7 +770,8 @@ const Progress = () => {
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Presented
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Presented
                   </div>
                   <div
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
@@ -649,7 +780,8 @@ const Progress = () => {
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>Practiced
+                    <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                    Practiced
                   </div>
                   <div
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
@@ -658,7 +790,8 @@ const Progress = () => {
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>Mastered
+                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                    Mastered
                   </div>
                   <div
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
@@ -667,7 +800,8 @@ const Progress = () => {
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <span className="text-red-500 font-bold mr-2">!</span>Needs Attention
+                    <span className="text-red-500 font-bold mr-2">!</span>Needs
+                    Attention
                   </div>
                 </div>
               )}
@@ -691,36 +825,61 @@ const Progress = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-[#5BB381] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
-              {countStatus(students.find((s) => s.studentData.firstName === selectedStudent)._id)
-                .presented}
+              {
+                countStatus(
+                  students.find(
+                    (s) => s.studentData.firstName === selectedStudent
+                  )._id
+                ).presented
+              }
             </p>
             <p className="text-sm text-black">Presented</p>
           </div>
           <div className="bg-[#E3B34C] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
-              {countStatus(students.find((s) => s.studentData.firstName === selectedStudent)._id)
-                .practiced}
+              {
+                countStatus(
+                  students.find(
+                    (s) => s.studentData.firstName === selectedStudent
+                  )._id
+                ).practiced
+              }
             </p>
             <p className="text-sm text-black">Practiced</p>
           </div>
           <div className="bg-[#ac61ae] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
-              {countStatus(students.find((s) => s.studentData.firstName === selectedStudent)._id)
-                .mastered}
+              {
+                countStatus(
+                  students.find(
+                    (s) => s.studentData.firstName === selectedStudent
+                  )._id
+                ).mastered
+              }
             </p>
             <p className="text-sm text-black">Mastered</p>
           </div>
           <div className="bg-[#aeadad] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
-              {countStatus(students.find((s) => s.studentData.firstName === selectedStudent)._id)
-                .total}
+              {
+                countStatus(
+                  students.find(
+                    (s) => s.studentData.firstName === selectedStudent
+                  )._id
+                ).total
+              }
             </p>
             <p className="text-sm text-black">Total</p>
           </div>
           <div className="bg-[#ff4444] p-4 rounded-lg shadow text-center">
             <p className="text-lg font-bold">
-              {countStatus(students.find((s) => s.studentData.firstName === selectedStudent)._id)
-                .needsAttention}
+              {
+                countStatus(
+                  students.find(
+                    (s) => s.studentData.firstName === selectedStudent
+                  )._id
+                ).needsAttention
+              }
             </p>
             <p className="text-sm text-black">Needs Attention</p>
           </div>
@@ -766,7 +925,8 @@ const Progress = () => {
                   return (
                     <tr>
                       <td colSpan="7" className="p-3 text-center">
-                        Oops! Create a lesson plan for this student to start tracking progress.
+                        Oops! Create a lesson plan for this student to start
+                        tracking progress.
                       </td>
                     </tr>
                   );
@@ -778,7 +938,8 @@ const Progress = () => {
                         <span className="flex items-center">
                           {getStatusIndicator(row)}
                           <span className="ml-2">
-                            {student.studentData.lessons[index]?.lesson_work || `Work ${index + 1}`}
+                            {student.studentData.lessons[index]?.lesson_work ||
+                              `Work ${index + 1}`}
                           </span>
                         </span>
                         {row.subRows.length > 0 && (
@@ -795,7 +956,13 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                           checked={row.presented}
-                          onChange={() => handleCheckboxChange(student._id, index, "presented")}
+                          onChange={() =>
+                            handleCheckboxChange(
+                              student._id,
+                              index,
+                              "presented"
+                            )
+                          }
                           disabled={row.practiced || row.mastered}
                         />
                       </td>
@@ -804,7 +971,13 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                           checked={row.practiced}
-                          onChange={() => handleCheckboxChange(student._id, index, "practiced")}
+                          onChange={() =>
+                            handleCheckboxChange(
+                              student._id,
+                              index,
+                              "practiced"
+                            )
+                          }
                           disabled={!row.presented || row.mastered}
                         />
                       </td>
@@ -813,7 +986,9 @@ const Progress = () => {
                           type="checkbox"
                           className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                           checked={row.mastered}
-                          onChange={() => handleCheckboxChange(student._id, index, "mastered")}
+                          onChange={() =>
+                            handleCheckboxChange(student._id, index, "mastered")
+                          }
                           disabled={!row.presented || !row.practiced}
                         />
                       </td>
@@ -823,12 +998,14 @@ const Progress = () => {
                           onClick={() => handleEditRemarks(index)}
                           className="absolute right-2 top-1/2 transform -translate-y-1/2"
                         >
-                          <img src={assets.edit} alt="Edit" className="w-5 h-5" />
+                          <img
+                            src={assets.edit}
+                            alt="Edit"
+                            className="w-5 h-5"
+                          />
                         </button>
                       </td>
-                      <td className="p-3">
-                        {row.date || "-"}
-                      </td>
+                      <td className="p-3">{row.date || "-"}</td>
                       <td className="p-3 text-center">
                         <button
                           onClick={() => handleAddSubwork(index, student)}
@@ -840,17 +1017,23 @@ const Progress = () => {
                     </tr>
                     {row.expanded &&
                       row.subRows.map((subRow, subIndex) => (
-                        <tr key={`sub-${index}-${subIndex}`} className="border-b bg-gray-300">
-                          <td className="p-3">
-                            {subRow.subwork_name}
-                          </td>
+                        <tr
+                          key={`sub-${index}-${subIndex}`}
+                          className="border-b bg-gray-300"
+                        >
+                          <td className="p-3">{subRow.subwork_name}</td>
                           <td className="p-3 text-center">
                             <input
                               type="checkbox"
                               className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
                               checked={subRow.presented}
                               onChange={() =>
-                                handleSubRowCheckboxChange(student._id, index, subIndex, "presented")
+                                handleSubRowCheckboxChange(
+                                  student._id,
+                                  index,
+                                  subIndex,
+                                  "presented"
+                                )
                               }
                               disabled={subRow.practiced || subRow.mastered}
                             />
@@ -861,7 +1044,12 @@ const Progress = () => {
                               className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
                               checked={subRow.practiced}
                               onChange={() =>
-                                handleSubRowCheckboxChange(student._id, index, subIndex, "practiced")
+                                handleSubRowCheckboxChange(
+                                  student._id,
+                                  index,
+                                  subIndex,
+                                  "practiced"
+                                )
                               }
                               disabled={!subRow.presented || subRow.mastered}
                             />
@@ -872,7 +1060,12 @@ const Progress = () => {
                               className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
                               checked={subRow.mastered}
                               onChange={() =>
-                                handleSubRowCheckboxChange(student._id, index, subIndex, "mastered")
+                                handleSubRowCheckboxChange(
+                                  student._id,
+                                  index,
+                                  subIndex,
+                                  "mastered"
+                                )
                               }
                               disabled={!subRow.presented || !subRow.practiced}
                             />
@@ -909,23 +1102,43 @@ const Progress = () => {
           {selectedStudent !== "STUDENT NAME" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {quarterWeeks[selectedQuarter].map((weekLabel, weekIndex) => {
-                const student = students.find((s) => s.studentData.firstName === selectedStudent);
+                const student = students.find(
+                  (s) => s.studentData.firstName === selectedStudent
+                );
                 const studentId = student?._id;
-                const savedFeedback = feedback[studentId]?.[selectedQuarter]?.[weekIndex] || "";
-                const unsavedValue = unsavedFeedback[studentId]?.[selectedQuarter]?.[weekIndex];
-                const displayValue = unsavedValue !== undefined ? unsavedValue : savedFeedback;
+                const savedFeedback =
+                  feedback[studentId]?.[selectedQuarter]?.[weekIndex] || "";
+                const unsavedValue =
+                  unsavedFeedback[studentId]?.[selectedQuarter]?.[weekIndex];
+                const displayValue =
+                  unsavedValue !== undefined ? unsavedValue : savedFeedback;
 
                 return (
-                  <div key={weekIndex} className="border border-gray-300 rounded-lg p-4">
+                  <div
+                    key={weekIndex}
+                    className="border border-gray-300 rounded-lg p-4"
+                  >
                     <h4 className="font-semibold mb-2">{weekLabel}</h4>
                     <textarea
                       value={displayValue}
-                      onChange={(e) => handleFeedbackChange(studentId, weekIndex, e.target.value)}
+                      onChange={(e) =>
+                        handleFeedbackChange(
+                          studentId,
+                          weekIndex,
+                          e.target.value
+                        )
+                      }
                       className="w-full h-24 p-2 border rounded-lg"
                       placeholder={`Enter feedback for ${weekLabel}...`}
                     />
                     <button
-                      onClick={() => saveFeedbackToMongo(studentId, selectedQuarter, weekIndex)}
+                      onClick={() =>
+                        saveFeedbackToMongo(
+                          studentId,
+                          selectedQuarter,
+                          weekIndex
+                        )
+                      }
                       className="mt-2 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
                     >
                       Save
@@ -944,9 +1157,10 @@ const Progress = () => {
           onClose={() => setEditIndex(null)}
           onSave={(remarks) => handleSaveRemarks(editIndex, remarks)}
           initialRemarks={
-            progress[students.find((s) => s.studentData.firstName === selectedStudent)._id]?.[
-              editIndex
-            ]?.remarks || ""
+            progress[
+              students.find((s) => s.studentData.firstName === selectedStudent)
+                ._id
+            ]?.[editIndex]?.remarks || ""
           }
         />
       )}

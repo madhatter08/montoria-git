@@ -23,6 +23,8 @@ import {
   saveLessonToMultiple,
   saveProgress,
   saveFeedback,
+  addFeedback,
+  getFeedback
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -46,7 +48,7 @@ schoolRouter.get("/student/:schoolId", getStudentById);
 schoolRouter.get("/class-list", userToken, getClassList);
 
 // Updated feedback routes
-schoolRouter.get("/get-feedback", userToken, getFeedbackByQuarter); // Use schoolId and quarter as query params
+schoolRouter.get("/get-feedback", userToken, getFeedback); // Use schoolId and quarter as query params
 schoolRouter.post("/summarize-feedback", userToken, summarizeFeedback); // Protected route
 
 schoolRouter.get("/lesson-plan", userToken, lessonPlan);
@@ -59,6 +61,6 @@ schoolRouter.post("/save-lesson-to-multiple", saveLessonToMultiple);
 
 // New routes for saving progress and feedback
 schoolRouter.post("/save-progress", userToken, saveProgress);
-schoolRouter.post("/save-feedback", userToken, saveFeedback);
+schoolRouter.post("/save-feedback", userToken, addFeedback);
 
 export default schoolRouter;

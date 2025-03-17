@@ -361,7 +361,7 @@ const Chatbot = () => {
   const displayName = userData.role === "admin" ? userData.roleData?.name : userData.roleData?.firstName;
 
   return (
-    <div className="w-full h-screen flex bg-cover bg-center overflow-hidden bg-[#d5d5d5]">
+    <div className="w-full h-screen flex bg-cover bg-center overflow-hidden bg-[#d5d5d5]" >
       <button
         onClick={toggleSidebar}
         className={`absolute top-[125px] z-50 ${isSidebarOpen ? "xl:left-[16.5%] lg:left-[24.5%] md:left-[24.5%] sm:left-[33%] left-[35%] rounded-r-lg" : "left-6 rounded-lg"} p-2 bg-white hover:bg-gray-100 transition-all`}

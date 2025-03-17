@@ -125,8 +125,8 @@ const NavbarUser = () => {
               className={`p-3 text-3xl hover:text-[#4A154B] hover:text-4xl rounded-md transition-all cursor-pointer relative ${
                 isActive(item.path) ||
                 (item.submenu && item.submenu.some((sub) => isActive(sub.path)))
-                  ? "text-purple-900"
-                  : "text-gray-900"
+                  ? "text-[#4A154B]"
+                  : "text-gray-600"
               }`}
               onMouseEnter={() => item.submenu && setIsWorkspaceOpen(true)}
               onMouseLeave={() => item.submenu && setIsWorkspaceOpen(false)}
@@ -138,8 +138,10 @@ const NavbarUser = () => {
                   {item.submenu.map((sub) => (
                     <li
                       key={sub.name}
-                      className={`p-2 hover:bg-purple-100 rounded-md transition-all text-xl ${
-                        isActive(sub.path) ? "text-purple-600" : "text-gray-900"
+                      className={`p-2 hover:bg-[#4A154B] hover:text-white rounded-md transition-all text-xl ${
+                        isActive(sub.path)
+                          ? "outline-1 text-[#4A154B]"
+                          : "text-gray-600"
                       }`}
                     >
                       <a href={sub.path}>{sub.name}</a>
@@ -152,7 +154,7 @@ const NavbarUser = () => {
         </ul>
 
         {/* User Profile and Logout */}
-        <div className="w-8 h-8 hidden xl:flex justify-center items-center rounded-full bg-black text-white relative group hover:scale-110 hover:bg-[#9d16be] transition-all">
+        <div className="w-8 h-8 hidden xl:flex justify-center items-center rounded-full bg-black text-white relative group hover:scale-110 hover:bg-[#4A154B] transition-all">
           {displayName}
           <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black pt-10">
             <ul className="list-none m-0 p-2 bg-gray-100 text-base rounded-md">
@@ -199,11 +201,11 @@ const NavbarUser = () => {
           {menuItems.map((item) => (
             <li
               key={item.name}
-              className={`list-none w-full text-center text-2xl p-4 hover:bg-purple-500 hover:text-white transition-all cursor-pointer ${
+              className={`list-none w-full text-center text-2xl p-4 hover:bg-[#4A154B] hover:text-white transition-all cursor-pointer ${
                 isActive(item.path) ||
                 (item.submenu && item.submenu.some((sub) => isActive(sub.path)))
-                  ? "text-purple-600"
-                  : "text-gray-900"
+                  ? "text-[#4A154B]"
+                  : "text-gray-600"
               }`}
             >
               <a href={item.path}>{item.name}</a>
@@ -213,8 +215,8 @@ const NavbarUser = () => {
                   {item.submenu.map((sub) => (
                     <li
                       key={sub.name}
-                      className={`p-2 hover:bg-purple-100 hover:text-purple-500 rounded-md transition-all text-lg ${
-                        isActive(sub.path) ? "outline-1" : "text-gray-700"
+                      className={`p-2 hover:bg-[#4A154B] hover:text-white rounded-md transition-all text-lg ${
+                        isActive(sub.path) ? "outline-1" : "text-gray-600"
                       }`}
                     >
                       <a href={sub.path}>{sub.name}</a>
@@ -225,7 +227,7 @@ const NavbarUser = () => {
             </li>
           ))}
           <li
-            className="list-none w-full text-2xl text-center p-4 hover:bg-purple-500 hover:text-white transition-all cursor-pointer"
+            className="list-none w-full text-2xl text-center p-4 hover:bg-[#4A154B] hover:text-white transition-all cursor-pointer"
             onClick={logout}
           >
             Logout

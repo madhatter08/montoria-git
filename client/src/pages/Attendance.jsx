@@ -8,7 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Attendance = () => {
-  const { backendUrl } = useContext(AppContext);
+  const { backendUrl, userData } = useContext(AppContext);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,6 +204,18 @@ const Attendance = () => {
 
   if (error) {
     return <p>{error}</p>;
+  }
+
+  if (!userData || userData.role !== "guide") {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg text-gray-700">
+          {userData
+            ? "Not available: Guide access only."
+            : "Please log in to access attendance."}
+        </p>
+      </div>
+    );
   }
 
   return (

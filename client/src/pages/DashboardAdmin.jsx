@@ -35,6 +35,7 @@ import {
   Legend as ChartLegend,
 } from "chart.js";
 import { Bar as ChartJSBar, Line as ChartJSLine, Pie as ChartJSPie } from "react-chartjs-2";
+import Loader from "../components/style/Loader";
 
 // Register Chart.js components
 ChartJS.register(
@@ -518,8 +519,16 @@ const DashboardAdmin = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-lg text-gray-700">Loading...</p>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <Loader />
       </div>
     );
   }
