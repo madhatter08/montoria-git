@@ -12,7 +12,7 @@ const LessonPlan = () => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(""); // New state for category filter
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [students, setStudents] = useState([]);
   const [curriculumData, setCurriculum] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState({});
@@ -27,14 +27,13 @@ const LessonPlan = () => {
   const { backendUrl, userData } = useContext(AppContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState({}); // New state for progress data
+  const [progress, setProgress] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch students and curriculum
         const lessonPlanResponse = await axios.get(`${backendUrl}/api/school/lesson-plan`, {
           withCredentials: true,
         });
@@ -47,7 +46,6 @@ const LessonPlan = () => {
         setStudents(lessonPlanData.students);
         setCurriculum(lessonPlanData.curriculumData);
 
-        // Fetch student progress for SPP calculation
         const progressResponse = await axios.get(`${backendUrl}/api/school/class-list`, {
           withCredentials: true,
         });
@@ -58,32 +56,46 @@ const LessonPlan = () => {
 
           studentsData.forEach((student) => {
             initialProgress[student._id] = {};
-
             student.studentData.lessons.forEach((lesson, index) => {
-              const presented = lesson.subwork.some(
-                (sub) => sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered"
-              ) || true;
-              const mastered = lesson.subwork.some((sub) => sub.status === "mastered");
-              const totalPractices = lesson.subwork.reduce(
-                (sum, sub) => sum + (sub.practicedCount || 0),
-                0
-              );
+              let presented = false;
+              let practiced = false;
+              let mastered = false;
+              let latestDate = lesson.start_date
+                ? new Date(lesson.start_date).toLocaleDateString()
+                : "";
+
+              const subRows = lesson.subwork.map((sub, subIndex) => ({
+                presented:
+                  sub.status === "presented" ||
+                  sub.status === "practiced" ||
+                  sub.status === "mastered",
+                practiced: sub.status === "practiced" || sub.status === "mastered",
+                mastered: sub.status === "mastered",
+                date: sub.status_date
+                  ? new Date(sub.status_date).toLocaleDateString()
+                  : "",
+                subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
+                updatedBy: sub.updatedBy,
+              }));
+
+              if (subRows.length > 0) {
+                const latestSubRow = subRows[subRows.length - 1];
+                presented = latestSubRow.presented;
+                practiced = latestSubRow.practiced;
+                mastered = latestSubRow.mastered;
+                latestDate = latestSubRow.date;
+              } else {
+                presented = true; // Default to presented if no subwork exists
+              }
 
               initialProgress[student._id][index] = {
-                presented: presented ? 1 : 0,
-                practiced: totalPractices,
-                mastered: mastered ? 1 : 0,
+                presented,
+                practiced,
+                mastered,
                 remarks: lesson.remarks || "",
                 expanded: false,
-                subRows: lesson.subwork.map((sub, subIndex) => ({
-                  presented: sub.status === "presented" || sub.status === "practiced" || sub.status === "mastered",
-                  practiced: sub.practicedCount || 0,
-                  mastered: sub.status === "mastered",
-                  date: sub.status_date ? new Date(sub.status_date).toLocaleDateString() : "",
-                  subwork_name: `Day ${subIndex + 1}: ${lesson.lesson_work}`,
-                  updatedBy: sub.updatedBy,
-                })),
-                date: lesson.start_date ? new Date(lesson.start_date).toLocaleDateString() : "",
+                subRows,
+                date: latestDate,
               };
             });
           });
@@ -104,17 +116,49 @@ const LessonPlan = () => {
     fetchData();
   }, [backendUrl]);
 
-  // SPP Calculation Functions (from BarChartSample)
+  const getStudentProgress = (studentId) => {
+    return progress[studentId] || {};
+  };
+
+  const filterProgress = (studentId) => {
+    const studentProgress = getStudentProgress(studentId);
+    return Object.entries(studentProgress).filter(([_, row]) => {
+      const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+      if (filterStatus === "All") return true;
+      if (filterStatus === "Not Presented")
+        return !row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Presented")
+        return row.presented && !row.practiced && !row.mastered;
+      if (filterStatus === "Practiced") return row.practiced && !row.mastered;
+      if (filterStatus === "Mastered") return row.mastered;
+      if (filterStatus === "Needs Attention") return practicedCount >= 8;
+      return true;
+    });
+  };
+
+  const getStatusIndicator = (row) => {
+    const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
+    if (practicedCount >= 8)
+      return <span className="text-red-500 font-bold mr-2">!</span>;
+    if (row.mastered)
+      return <span className="w-2 h-2 bg-purple-500 rounded-full inline-block mr-2"></span>;
+    if (row.practiced)
+      return <span className="w-2 h-2 bg-orange-500 rounded-full inline-block mr-2"></span>;
+    if (row.presented)
+      return <span className="w-2 h-2 bg-green-500 rounded-full inline-block mr-2"></span>;
+    return <span className="w-2 h-2 bg-gray-500 rounded-full inline-block mr-2"></span>;
+  };
+
   const calculateSPP = (studentId) => {
     const studentProgress = progress[studentId] || {};
     const lessons = Object.values(studentProgress);
-    
+
     if (lessons.length === 0) return 0;
 
     const lessonSPPs = lessons.map((lesson) => {
       const ME = lesson.mastered ? 1 : 0;
-      const PL = lesson.practiced || 0;
-      const OP = (lesson.practiced || 0) >= 8 ? 1 : 0;
+      const PL = lesson.practiced ? 1 : 0;
+      const OP = lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
       const lessonSPP = PL === 0 ? (ME * 100) : (ME / (PL + OP)) * 100;
       return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
     });
@@ -391,7 +435,10 @@ const LessonPlan = () => {
           <ol className="list-decimal pl-5 text-gray-700 text-lg">
             {student.studentData.lessons.map((lesson, i) => (
               <li key={i} className="py-1 flex justify-between items-center">
-                <span>{lesson.lesson_work}</span>
+                <div className="flex items-center">
+                  {getStatusIndicator(progress[student._id][i])}
+                  <span>{lesson.lesson_work}</span>
+                </div>
                 <img
                   src={assets.delete_icon}
                   alt="Delete"
@@ -571,14 +618,18 @@ const LessonPlan = () => {
 
                 <div
                   className="flex-grow p-3 overflow-y-auto"
-                  onClick={() => { setIsModalOpen(true); }}
+                  onClick={() => {
+                    setSelectedStudent(student);
+                    setIsModalOpen(true);
+                  }}
                 >
                   <ol className="list-decimal pl-5 text-gray-700 text-base">
                     {student.studentData.lessons
                       .slice(0, 4)
                       .map((lesson, i) => (
-                        <li key={i} className="py-1">
-                          {lesson.lesson_work}
+                        <li key={i} className="py-1 flex items-center">
+                          {getStatusIndicator(progress[student._id][i])}
+                          <span>{lesson.lesson_work}</span>
                         </li>
                       ))}
                     {student.studentData.lessons.length > 4 && (
