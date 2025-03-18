@@ -22,20 +22,20 @@ const BarChartSample = ({ students = [], progress = {}, classes = [] }) => {
   const calculateSPP = (studentId) => {
     const studentProgress = progress[studentId] || {};
     const lessons = Object.values(studentProgress);
-    console.log(`Progress for ${studentId}:`, studentProgress); // Debug
 
     if (lessons.length === 0) return 0;
 
     const lessonSPPs = lessons.map((lesson) => {
       const ME = lesson.mastered ? 1 : 0;
-      const PL = lesson.practiced || 0;
-      const OP = PL >= 8 ? 1 : 0;
+      const PL = lesson.practiced ? 1 : 0;
+      const OP =
+        lesson.subRows.filter((sub) => sub.practiced).length >= 8 ? 1 : 0;
       const lessonSPP = PL === 0 ? ME * 100 : (ME / (PL + OP)) * 100;
       return isNaN(lessonSPP) || lessonSPP < 0 ? 0 : lessonSPP;
     });
 
-    const totalSPP = lessonSPPs.reduce((sum, spp) => sum + spp, 0) / lessons.length;
-    console.log(`SPP for ${studentId}:`, totalSPP); // Debug
+    const totalSPP =
+      lessonSPPs.reduce((sum, spp) => sum + spp, 0) / lessons.length;
     return isNaN(totalSPP) ? 0 : totalSPP;
   };
 
@@ -143,3 +143,8 @@ const BarChartSample = ({ students = [], progress = {}, classes = [] }) => {
 };
 
 export default BarChartSample;
+
+
+
+
+

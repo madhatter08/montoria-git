@@ -80,6 +80,83 @@ export const summarizeFeedback = async (req, res) => {
   }
 };
 
+export const saveSummarizedFeedback = async (req, res) => {
+  const { schoolId, quarter, summarizedFeedback } = req.body;
+
+  if (!schoolId || !quarter || !summarizedFeedback) {
+    return res.status(400).json({
+      success: false,
+      message: "School ID, quarter, and summarized feedback are required.",
+    });
+  }
+
+  try {
+    // Update the student's summarized_feedback field for the specified quarter
+    const updateField = `studentData.feedbacks.${quarter}.summarized_feedback`;
+    const updatedStudent = await userModel.findOneAndUpdate(
+      { schoolId, studentData: { $exists: true } },
+      { $set: { [updateField]: summarizedFeedback } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found or not a student record.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Feedback saved successfully.",
+    });
+  } catch (error) {
+    console.error("Error saving feedback:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to save feedback.",
+    });
+  }
+};
+
+export const getSummarizedFeedback = async (req, res) => {
+  const { schoolId, quarter } = req.query;
+
+  if (!schoolId || !quarter) {
+    return res.status(400).json({
+      success: false,
+      message: "School ID and quarter are required.",
+    });
+  }
+
+  try {
+    const student = await userModel.findOne(
+      { schoolId, studentData: { $exists: true } },
+      { [`studentData.feedbacks.${quarter}.summarized_feedback`]: 1 }
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found or not a student record.",
+      });
+    }
+
+    const summarizedFeedback =
+      student.studentData.feedbacks[quarter]?.summarized_feedback || "";
+    res.status(200).json({
+      success: true,
+      data: summarizedFeedback,
+    });
+  } catch (error) {
+    console.error("Error fetching summarized feedback:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch summarized feedback.",
+    });
+  }
+};
+
 export const getFeedback = async (req, res) => {
   const { schoolId, quarter } = req.query;
   console.log("Received feedback fetch request:", { schoolId, quarter });
