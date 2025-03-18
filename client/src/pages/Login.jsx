@@ -8,28 +8,28 @@ import { toast } from "react-toastify";
 const Login = () => {
   const navigate = useNavigate();
   const { backendUrl, setIsLoggedIn, getUserData } = useContext(AppContext);
-  const [schoolId, setSchoolId] = useState(""); // Changed to schoolId
+  const [schoolId, setSchoolId] = useState("");
   const [password, setPassword] = useState("");
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
-      console.log("Sending login request:", { schoolId, password }); // Debug
+      console.log("Sending login request:", { schoolId, password });
       const { data } = await axios.post(
         `${backendUrl}/api/auth/login`,
-        { schoolId, password }, // Changed to schoolId
+        { schoolId, password },
         {
           headers: { "Content-Type": "application/json" },
-          withCredentials: true, // Ensure cookies are sent/received
+          withCredentials: true,
         }
       );
 
-      console.log("Login response:", data); // Debug log
+      console.log("Login response:", data);
 
       if (data.success) {
         setIsLoggedIn(true);
-        await getUserData(); // Wait for user data fetch
-        const role = data.role; // Match server response
+        await getUserData();
+        const role = data.role;
         switch (role) {
           case "admin":
             navigate("/dashboard-admin");
@@ -57,14 +57,19 @@ const Login = () => {
     const recipient = "montoria.montessori@gmail.com";
     const subject = "Having Trouble Accessing My Account";
     const body = `Hello,\n\nI am experiencing issues accessing my account. Here are my details:\n\n- School ID: ${schoolId}\n- Issue Description: Unable to login despite correct credentials\n- Steps Taken: Entered school ID and password, cleared cache\n\nPlease assist me in resolving this matter.\n\nThank you,\n[Your Name]`;
-    const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoLink;
   };
 
   return (
     <div
       className="flex items-center justify-center min-h-screen bg-cover px-6 sm:px-0"
-      style={{ backgroundImage: `url(${assets.login_bg})`, backgroundPosition: "center 50%" }}
+      style={{
+        backgroundImage: `url(${assets.login_bg})`,
+        backgroundPosition: "center 50%",
+      }}
     >
       <div className="absolute inset-0 bg-black opacity-40"></div>
       <div className="w-full flex justify-between items-center p-4 sm:p-6 sm:px-24 absolute top-0">
@@ -80,12 +85,18 @@ const Login = () => {
         <div className="bg-white shadow-5xl p-10 rounded-lg shadow-lg w-full max-w-2xl flex">
           {/* Left Column - Logo */}
           <div className="hidden sm:flex items-center justify-center w-1/2 p-5">
-            <img src={assets.montoria1} alt="Montoria Logo" className="max-w-full h-auto" />
+            <img
+              src={assets.montoria1}
+              alt="Montoria Logo"
+              className="max-w-full h-auto"
+            />
           </div>
 
           {/* Right Column - Form */}
           <div className="w-full sm:w-1/2 text-black text-sm">
-            <h2 className="text-3xl font-bold text-[#9d16be] text-center mb-2 mt-">LOGIN</h2>
+            <h2 className="text-3xl font-bold text-[#9d16be] text-center mb-2">
+              LOGIN
+            </h2>
             <p className="text-center text-sm mb-8">Login to your account</p>
 
             <form onSubmit={onSubmitHandler}>
@@ -102,7 +113,7 @@ const Login = () => {
                   alt="person icon"
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
                 />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 bg-white peer-focus:-translate-y-8 ml-2 transition-all">
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide bg-white transition-all peer-focus:text-green-400 peer-focus:-translate-y-8 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-gray-500 peer-[&:not(:placeholder-shown)]:-translate-y-8 peer-[&:not(:placeholder-shown)]:text-[#4A154B]">
                   School ID
                 </span>
               </label>
@@ -120,7 +131,7 @@ const Login = () => {
                   alt="lock icon"
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 px-2 ml-1"
                 />
-                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide peer-focus:text-green-400 bg-white peer-focus:-translate-y-8 ml-2 transition-all">
+                <span className="absolute left-10 top-1/2 transform -translate-y-1/2 px-2 text-sm tracking-wide bg-white transition-all peer-focus:text-green-400 peer-focus:-translate-y-8 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-gray-500 peer-[&:not(:placeholder-shown)]:-translate-y-8 peer-[&:not(:placeholder-shown)]:text-[#4A154B]">
                   Password
                 </span>
               </label>
@@ -136,7 +147,10 @@ const Login = () => {
               </button>
               <p className="text-gray-400 text-center text-xs mt-4">
                 Can&apos;t access your account?{" "}
-                <span onClick={handleEmailClick} className="text-[#9d16be] cursor-pointer underline">
+                <span
+                  onClick={handleEmailClick}
+                  className="text-[#9d16be] cursor-pointer underline"
+                >
                   Contact us
                 </span>
               </p>

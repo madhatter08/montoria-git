@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import closeIcon from "../assets/close.png"; // Adjust path as needed
+import { useState, useEffect } from "react";
+import closeIcon from "../assets/close.png";
 import axios from "axios";
 
 const ReportCard = ({ onClose, student }) => {
@@ -7,17 +7,16 @@ const ReportCard = ({ onClose, student }) => {
   const [feedbackResults, setFeedbackResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [progressData, setProgressData] = useState({}); // State for progress bar data
+  const [progressData, setProgressData] = useState({});
 
-  // Mapping quarters to weeks
   const quarterToWeeks = {
-    "1": ["week1", "week2", "week3"],
-    "2": ["week4", "week5", "week6"],
-    "3": ["week7", "week8", "week9"],
-    "4": ["week10", "week11", "week12"],
+    1: ["week1", "week2", "week3"],
+    2: ["week4", "week5", "week6"],
+    3: ["week7", "week8", "week9"],
+    4: ["week10", "week11", "week12"],
   };
 
-  // Fetch progress data when the component mounts or student changes
+  // Fetch progress data on mount or student change
   useEffect(() => {
     const fetchProgressData = async () => {
       setIsLoading(true);
@@ -25,42 +24,70 @@ const ReportCard = ({ onClose, student }) => {
       try {
         const response = await axios.get(
           `http://localhost:4000/api/school/student/${student.schoolId}/progress`,
-          {
-            withCredentials: true, // Adjusted for cookie-based auth
-          }
+          { withCredentials: true }
         );
-
         if (!response.data.success) {
-          throw new Error(response.data.message || "Failed to fetch progress data.");
+          throw new Error(
+            response.data.message || "Failed to fetch progress data."
+          );
         }
-
         setProgressData(response.data.data || {});
       } catch (err) {
         console.error("Error fetching progress data:", err);
-        setError(err.message || "Failed to fetch progress data. Please try again.");
+        setError(
+          err.message || "Failed to fetch progress data. Please try again."
+        );
       } finally {
         setIsLoading(false);
       }
     };
-
     if (student?.schoolId) {
       fetchProgressData();
     }
   }, [student]);
 
-  const fetchFeedbackData = async (quarter) => {
+  // Fetch summarized feedback when a quarter is selected
+  useEffect(() => {
+    const fetchSummarizedFeedback = async () => {
+      if (!selectedQuarter) return;
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await axios.get(
+          `http://localhost:4000/api/school/get-summarized-feedback?schoolId=${student.schoolId}&quarter=quarter${selectedQuarter}`,
+          { withCredentials: true }
+        );
+        if (!response.data.success) {
+          throw new Error(
+            response.data.message || "No summarized feedback found."
+          );
+        }
+        const summarizedFeedback = response.data.data;
+        setFeedbackResults(summarizedFeedback || null);
+      } catch (err) {
+        console.error("Error fetching summarized feedback:", err);
+        setFeedbackResults(null); // Reset feedback if none exists
+        setError(err.message || "Failed to fetch summarized feedback.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSummarizedFeedback();
+  }, [selectedQuarter, student]);
+
+  const generateFeedback = async (quarter) => {
     setIsLoading(true);
     setError("");
     try {
       const response = await axios.get(
         `http://localhost:4000/api/school/get-feedback?schoolId=${student.schoolId}&quarter=quarter${quarter}`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
       if (!response.data.success) {
-        throw new Error(response.data.message || "No feedback found for the selected quarter.");
+        throw new Error(
+          response.data.message || "No feedback found for the selected quarter."
+        );
       }
 
       const feedbackData = response.data.data;
@@ -84,21 +111,38 @@ const ReportCard = ({ onClose, student }) => {
           studentName: `${student.studentData.firstName} ${student.studentData.lastName}`,
         },
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           withCredentials: true,
         }
       );
 
       if (!summaryResponse.data.success) {
-        throw new Error(summaryResponse.data.message || "Failed to summarize feedback.");
+        throw new Error(
+          summaryResponse.data.message || "Failed to summarize feedback."
+        );
       }
 
-      setFeedbackResults(summaryResponse.data.summary);
+      const summary = summaryResponse.data.summary;
+      setFeedbackResults(summary);
+
+      // Save the summarized feedback to the database
+      await axios.post(
+        "http://localhost:4000/api/school/save-summarized-feedback",
+        {
+          schoolId: student.schoolId,
+          quarter: `quarter${quarter}`,
+          summarizedFeedback: summary,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
+      );
     } catch (error) {
-      console.error("Error fetching or summarizing feedback:", error);
-      setError(error.message || "Failed to fetch or summarize feedback. Please try again.");
+      console.error("Error generating or saving feedback:", error);
+      setError(
+        error.message || "Failed to process feedback. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -106,19 +150,17 @@ const ReportCard = ({ onClose, student }) => {
 
   const handleQuarterSelect = (quarter) => {
     setSelectedQuarter(quarter);
-    setFeedbackResults(null);
     setError("");
   };
 
   const handleGenerate = () => {
     if (selectedQuarter) {
-      fetchFeedbackData(selectedQuarter);
+      generateFeedback(selectedQuarter);
     } else {
       setError("Please select a quarter first.");
     }
   };
 
-  // Dynamic learning areas from progress data, with fallback
   const learningAreas = Object.keys(progressData).length
     ? Object.keys(progressData)
     : ["Language", "Math", "Science"];
@@ -138,8 +180,7 @@ const ReportCard = ({ onClose, student }) => {
         <div className="flex flex-1 p-4">
           <div className="w-1/3 p-4 border-r flex flex-col space-y-6">
             <div className="flex space-x-4 text-sm text-gray-600 mb-4">
-              <div className="flex items-center space-x-1">
-              </div>
+              <div className="flex items-center space-x-1" />
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-[#e3b34c] rounded-full"></div>
                 <span>Practiced</span>
@@ -153,7 +194,7 @@ const ReportCard = ({ onClose, student }) => {
               const presented = progressData[area]?.presented || 0;
               const practiced = progressData[area]?.practiced || 0;
               const mastered = progressData[area]?.mastered || 0;
-              const total = presented + practiced + mastered || 100; // Avoid division by zero
+              const total = presented + practiced + mastered || 100;
 
               return (
                 <div key={area} className="space-y-2">
@@ -202,7 +243,9 @@ const ReportCard = ({ onClose, student }) => {
                 <button
                   key={quarter}
                   className={`w-24 h-12 bg-gray-200 rounded-lg shadow-md text-gray-700 font-semibold hover:bg-gray-300 ${
-                    selectedQuarter === quarter ? "bg-gray-300 text-[#4A154B]" : ""
+                    selectedQuarter === quarter
+                      ? "bg-gray-300 text-[#4A154B]"
+                      : ""
                   }`}
                   onClick={() => handleQuarterSelect(quarter)}
                 >
@@ -219,7 +262,8 @@ const ReportCard = ({ onClose, student }) => {
               {feedbackResults ? (
                 <div className="p-4 bg-gray-100 rounded-lg shadow-md">
                   <h3 className="text-lg font-semibold mb-2">
-                    {student.studentData.firstName} {student.studentData.lastName}
+                    {student.studentData.firstName}{" "}
+                    {student.studentData.lastName}
                   </h3>
                   <div className="text-sm h-[400px] overflow-y-auto whitespace-pre-wrap">
                     {feedbackResults}
@@ -230,10 +274,10 @@ const ReportCard = ({ onClose, student }) => {
                   {isLoading ? (
                     <div className="flex flex-col items-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                      <p className="mt-2">Generating feedback...</p>
+                      <p className="mt-2">Loading...</p>
                     </div>
                   ) : selectedQuarter ? (
-                    "Click 'Generate' to summarize feedback."
+                    "Click 'Generate' to create or update feedback."
                   ) : (
                     "Select a quarter to view feedback."
                   )}

@@ -26,6 +26,8 @@ import {
   addFeedback,
   getFeedback,
   getProgress, // Now correctly imported
+  saveSummarizedFeedback,
+  getSummarizedFeedback,
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -52,6 +54,8 @@ schoolRouter.get("/class-list", userToken, getClassList);
 // Feedback-related routes
 schoolRouter.get("/get-feedback", userToken, getFeedback);
 schoolRouter.post("/summarize-feedback", userToken, summarizeFeedback);
+schoolRouter.post("/save-summarized-feedback", userToken, saveSummarizedFeedback);
+schoolRouter.get("/get-summarized-feedback", userToken, getSummarizedFeedback);
 schoolRouter.post("/add-feedback", userToken, addFeedback);
 
 // Lesson-related routes
