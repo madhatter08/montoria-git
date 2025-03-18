@@ -78,34 +78,28 @@ const Class = () => {
       navigate("/login");
       return;
     }
-
-
+  
     try {
       const response = await axios.get(
-        `${backendUrl}/api/school/student/${user.schoolId}`,
+        `${backendUrl}/api/school/student/${student.schoolId}`, // Changed 'user' to 'student'
         {
           withCredentials: true, // Rely on cookie-based auth
         }
       );
-
-
+  
       console.log("Student data response:", response.data);
       if (response.status !== 200 || !response.data.success) {
         throw new Error(response.data.message || "Failed to fetch student data");
-
       }
-
+  
       setSelectedStudent(response.data);
       setShowReportCard(true);
-
       console.log("ReportCard should now be visible.");
     } catch (error) {
       console.error("Error fetching student data:", error);
       setError(`Failed to fetch student data: ${error.message}`);
-
     }
   };
-
   const handleCloseReportCard = () => {
     setShowReportCard(false);
     setSelectedStudent(null);
@@ -118,7 +112,7 @@ const Class = () => {
   const filteredStudents = students.filter((student) => {
     const matchesClass = selectedClass ? student.studentData?.class === selectedClass : true;
     const matchesLevel = selectedLevel ? student.studentData?.level === selectedLevel : true;
-
+  
     const searchLower = searchQuery.toLowerCase();
     const studentName = formatStudentName(student).toLowerCase();
     const schoolId = (student.schoolId || "").toLowerCase();
@@ -128,16 +122,15 @@ const Class = () => {
       ? new Date(student.studentData.birthday).toLocaleDateString()
       : "";
     const remarks = (student.studentData?.remarks || "").toLowerCase();
-
-
+  
     const matchesSearch =
-      userName.includes(searchLower) ||
+      studentName.includes(searchLower) ||  // Changed userName to studentName
       schoolId.includes(searchLower) ||
       gender.includes(searchLower) ||
       age.includes(searchLower) ||
       birthday.includes(searchLower) ||
       remarks.includes(searchLower);
-
+  
     return matchesClass && matchesLevel && matchesSearch;
   });
 
@@ -222,69 +215,65 @@ const Class = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-[#4A154B] text-white">
-            <tr>
-              <th className="p-3 text-left">PHOTO</th>
-              <th className="p-3 text-left">SCHOOL ID</th>
-              <th className="p-3 text-left">ROLE</th> {/* Added Role column */}
-              <th className="p-3 text-left">LRN</th>
-              <th className="p-3 text-left">NAME</th>
-              <th className="p-3 text-left">GENDER</th>
-              <th className="p-3 text-left">LEVEL</th>
-              <th className="p-3 text-left">AGE</th>
-              <th className="p-3 text-left">BIRTHDAY</th>
-              <th className="p-3 text-left">REMARKS</th>
-              <th className="p-1 text-left">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <tr key={user._id} className="border-b hover:bg-gray-100">
-                  <td className="p-3">
-                    <img
-
-                      src={student.studentData?.photo || "https://placehold.co/120x120"}
-                      alt="Student"
-                      className="w-12 h-12 rounded-full"
-                    />
-                  </td>
-                  <td className="p-3">{student.schoolId}</td>
-                  <td className="p-3">{student.studentData?.lrn || "N/A"}</td>
-                  <td className="p-3">{formatStudentName(student)}</td>
-                  <td className="p-3">{student.studentData?.gender || "N/A"}</td>
-                  <td className="p-3">{student.studentData?.level || "N/A"}</td>
-                  <td className="p-3">{student.studentData?.age || "N/A"}</td>
-                  <td className="p-3">
-                    {student.studentData?.birthday
-                      ? new Date(student.studentData.birthday).toLocaleDateString()
-                      : "N/A"}
-                  </td>
-                  <td className="p-3">{student.studentData?.remarks || "N/A"}</td>
-
-                  <td className="p-3">
-                    <button
-                      onClick={() => handleUserClick(user)}
-                      className="text-[#4A154B] hover:text-purple-900"
-                      title="View Report Card"
-                    >
-                      <FaFileAlt className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="11" className="p-3 text-center">
-                  No active users found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
+  <table className="w-full">
+    <thead className="bg-[#4A154B] text-white">
+      <tr>
+        <th className="p-3 text-left">PHOTO</th>
+        <th className="p-3 text-left">SCHOOL ID</th>
+        <th className="p-3 text-left">LRN</th>
+        <th className="p-3 text-left">NAME</th>
+        <th className="p-3 text-left">GENDER</th>
+        <th className="p-3 text-left">LEVEL</th>
+        <th className="p-3 text-left">AGE</th>
+        <th className="p-3 text-left">BIRTHDAY</th>
+        <th className="p-3 text-left">REMARKS</th>
+        <th className="p-1 text-left">ACTION</th>
+      </tr>
+    </thead>
+    <tbody>
+      {filteredStudents.length > 0 ? (
+        filteredStudents.map((student) => (  // Changed filteredUsers to filteredStudents
+          <tr key={student._id} className="border-b hover:bg-gray-100">
+            <td className="p-3">
+              <img
+                src={student.studentData?.photo || "https://placehold.co/120x120"}
+                alt="Student"
+                className="w-12 h-12 rounded-full"
+              />
+            </td>
+            <td className="p-3">{student.schoolId}</td>
+            <td className="p-3">{student.studentData?.lrn || "N/A"}</td>
+            <td className="p-3">{formatStudentName(student)}</td>
+            <td className="p-3">{student.studentData?.gender || "N/A"}</td>
+            <td className="p-3">{student.studentData?.level || "N/A"}</td>
+            <td className="p-3">{student.studentData?.age || "N/A"}</td>
+            <td className="p-3">
+              {student.studentData?.birthday
+                ? new Date(student.studentData.birthday).toLocaleDateString()
+                : "N/A"}
+            </td>
+            <td className="p-3">{student.studentData?.remarks || "N/A"}</td>
+            <td className="p-3">
+              <button
+                onClick={() => handleStudentClick(student)}  // Changed handleUserClick to handleStudentClick
+                className="text-[#4A154B] hover:text-purple-900"
+                title="View Report Card"
+              >
+                <FaFileAlt className="w-5 h-5" />
+              </button>
+            </td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="10" className="p-3 text-center">
+            No active students found
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
       {showReportCard && selectedStudent && (
         <ReportCard onClose={handleCloseReportCard} student={selectedStudent} />
       )}
