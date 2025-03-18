@@ -139,8 +139,6 @@ const ReportCard = ({ onClose, student }) => {
           <div className="w-1/3 p-4 border-r flex flex-col space-y-6">
             <div className="flex space-x-4 text-sm text-gray-600 mb-4">
               <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 bg-[#5bb381] rounded-full"></div>
-                <span>Presented</span>
               </div>
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-[#e3b34c] rounded-full"></div>
