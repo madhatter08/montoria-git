@@ -18,7 +18,7 @@ const Navbar = () => {
 
         {/* Login Button at the Right */}
         <button
-          className="text-white bg-[#9d16be] px-6 py-2 rounded-full hover:bg-[#b074c2] transition"
+          className="text-white bg-[#4A154B] px-6 py-2 rounded-full hover:bg-[#b074c2] transition"
           onClick={() => navigate("/login")}
         >
           Login

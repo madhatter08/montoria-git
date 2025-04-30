@@ -28,6 +28,7 @@ const LessonPlan = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({});
+  const [displayOption, setDisplayOption] = useState("Per Student");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +47,6 @@ const LessonPlan = () => {
         }
 
         const lessonPlanData = lessonPlanResponse.data;
-        // Filter only active students
         const activeStudents = lessonPlanData.students.filter(
           (student) => student.isActive === true
         );
@@ -61,7 +61,6 @@ const LessonPlan = () => {
         );
 
         if (progressResponse.status === 200 && progressResponse.data.success) {
-          // Filter only active students from progress data
           const studentsData = progressResponse.data.students.filter(
             (student) => student.isActive === true
           );
@@ -100,7 +99,7 @@ const LessonPlan = () => {
                   mastered = latestSubRow.mastered;
                   latestDate = latestSubRow.date;
                 } else {
-                  presented = true; // Default to presented if no subwork exists
+                  presented = true;
                 }
 
                 initialProgress[student._id][index] = {
@@ -223,6 +222,7 @@ const LessonPlan = () => {
   const handleLevelChange = (e) => setSelectedLevel(e.target.value);
   const handleSearchChange = (e) => setSearchQuery(e.target.value);
   const handleCategoryChange = (e) => setSelectedCategory(e.target.value);
+  const handleDisplayOptionChange = (e) => setDisplayOption(e.target.value);
 
   const filteredStudents = students.filter((student) => {
     const matchesClass = selectedClass
@@ -542,7 +542,6 @@ const LessonPlan = () => {
 
   return (
     <div className="pt-24 bg-[#4A154B] min-h-screen">
-      {/* Filters Section */}
       <div className="p-10 flex flex-col lg:flex-row items-start space-y-4 lg:space-y-0 lg:space-x-4 mb-1">
         <div className="flex space-x-4">
           <div>
@@ -594,147 +593,165 @@ const LessonPlan = () => {
               </option>
             ))}
           </select>
+          <select
+            value={displayOption}
+            onChange={handleDisplayOptionChange}
+            className="w-40 h-12 bg-[#e6e6e6] rounded-[15px] px-4"
+          >
+            <option value="Per Student">Per Student</option>
+            <option value="Per Lessons">Per Lessons</option>
+          </select>
         </div>
       </div>
 
-      {/* Actions and Cards Section */}
-      <div className="bg-[#e2e2e2] p-10 shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={handleSelectAll}
-            className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
-          >
-            {selectAll ? "Deselect All" : "Select All"}
-          </button>
-          {selectedStudents.length > 0 && (
-            <div className="flex items-center gap-2">
-              <select
-                className="w-60 h-12 bg-[#ffffff] rounded-[15px] px-4"
-                onChange={(e) => handleAssignLessonToSelected(e.target.value)}
-              >
-                <option value="">Select Lesson to Assign</option>
-                {levels.map((level) =>
-                  getLessonsForStudentLevel(level).map((lesson, i) => (
-                    <option key={i} value={lesson}>
-                      {lesson}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          )}
-        </div>
+      {displayOption === "Per Student" ? (
+        <div className="bg-[#e2e2e2] p-10 shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={handleSelectAll}
+              className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
+            >
+              {selectAll ? "Deselect All" : "Select All"}
+            </button>
+            {selectedStudents.length > 0 && (
+              <div className="flex items-center gap-2">
+                <select
+                  className="w-60 h-12 bg-[#ffffff] rounded-[15px] px-4"
+                  onChange={(e) => handleAssignLessonToSelected(e.target.value)}
+                >
+                  <option value="">Select Lesson to Assign</option>
+                  {levels.map((level) =>
+                    getLessonsForStudentLevel(level).map((lesson, i) => (
+                      <option key={i} value={lesson}>
+                        {lesson}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
+          </div>
 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {filteredStudents.length > 0 ? (
-            filteredStudents.map((student) => (
-              <div
-                key={student._id}
-                className={`bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer ${
-                  selectedStudents.includes(student._id)
-                    ? "border-[#4A154B]"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <h3
-                    className="text-xl font-semibold text-center bg-[#4A154B] text-white p-2 rounded-t-lg cursor-pointer"
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => (
+                <div
+                  key={student._id}
+                  className={`bg-white shadow-md rounded-lg p-4 border border-gray-300 flex flex-col h-[300px] cursor-pointer ${
+                    selectedStudents.includes(student._id)
+                      ? "border-[#4A154B]"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3
+                      className="text-xl font-semibold text-center bg-[#4A154B] text-white p-2 rounded-t-lg cursor-pointer"
+                      onClick={() => {
+                        setSelectedStudent(student);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      {formatStudentName(student)}
+                    </h3>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student._id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleStudentSelect(student._id);
+                        }}
+                        className="form-checkbox h-5 w-5 text-[#4A154B]"
+                      />
+                    </label>
+                  </div>
+
+                  <div
+                    className="flex-grow p-3 overflow-y-auto"
                     onClick={() => {
                       setSelectedStudent(student);
                       setIsModalOpen(true);
                     }}
                   >
-                    {formatStudentName(student)}
-                  </h3>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.includes(student._id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleStudentSelect(student._id);
-                      }}
-                      className="form-checkbox h-5 w-5 text-[#4A154B]"
-                    />
-                  </label>
-                </div>
+                    <ol className="list-decimal pl-5 text-gray-700 text-base">
+                      {student.studentData.lessons
+                        .slice(0, 4)
+                        .map((lesson, i) => (
+                          <li key={i} className="py-1 flex items-center">
+                            {getStatusIndicator(progress[student._id]?.[i] || {})}
+                            <span>{lesson.lesson_work}</span>
+                          </li>
+                        ))}
+                      {student.studentData.lessons.length > 4 && (
+                        <li className="text-gray-500">...</li>
+                      )}
+                    </ol>
+                  </div>
 
-                <div
-                  className="flex-grow p-3 overflow-y-auto"
-                  onClick={() => {
-                    setSelectedStudent(student);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <ol className="list-decimal pl-5 text-gray-700 text-base">
-                    {student.studentData.lessons
-                      .slice(0, 4)
-                      .map((lesson, i) => (
-                        <li key={i} className="py-1 flex items-center">
-                          {getStatusIndicator(progress[student._id]?.[i] || {})}
-                          <span>{lesson.lesson_work}</span>
-                        </li>
-                      ))}
-                    {student.studentData.lessons.length > 4 && (
-                      <li className="text-gray-500">...</li>
-                    )}
-                  </ol>
-                </div>
-
-                <div className="mt-auto flex items-center gap-2">
-                  <select
-                    className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
-                    onChange={(e) =>
-                      setSelectedLessons((prev) => ({
-                        ...prev,
-                        [student._id]: e.target.value,
-                      }))
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="">Select Lesson</option>
-                    {getLessonsForStudentLevel(student.studentData?.level).map(
-                      (lesson, i) => (
-                        <option key={i} value={lesson}>
-                          {lesson}
-                        </option>
-                      )
-                    )}
-                  </select>
-                  <label
-                    htmlFor={`bookmark-${student._id}`}
-                    className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      id={`bookmark-${student._id}`}
-                      className="hidden"
-                      onClick={() => handleBookmarkClick(student._id)}
-                    />
-                    <svg
-                      width={15}
-                      viewBox="0 0 50 70"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                  <div className="mt-auto flex items-center gap-2">
+                    <select
+                      className="w-full h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+                      onChange={(e) =>
+                        setSelectedLessons((prev) => ({
+                          ...prev,
+                          [student._id]: e.target.value,
+                        }))
+                      }
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <path
-                        d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
-                        stroke="white"
-                        strokeWidth={7}
+                      <option value="">Select Lesson</option>
+                      {getLessonsForStudentLevel(student.studentData?.level).map(
+                        (lesson, i) => (
+                          <option key={i} value={lesson}>
+                            {lesson}
+                          </option>
+                        )
+                      )}
+                    </select>
+                    <label
+                      htmlFor={`bookmark-${student._id}`}
+                      className="bookmark cursor-pointer bg-[#5BB381] w-10 h-10 flex items-center justify-center rounded-lg"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        id={`bookmark-${student._id}`}
+                        className="hidden"
+                        onClick={() => handleBookmarkClick(student._id)}
                       />
-                    </svg>
-                  </label>
+                      <svg
+                        width={15}
+                        viewBox="0 0 50 70"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M46 62.0085L46 3.88139L3.99609 3.88139L3.99609 62.0085L24.5 45.5L46 62.0085Z"
+                          stroke="white"
+                          strokeWidth={7}
+                        />
+                      </svg>
+                    </label>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center">
+                No active students found.
               </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center">
-              No active students found.
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-[#e2e2e2] p-10 shadow-md text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Per Lessons View
+          </h2>
+          <p className="text-gray-600">
+            This feature is under development. Please check back later.
+          </p>
+        </div>
+      )}
 
       {isModalOpen && (
         <LessonPlanModal

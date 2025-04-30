@@ -51,7 +51,7 @@ const Home = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-6 px-8 py-3 text-lg sm:text-xl font-semibold text-white bg-[#9d16be] rounded-full transition duration-300 hover:bg-[#7a0f96] shadow-lg z-10"
+          className="mt-6 px-8 py-3 text-lg sm:text-xl font-semibold text-white bg-[#4A154B] rounded-full transition duration-300 hover:bg-[#7a0f96] shadow-lg z-10"
         >
           Get Started
         </motion.a>
@@ -108,7 +108,7 @@ const Home = () => {
       </section>
 
        {/* Section 3: About Section */}
-       <section className="py-16 px-4 sm:px-8 bg-[#9d16be] text-white">
+       <section className="py-16 px-4 sm:px-8 bg-[#4A154B] text-white">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
           {/* Left Column: Image */}
