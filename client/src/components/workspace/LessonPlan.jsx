@@ -18,8 +18,8 @@ const LessonPlan = () => {
   const [selectedLessons, setSelectedLessons] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [itemToArchive, setItemToArchive] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [assignLessonModalOpen, setAssignLessonModalOpen] = useState(false);
@@ -293,6 +293,7 @@ const LessonPlan = () => {
           addedBy: userData.email,
           remarks: "",
           start_date: new Date(),
+          isArchived: false,
         },
         { withCredentials: true }
       );
@@ -313,6 +314,7 @@ const LessonPlan = () => {
                         remarks: "",
                         start_date: new Date(),
                         subwork: [],
+                        isArchived: false,
                       },
                     ],
                   },
@@ -328,56 +330,69 @@ const LessonPlan = () => {
     }
   };
 
-  const openDeleteModal = (lesson_work) => {
-    setItemToDelete(lesson_work);
-    setDeleteModalOpen(true);
+  const openArchiveModal = (lesson_work) => {
+    setItemToArchive(lesson_work);
+    setArchiveModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!itemToDelete || !selectedStudent) {
-      toast.error("No lesson or student selected for deletion.");
+  const handleArchiveConfirm = async () => {
+    if (!itemToArchive || !selectedStudent) {
+      toast.error("No lesson or student selected for archiving.");
       return;
     }
 
+    // Optimistically update the state
+    setStudents((prevStudents) =>
+      prevStudents.map((student) =>
+        student._id === selectedStudent._id
+          ? {
+              ...student,
+              studentData: {
+                ...student.studentData,
+                lessons: student.studentData.lessons.map((lesson) =>
+                  lesson.lesson_work === itemToArchive
+                    ? { ...lesson, isArchived: true }
+                    : lesson
+                ),
+              },
+            }
+          : student
+      )
+    );
+    setSelectedStudent((prev) => ({
+      ...prev,
+      studentData: {
+        ...prev.studentData,
+        lessons: prev.studentData.lessons.map((lesson) =>
+          lesson.lesson_work === itemToArchive
+            ? { ...lesson, isArchived: true }
+            : lesson
+        ),
+      },
+    }));
+    toast.success("Lesson archived successfully!");
+
     try {
-      const res = await axios.delete(
-        `${backendUrl}/api/school/delete-lesson?studentId=${selectedStudent._id}&lesson_work=${itemToDelete}`,
+      const res = await axios.put(
+        `${backendUrl}/api/school/archive-lesson`,
+        {
+          studentId: selectedStudent._id,
+          lesson_work: itemToArchive,
+        },
         { withCredentials: true }
       );
 
-      if (res.data.success) {
-        setStudents((prevStudents) =>
-          prevStudents.map((student) =>
-            student._id === selectedStudent._id
-              ? {
-                  ...student,
-                  studentData: {
-                    ...student.studentData,
-                    lessons: student.studentData.lessons.filter(
-                      (lesson) => lesson.lesson_work !== itemToDelete
-                    ),
-                  },
-                }
-              : student
-          )
-        );
-        setSelectedStudent((prev) => ({
-          ...prev,
-          studentData: {
-            ...prev.studentData,
-            lessons: prev.studentData.lessons.filter(
-              (lesson) => lesson.lesson_work !== itemToDelete
-            ),
-          },
-        }));
-        toast.success("Lesson deleted successfully!");
+      if (!res.data.success) {
+        throw new Error("Backend failed to confirm archive");
       }
     } catch (error) {
-      console.error("Error deleting lesson:", error);
-      toast.error("Failed to delete lesson.");
+      console.error("Error archiving lesson:", error);
+      toast.warning(
+        "Lesson archived locally, but failed to sync with server. Please check your backend configuration."
+      );
     } finally {
-      setDeleteModalOpen(false);
-      setItemToDelete(null);
+      setArchiveModalOpen(false);
+      setItemToArchive(null);
     }
   };
 
@@ -420,6 +435,7 @@ const LessonPlan = () => {
           addedBy: userData.email,
           remarks: "",
           start_date: new Date(),
+          isArchived: false,
         },
         { withCredentials: true }
       );
@@ -444,6 +460,7 @@ const LessonPlan = () => {
                             remarks: "",
                             start_date: new Date(),
                             subwork: [],
+                            isArchived: false,
                           },
                         ],
                   },
@@ -476,29 +493,31 @@ const LessonPlan = () => {
             Lessons for {formatStudentName(student)}
           </h2>
           <ol className="list-decimal pl-5 text-gray-700 text-lg">
-            {student.studentData.lessons.map((lesson, i) => (
-              <li key={i} className="py-1 flex justify-between items-center">
-                <div className="flex items-center">
-                  {getStatusIndicator(progress[student._id]?.[i] || {})}
-                  <span>{lesson.lesson_work}</span>
-                </div>
-                <img
-                  src={assets.delete_icon}
-                  alt="Delete"
-                  className="w-5 h-5 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openDeleteModal(lesson.lesson_work);
-                  }}
-                />
-              </li>
-            ))}
+            {student.studentData.lessons
+              .filter((lesson) => !lesson.isArchived)
+              .map((lesson, i) => (
+                <li key={i} className="py-1 flex justify-between items-center">
+                  <div className="flex items-center">
+                    {getStatusIndicator(progress[student._id]?.[i] || {})}
+                    <span>{lesson.lesson_work}</span>
+                  </div>
+                  <img
+                    src={assets.archive_icon}
+                    alt="Archive"
+                    className="w-5 h-5 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openArchiveModal(lesson.lesson_work);
+                    }}
+                  />
+                </li>
+              ))}
           </ol>
           <button
             onClick={onClose}
             className="mt-4 bg-[#4A154B] text-white px-4 py-2 rounded-lg"
           >
-            Close
+            Cancel
           </button>
         </div>
       </div>
@@ -510,9 +529,9 @@ const LessonPlan = () => {
     onClose: PropTypes.func.isRequired,
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteModalOpen(false);
-    setItemToDelete(null);
+  const handleArchiveCancel = () => {
+    setArchiveModalOpen(false);
+    setItemToArchive(null);
   };
 
   const handleAssignCancel = () => {
@@ -675,6 +694,7 @@ const LessonPlan = () => {
                   >
                     <ol className="list-decimal pl-5 text-gray-700 text-base">
                       {student.studentData.lessons
+                        .filter((lesson) => !lesson.isArchived)
                         .slice(0, 4)
                         .map((lesson, i) => (
                           <li key={i} className="py-1 flex items-center">
@@ -682,7 +702,9 @@ const LessonPlan = () => {
                             <span>{lesson.lesson_work}</span>
                           </li>
                         ))}
-                      {student.studentData.lessons.length > 4 && (
+                      {student.studentData.lessons.filter(
+                        (lesson) => !lesson.isArchived
+                      ).length > 4 && (
                         <li className="text-gray-500">...</li>
                       )}
                     </ol>
@@ -761,10 +783,10 @@ const LessonPlan = () => {
       )}
 
       <ConfirmationModal
-        isOpen={deleteModalOpen}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        message="Are you sure you want to delete this lesson?"
+        isOpen={archiveModalOpen}
+        onClose={handleArchiveCancel}
+        onConfirm={handleArchiveConfirm}
+        message="Are you sure you want to archive this lesson? It will be hidden from the Lesson Plan page."
       />
 
       <SaveModal

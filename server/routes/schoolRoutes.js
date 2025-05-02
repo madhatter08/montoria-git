@@ -1,4 +1,3 @@
-// schoolRoutes.js
 import express from "express";
 import {
   addLevel,
@@ -28,6 +27,7 @@ import {
   getProgress, // Now correctly imported
   saveSummarizedFeedback,
   getSummarizedFeedback,
+  archiveLesson, // Added new import
 } from "../controllers/schoolController.js";
 import userToken from "../middleware/userToken.js";
 
@@ -63,6 +63,7 @@ schoolRouter.get("/lesson-plan", userToken, lessonPlan);
 schoolRouter.post("/save-lesson", userToken, saveLesson);
 schoolRouter.delete("/delete-lesson", userToken, deleteLesson);
 schoolRouter.post("/save-lesson-to-multiple", userToken, saveLessonToMultiple);
+schoolRouter.put("/archive-lesson", userToken, archiveLesson); // Added new route
 
 // Subwork-related routes
 schoolRouter.get("/get-subwork", userToken, getSubwork);

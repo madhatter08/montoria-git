@@ -480,6 +480,7 @@ export const saveLesson = async (req, res) => {
       remarks,
       start_date,
       subwork: [],
+      isArchived: false, // Added isArchived field
     });
     await student.save();
 
@@ -510,6 +511,7 @@ export const saveLessonToMultiple = async (req, res) => {
       remarks: remarks || "",
       start_date: new Date(start_date),
       subwork: [],
+      isArchived: false, // Added isArchived field
     };
 
     const result = await userModel.updateMany(
@@ -566,6 +568,55 @@ export const deleteLesson = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while deleting lesson",
+    });
+  }
+};
+
+export const archiveLesson = async (req, res) => {
+  try {
+    const { studentId, lesson_work } = req.body;
+
+    if (!studentId || !lesson_work) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID and lesson work are required",
+      });
+    }
+
+    const student = await userModel.findById(studentId).exec();
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    const lesson = student.studentData.lessons.find(
+      (lesson) => lesson.lesson_work === lesson_work
+    );
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    if (lesson.isArchived) {
+      return res.status(400).json({
+        success: false,
+        message: "Lesson is already archived",
+      });
+    }
+
+    lesson.isArchived = true;
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Lesson archived successfully",
+    });
+  } catch (error) {
+    console.error("Error archiving lesson:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to archive lesson",
     });
   }
 };
