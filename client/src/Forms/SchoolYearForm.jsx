@@ -1,203 +1,191 @@
-import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import axios from "axios";
+import { useState } from 'react';
+import axios from 'axios';
 
-const SchoolYearForm = ({ onClose }) => {
-  const [startDate, setStartDate] = useState("");
+const SchoolYearForm = ({ onYearCreated, onClose }) => {
+  const [year, setYear] = useState('');
   const [quarters, setQuarters] = useState([
-    { name: "Q1", start: "01-01", end: "03-31" },
-    { name: "Q2", start: "04-01", end: "06-30" },
-    { name: "Q3", start: "07-01", end: "09-30" },
-    { name: "Q4", start: "10-01", end: "12-31" },
+    { quarterId: 'Q1', name: 'First Quarter', startDate: '', endDate: '' },
+    { quarterId: 'Q2', name: 'Second Quarter', startDate: '', endDate: '' },
+    { quarterId: 'Q3', name: 'Third Quarter', startDate: '', endDate: '' },
+    { quarterId: 'Q4', name: 'Fourth Quarter', startDate: '', endDate: '' },
   ]);
-  const [currentQuarter, setCurrentQuarter] = useState("");
-  const [error, setError] = useState("");
-  const [warning, setWarning] = useState("");
-
-  // Fetch current school year status on mount
-  useEffect(() => {
-    const fetchSchoolYearStatus = async () => {
-      try {
-        const response = await axios.get("http://localhost:4000/api/school/school-year", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          withCredentials: true,
-        });
-        if (response.data.success && response.data.isActive) {
-          setStartDate(response.data.startDate.split("T")[0]); // Format as YYYY-MM-DD
-          setCurrentQuarter(response.data.currentQuarter);
-        }
-      } catch (err) {
-        console.error("Error fetching school year status:", err);
-      }
-    };
-    fetchSchoolYearStatus();
-  }, []);
+  const [error, setError] = useState('');
 
   const handleQuarterChange = (index, field, value) => {
-    const newQuarters = [...quarters];
-    newQuarters[index][field] = value;
-    setQuarters(newQuarters);
+    const updatedQuarters = [...quarters];
+    updatedQuarters[index] = { ...updatedQuarters[index], [field]: value };
+    setQuarters(updatedQuarters);
   };
 
-  const determineCurrentQuarter = (startDate) => {
-    const today = new Date();
-    const year = new Date(startDate).getFullYear();
-    for (const q of quarters) {
-      const start = new Date(`${year}-${q.start}`);
-      const end = new Date(`${year}-${q.end}`);
-      if (today >= start && today <= end) return q.name;
+  const validateForm = () => {
+    if (!year.match(/^\d{4}-\d{4}$/)) {
+      return 'Year must be in format YYYY-YYYY (e.g., 2024-2025)';
     }
-    return "";
+    for (let i = 0; i < quarters.length; i++) {
+      const q = quarters[i];
+      if (!q.startDate || !q.endDate) {
+        return `${q.name} start and end dates are required`;
+      }
+      if (new Date(q.startDate) >= new Date(q.endDate)) {
+        return `${q.name} start date must be before end date`;
+      }
+      if (i > 0 && new Date(q.startDate) <= new Date(quarters[i - 1].endDate)) {
+        return `${q.name} start date must be after previous quarter's end date`;
+      }
+    }
+    return '';
   };
 
-  const handleStartSchoolYear = async () => {
-    if (!startDate) {
-      setError("Please select a start date.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
-
     try {
-      const response = await axios.get("http://localhost:4000/api/school/school-year", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        withCredentials: true,
-      });
-
-      if (response.data.success && response.data.isActive) {
-        setWarning("A school year is already running. Do you want to reset it?");
-        return;
-      }
-
-      await startNewSchoolYear();
+      await axios.post('http://localhost:5000/api/school-years', { year, quarters });
+      alert('School year created successfully!');
+      setYear('');
+      setQuarters(quarters.map((q) => ({ ...q, startDate: '', endDate: '' })));
+      setError('');
+      onYearCreated();
+      onClose(); // Close the form after successful submission
     } catch (err) {
-      if (err.response?.data?.isActive) {
-        setWarning("A school year is already running. Do you want to reset it?");
-      } else {
-        console.error("Error checking school year:", err);
-        setError("Failed to start school year.");
-      }
+      setError(err.response?.data?.error || 'Failed to create school year');
     }
   };
 
-  const startNewSchoolYear = async () => {
-    try {
-      const currentQuarter = determineCurrentQuarter(startDate);
-      const response = await axios.post(
-        "http://localhost:4000/api/school/start-school-year",
-        { startDate, quarters, currentQuarter },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (response.data.success) {
-        setCurrentQuarter(currentQuarter);
-        setWarning("");
-        setError("");
-      } else {
-        setError("Failed to start school year.");
-      }
-    } catch (err) {
-      console.error("Error starting school year:", err);
-      setError("Failed to start school year.");
-    }
+  const handleCancel = () => {
+    setYear('');
+    setQuarters(quarters.map((q) => ({ ...q, startDate: '', endDate: '' })));
+    setError('');
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-transparent bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-        <h2 className="text-2xl font-bold mb-4">School Year Management</h2>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">School Year Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="p-2 border-2 rounded-lg w-full"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Edit Quarters</label>
-          {quarters.map((q, index) => (
-            <div key={q.name} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={q.name}
-                onChange={(e) => handleQuarterChange(index, "name", e.target.value)}
-                className="p-2 border-2 rounded-lg w-1/4"
-              />
-              <input
-                type="text"
-                value={q.start}
-                onChange={(e) => handleQuarterChange(index, "start", e.target.value)}
-                className="p-2 border-2 rounded-lg w-1/3"
-                placeholder="MM-DD"
-              />
-              <input
-                type="text"
-                value={q.end}
-                onChange={(e) => handleQuarterChange(index, "end", e.target.value)}
-                className="p-2 border-2 rounded-lg w-1/3"
-                placeholder="MM-DD"
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Current Quarter</label>
-          <p className="p-2 bg-gray-100 rounded-lg">{currentQuarter || "Not set"}</p>
-        </div>
-
+    <div className="fixed inset-0 bg-transparent bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-gradient-to-br from-white to-gray-50 p-8 border-2 rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto relative">
+        {/* Close Button */}
         <button
-          type="button"
-          onClick={handleStartSchoolYear}
-          className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 mb-4"
+          onClick={handleCancel}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          aria-label="Close"
         >
-          Start School Year
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </button>
 
-        {warning && (
-          <div className="mb-4 p-2 bg-yellow-100 text-yellow-700 rounded-lg">
-            {warning}
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={startNewSchoolYear}
-                className="p-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                Yes, Reset
-              </button>
-              <button
-                onClick={() => setWarning("")}
-                className="p-1 bg-gray-300 text-black rounded-lg hover:bg-gray-400"
-              >
-                No
-              </button>
-            </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-6">Create New School Year</h2>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center">
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-6">
+            <label className="block text-gray-700 font-medium mb-2">
+              School Year (e.g., 2024-2025)
+            </label>
+            <input
+              type="text"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+              placeholder="2024-2025"
+              required
+            />
+          </div>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400"
-          >
-            Close
-          </button>
-        </div>
+          {quarters.map((quarter, index) => (
+            <div
+              key={quarter.quarterId}
+              className="mb-6 p-6 bg-gray-100 rounded-xl shadow-sm"
+            >
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {quarter.name}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={quarter.startDate}
+                    onChange={(e) =>
+                      handleQuarterChange(index, 'startDate', e.target.value)
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={quarter.endDate}
+                    onChange={(e) =>
+                      handleQuarterChange(index, 'endDate', e.target.value)
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all"
+            >
+              Create School Year
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 bg-gray-200 text-gray-700 p-3 rounded-lg hover:bg-gray-300 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
-
-SchoolYearForm.propTypes = { onClose: PropTypes.func.isRequired };
 
 export default SchoolYearForm;

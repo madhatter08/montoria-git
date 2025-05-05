@@ -46,19 +46,22 @@ const RemarksForm = ({ onClose, onSave, initialRemarks }) => {
 // Main Progress Component
 const Progress = () => {
   const [progress, setProgress] = useState({});
-  const [selectedUser, setSelectedUser] = useState("USER NAME"); // Changed to "USER NAME" for all roles
+  const [selectedUser, setSelectedUser] = useState("USER NAME");
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState([]);
-  const [users, setUsers] = useState([]); // Renamed to "users" for all roles
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editIndex, setEditIndex] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("Quarter 1");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [areas, setAreas] = useState([]);
   const [feedback, setFeedback] = useState({});
   const [unsavedFeedback, setUnsavedFeedback] = useState({});
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { backendUrl, userData } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
+  const [curriculumData, setCurriculumData] = useState([]);
 
   const quarterWeeks = {
     "Quarter 1": ["Week 1", "Week 2", "Week 3"],
@@ -88,24 +91,24 @@ const Progress = () => {
     "Week 12": "week12",
   };
 
-  // Fetch initial data (classes and active users)
+  // Fetch initial data (classes, active users, and curriculum)
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(
+        // Fetch class list and users
+        const classResponse = await axios.get(
           `${backendUrl}/api/school/class-list`,
           {
             withCredentials: true,
           }
         );
 
-        if (response.status !== 200 || !response.data.success) {
-          throw new Error("Failed to fetch data");
+        if (classResponse.status !== 200 || !classResponse.data.success) {
+          throw new Error("Failed to fetch class data");
         }
 
-        const data = response.data;
-        // Filter only active users
+        const data = classResponse.data;
         const activeUsers = data.students.filter(
           (user) => user.isActive === true
         );
@@ -117,6 +120,24 @@ const Progress = () => {
         setClasses(uniqueClasses);
         setUsers(activeUsers);
 
+        // Fetch curriculum data
+        const curriculumResponse = await axios.get(
+          `${backendUrl}/api/school/get-curriculum`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        if (
+          curriculumResponse.status !== 200 ||
+          !curriculumResponse.data.success
+        ) {
+          throw new Error("Failed to fetch curriculum data");
+        }
+
+        setCurriculumData(curriculumResponse.data.data);
+
+        // Initialize progress and feedback
         const initialProgress = {};
         const initialFeedback = {};
         activeUsers.forEach((user) => {
@@ -128,7 +149,6 @@ const Progress = () => {
             "Quarter 4": ["", "", ""],
           };
 
-          // Only process lessons for students
           if (user.role === "student" && user.studentData?.lessons) {
             user.studentData.lessons.forEach((lesson, index) => {
               let presented = false;
@@ -143,8 +163,7 @@ const Progress = () => {
                   sub.status === "presented" ||
                   sub.status === "practiced" ||
                   sub.status === "mastered",
-                practiced:
-                  sub.status === "practiced" || sub.status === "mastered",
+                practiced: sub.status === "practiced" || sub.status === "mastered",
                 mastered: sub.status === "mastered",
                 date: sub.status_date
                   ? new Date(sub.status_date).toLocaleDateString()
@@ -179,7 +198,7 @@ const Progress = () => {
         setFeedback(initialFeedback);
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load user data.");
+        toast.error("Failed to load data.");
       } finally {
         setLoading(false);
       }
@@ -187,6 +206,34 @@ const Progress = () => {
 
     fetchData();
   }, [backendUrl]);
+
+  // Update areas based on selected user
+  useEffect(() => {
+    if (selectedUser !== "USER NAME") {
+      const user = users.find((u) => formatUserName(u) === selectedUser);
+      if (user && user.studentData?.lessons) {
+        const lessonWorks = user.studentData.lessons
+          .map((lesson) => lesson.lesson_work)
+          .filter(Boolean);
+        const matchingAreas = curriculumData
+          .filter((item) => lessonWorks.includes(`${item.Lesson} - ${item.Work}`))
+          .map((item) => item.Areas)
+          .filter(Boolean);
+        const uniqueAreas = [...new Set(matchingAreas)];
+        setAreas(uniqueAreas);
+        // Reset selected area if it's no longer valid
+        if (selectedArea && !uniqueAreas.includes(selectedArea)) {
+          setSelectedArea("");
+        }
+      } else {
+        setAreas([]);
+        setSelectedArea("");
+      }
+    } else {
+      setAreas([]);
+      setSelectedArea("");
+    }
+  }, [selectedUser, curriculumData, users]);
 
   // Fetch feedback for the selected user
   useEffect(() => {
@@ -335,10 +382,16 @@ const Progress = () => {
   const handleClassChange = (e) => {
     setSelectedClass(e.target.value);
     setSelectedUser("USER NAME");
+    setSelectedArea("");
   };
 
   const handleUserChange = (e) => {
     setSelectedUser(e.target.value);
+    setSelectedArea("");
+  };
+
+  const handleAreaChange = (e) => {
+    setSelectedArea(e.target.value);
   };
 
   const getUserProgress = (userId) => {
@@ -456,7 +509,7 @@ const Progress = () => {
       await axios.post(
         `${backendUrl}/api/school/save-progress`,
         {
-          studentId: userId, // Renamed to userId for consistency
+          studentId: userId,
           lessonIndex,
           progress: {
             presented: progressData.presented,
@@ -479,11 +532,28 @@ const Progress = () => {
     if (user.role !== "student" || !user.studentData?.lessons) return;
 
     const lesson = user.studentData.lessons[index];
-    const subRowsCount = progress[user._id][index].subRows.length;
+    const subRows = progress[user._id][index].subRows;
+    const subRowsCount = subRows.length;
     const newDayNumber = subRowsCount + 1;
+
+    // Determine status based on the last subrow
+    let newStatus = "presented";
+    let isPresented = true;
+    let isPracticed = false;
+    let isMastered = false;
+
+    if (subRowsCount > 0) {
+      const lastSubRow = subRows[subRowsCount - 1];
+      if (lastSubRow.presented && lastSubRow.practiced) {
+        newStatus = "practiced";
+        isPresented = true;
+        isPracticed = true;
+      }
+    }
+
     const newSubwork = {
       subwork_name: `Day ${newDayNumber}: ${lesson.lesson_work}`,
-      status: "presented",
+      status: newStatus,
       subwork_remarks: "",
       status_date: new Date(),
       updatedBy: userData.email,
@@ -504,9 +574,9 @@ const Progress = () => {
         setProgress((prev) => {
           const newProgress = { ...prev };
           const newSubRow = {
-            presented: true,
-            practiced: false,
-            mastered: false,
+            presented: isPresented,
+            practiced: isPracticed,
+            mastered: isMastered,
             date: new Date().toLocaleDateString(),
             subwork_name: `Day ${newDayNumber}: ${lesson.lesson_work}`,
             updatedBy: newSubwork.updatedBy,
@@ -622,17 +692,42 @@ const Progress = () => {
 
   const filterProgress = (userId) => {
     const userProgress = getUserProgress(userId);
-    return Object.entries(userProgress).filter(([_, row]) => {
+    const user = users.find((u) => u._id === userId);
+    return Object.entries(userProgress).filter(([index, row]) => {
       const practicedCount = row.subRows.filter((sub) => sub.practiced).length;
-      if (filterStatus === "All") return true;
-      if (filterStatus === "Not Presented")
-        return !row.presented && !row.practiced && !row.mastered;
-      if (filterStatus === "Presented")
-        return row.presented && !row.practiced && !row.mastered;
-      if (filterStatus === "Practiced") return row.practiced && !row.mastered;
-      if (filterStatus === "Mastered") return row.mastered;
-      if (filterStatus === "Needs Attention") return practicedCount >= 8;
-      return true;
+      const lessonWork = user.studentData?.lessons?.[index]?.lesson_work;
+
+      // Filter by area
+      let matchesArea = true;
+      if (selectedArea && lessonWork) {
+        const curriculumMatch = curriculumData.find(
+          (item) =>
+            `${item.Lesson} - ${item.Work}` === lessonWork &&
+            item.Areas === selectedArea
+        );
+        matchesArea = !!curriculumMatch;
+      }
+
+      // Filter by status
+      let matchesStatus = true;
+      if (filterStatus === "Not Presented") {
+        matchesStatus = !row.presented && !row.practiced && !row.mastered;
+      } else if (filterStatus === "Presented") {
+        matchesStatus = row.presented && !row.practiced && !row.mastered;
+      } else if (filterStatus === "Practiced") {
+        matchesStatus = row.practiced && !row.mastered;
+      } else if (filterStatus === "Mastered") {
+        matchesStatus = row.mastered;
+      } else if (filterStatus === "Needs Attention") {
+        matchesStatus = practicedCount >= 8;
+      }
+
+      // Filter by search term
+      const matchesSearch = lessonWork
+        ? lessonWork.toLowerCase().includes(searchTerm.toLowerCase())
+        : true;
+
+      return matchesArea && matchesStatus && matchesSearch;
     });
   };
 
@@ -796,6 +891,18 @@ const Progress = () => {
               <option value="Quarter 3">Quarter 3</option>
               <option value="Quarter 4">Quarter 4</option>
             </select>
+            <select
+              className="w-40 h-12 bg-[#d9d9d9] rounded-[15px] px-4"
+              value={selectedArea}
+              onChange={handleAreaChange}
+            >
+              <option value="">All Areas</option>
+              {areas.map((area, index) => (
+                <option key={index} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -905,154 +1012,165 @@ const Progress = () => {
                     </tr>
                   );
                 }
-                return filterProgress(user._id).map(([index, row]) => (
-                  <>
-                    <tr key={index} className="border-b">
-                      <td className="p-3 flex justify-between items-center">
-                        <span className="flex items-center">
-                          {getStatusIndicator(row)}
-                          <span className="ml-2">
-                            {user.studentData.lessons[index]?.lesson_work ||
-                              `Work ${index + 1}`}
+                return filterProgress(user._id).map(([index, row]) => {
+                  const isAddDisabled =
+                    row.subRows.length > 0 &&
+                    row.subRows[row.subRows.length - 1].mastered;
+
+                  return (
+                    <>
+                      <tr key={index} className="border-b">
+                        <td className="p-3 flex justify-between items-center">
+                          <span className="flex items-center">
+                            {getStatusIndicator(row)}
+                            <span className="ml-2">
+                              {user.studentData.lessons[index]?.lesson_work ||
+                                `Work ${index + 1}`}
+                            </span>
                           </span>
-                        </span>
-                        {row.subRows.length > 0 && (
-                          <button
-                            onClick={() => toggleDropdown(index, user)}
-                            className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                          >
-                            {row.expanded ? "▲" : "▼"}
-                          </button>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
-                          checked={row.presented}
-                          onChange={() =>
-                            handleCheckboxChange(user._id, index, "presented")
-                          }
-                          disabled={row.practiced || row.mastered}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
-                          checked={row.practiced}
-                          onChange={() =>
-                            handleCheckboxChange(user._id, index, "practiced")
-                          }
-                          disabled={!row.presented || row.mastered}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
-                          checked={row.mastered}
-                          onChange={() =>
-                            handleCheckboxChange(user._id, index, "mastered")
-                          }
-                          disabled={!row.presented || !row.practiced}
-                        />
-                      </td>
-                      <td className="p-3 relative">
-                        {user.studentData.lessons[index]?.remarks || "-"}
-                        <button
-                          onClick={() => handleEditRemarks(index)}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                        >
-                          <img
-                            src={assets.edit}
-                            alt="Edit"
-                            className="w-5 h-5"
-                          />
-                        </button>
-                      </td>
-                      <td className="p-3">{row.date || "-"}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => handleAddSubwork(index, user)}
-                          className="bg-[#4A154B] text-white px-4 py-2 rounded-lg"
-                        >
-                          Add
-                        </button>
-                      </td>
-                    </tr>
-                    {row.expanded &&
-                      row.subRows.map((subRow, subIndex) => (
-                        <tr
-                          key={`sub-${index}-${subIndex}`}
-                          className="border-b bg-gray-300"
-                        >
-                          <td className="p-3">{subRow.subwork_name}</td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
-                              checked={subRow.presented}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  user._id,
-                                  index,
-                                  subIndex,
-                                  "presented"
-                                )
-                              }
-                              disabled={subRow.practiced || subRow.mastered}
-                            />
-                          </td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
-                              checked={subRow.practiced}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  user._id,
-                                  index,
-                                  subIndex,
-                                  "practiced"
-                                )
-                              }
-                              disabled={!subRow.presented || subRow.mastered}
-                            />
-                          </td>
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
-                              checked={subRow.mastered}
-                              onChange={() =>
-                                handleSubRowCheckboxChange(
-                                  user._id,
-                                  index,
-                                  subIndex,
-                                  "mastered"
-                                )
-                              }
-                              disabled={!subRow.presented || !subRow.practiced}
-                            />
-                          </td>
-                          <td className="p-3 flex justify-between items-center">
-                            {subRow.subwork_remarks || "-"}
-                            <button onClick={() => handleEditRemarks(index)}>
-                              <img
-                                src={assets.edit}
-                                alt="Edit"
-                                className="w-5 h-5"
-                                style={{ filter: "grayscale(100%)" }}
-                              />
+                          {row.subRows.length > 0 && (
+                            <button
+                              onClick={() => toggleDropdown(index, user)}
+                              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                            >
+                              {row.expanded ? "▲" : "▼"}
                             </button>
-                          </td>
-                          <td className="p-3">{subRow.date || "-"}</td>
-                          <td className="p-3">{subRow.updatedBy || "-"}</td>
-                        </tr>
-                      ))}
-                  </>
-                ));
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
+                            checked={row.presented}
+                            onChange={() =>
+                              handleCheckboxChange(user._id, index, "presented")
+                            }
+                            disabled={row.practiced || row.mastered}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
+                            checked={row.practiced}
+                            onChange={() =>
+                              handleCheckboxChange(user._id, index, "practiced")
+                            }
+                            disabled={!row.presented || row.mastered}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
+                            checked={row.mastered}
+                            onChange={() =>
+                              handleCheckboxChange(user._id, index, "mastered")
+                            }
+                            disabled={!row.presented || !row.practiced}
+                          />
+                        </td>
+                        <td className="p-3 relative">
+                          {user.studentData.lessons[index]?.remarks || "-"}
+                          <button
+                            onClick={() => handleEditRemarks(index)}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                          >
+                            <img
+                              src={assets.edit}
+                              alt="Edit"
+                              className="w-5 h-5"
+                            />
+                          </button>
+                        </td>
+                        <td className="p-3">{row.date || "-"}</td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => handleAddSubwork(index, user)}
+                            className={`px-4 py-2 rounded-lg ${
+                              isAddDisabled
+                                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                : "bg-[#4A154B] text-white"
+                            }`}
+                            disabled={isAddDisabled}
+                          >
+                            Add
+                          </button>
+                        </td>
+                      </tr>
+                      {row.expanded &&
+                        row.subRows.map((subRow, subIndex) => (
+                          <tr
+                            key={`sub-${index}-${subIndex}`}
+                            className="border-b bg-gray-300"
+                          >
+                            <td className="p-3">{subRow.subwork_name}</td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#3cd416] checked:border-gray"
+                                checked={subRow.presented}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    user._id,
+                                    index,
+                                    subIndex,
+                                    "presented"
+                                  )
+                                }
+                                disabled={subRow.practiced || subRow.mastered}
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#e5a91b] checked:border-gray"
+                                checked={subRow.practiced}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    user._id,
+                                    index,
+                                    subIndex,
+                                    "practiced"
+                                  )
+                                }
+                                disabled={!subRow.presented || subRow.mastered}
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                className="w-6 h-6 appearance-none border-3 border-gray-500 rounded-full checked:bg-[#c32cdd] checked:border-gray"
+                                checked={subRow.mastered}
+                                onChange={() =>
+                                  handleSubRowCheckboxChange(
+                                    user._id,
+                                    index,
+                                    subIndex,
+                                    "mastered"
+                                  )
+                                }
+                                disabled={!subRow.presented || !subRow.practiced}
+                              />
+                            </td>
+                            <td className="p-3 flex justify-between items-center">
+                              {subRow.subwork_remarks || "-"}
+                              <button onClick={() => handleEditRemarks(index)}>
+                                <img
+                                  src={assets.edit}
+                                  alt="Edit"
+                                  className="w-5 h-5"
+                                  style={{ filter: "grayscale(100%)" }}
+                                />
+                              </button>
+                            </td>
+                            <td className="p-3">{subRow.date || "-"}</td>
+                            <td className="p-3">{subRow.updatedBy || "-"}</td>
+                          </tr>
+                        ))}
+                    </>
+                  );
+                });
               })()
             )}
           </tbody>
